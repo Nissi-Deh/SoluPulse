@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Management" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
+    <PackageReference Include="LibreHardwareMonitorLib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SoluPulse.Core\SoluPulse.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="SoluPulse.Platform.Windows.Tests" />
+  </ItemGroup>
+</Project>

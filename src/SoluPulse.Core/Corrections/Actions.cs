@@ -42,7 +42,8 @@ public sealed record ActionDescriptor(
 /// <summary>Identité Windows de l'utilisateur qui a validé, obtenue par le service via le canal nommé.</summary>
 public sealed record CallerIdentity(string UserSid, string UserName);
 
-public sealed record ActionContext(IReadOnlyDictionary<string, string> Parameters, CallerIdentity Caller)
+/// <param name="Backup">La sauvegarde faite juste avant l'exécution, transmise à l'action.</param>
+public sealed record ActionContext(IReadOnlyDictionary<string, string> Parameters, CallerIdentity Caller, string? Backup = null)
 {
     public string Get(string name) =>
         Parameters.TryGetValue(name, out var value)
@@ -84,6 +85,17 @@ public interface ISystemAction
     Task<ActionOutcome> ExecuteAsync(ActionContext context, CancellationToken cancellationToken);
 
     Task<ActionOutcome> UndoAsync(ActionContext context, string backup, CancellationToken cancellationToken);
+}
+
+public sealed record ParameterChoice(string Value, string Label, string? Detail = null);
+
+/// <summary>
+/// Une action à paramètres propose elle-même les valeurs possibles : l'utilisateur choisit dans une
+/// liste, il ne saisit jamais de texte libre transmis au système.
+/// </summary>
+public interface IActionParameterChoices
+{
+    Task<IReadOnlyList<ParameterChoice>> GetChoicesAsync(string parameter, CallerIdentity caller, CancellationToken cancellationToken);
 }
 
 /// <summary>Base pratique pour les actions sans paramètre ni sauvegarde.</summary>

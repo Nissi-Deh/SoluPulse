@@ -19,6 +19,7 @@
     <!-- Windows -->
     <PackageVersion Include="System.Management" Version="10.0.14" />
     <PackageVersion Include="System.Diagnostics.EventLog" Version="10.0.14" />
+    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.14" />
     <PackageVersion Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <!-- Interface -->
     <PackageVersion Include="Avalonia" Version="11.3.8" />

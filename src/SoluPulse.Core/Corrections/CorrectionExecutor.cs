@@ -134,6 +134,7 @@ public sealed class CorrectionExecutor(
                 }
 
                 await journal.SaveBackupAsync(executionId, backup, cancellationToken).ConfigureAwait(false);
+                context = context with { Backup = backup };
             }
 
             ActionOutcome outcome;
