@@ -31,6 +31,8 @@ public sealed partial class NetworkCollector(TimeProvider timeProvider, NetworkP
     private const int PingCount = 4;
     private const int PingTimeoutMs = 1000;
 
+    private (long Received, long Sent, long Timestamp)? _previousBytes;
+
     public string Name => "reseau";
 
     public TimeSpan Interval => TimeSpan.FromMinutes(2);
@@ -47,6 +49,7 @@ public sealed partial class NetworkCollector(TimeProvider timeProvider, NetworkP
         var active = ActiveInterfaces().ToList();
         result.Add("reseau.connecte", active.Count > 0 ? 1 : 0, "");
         result.Snapshot("cartes_reseau", active.Select(n => new { Nom = n.Name, Type = n.NetworkInterfaceType.ToString(), VitesseMbps = n.Speed / 1_000_000 }));
+        result.Try("debit", () => AddThroughput(result, active));
 
         var gateway = active.SelectMany(n => n.GetIPProperties().GatewayAddresses)
             .Select(g => g.Address)
@@ -110,6 +113,30 @@ public sealed partial class NetworkCollector(TimeProvider timeProvider, NetworkP
         }
 
         return result.Build();
+    }
+
+    /// <summary>Débit moyen reçu et envoyé depuis le relevé précédent, toutes cartes actives confondues.</summary>
+    private void AddThroughput(CollectorResultBuilder result, IReadOnlyList<NetworkInterface> active)
+    {
+        long received = 0, sent = 0;
+        foreach (var statistics in active.Select(n => n.GetIPStatistics()))
+        {
+            received += statistics.BytesReceived;
+            sent += statistics.BytesSent;
+        }
+
+        var now = Stopwatch.GetTimestamp();
+        if (_previousBytes is { } previous && received >= previous.Received && sent >= previous.Sent)
+        {
+            var seconds = Stopwatch.GetElapsedTime(previous.Timestamp, now).TotalSeconds;
+            if (seconds > 0)
+            {
+                result.Add("reseau.debit_recu_kbps", Math.Round((received - previous.Received) * 8 / 1000d / seconds, 1), "kbit/s");
+                result.Add("reseau.debit_envoye_kbps", Math.Round((sent - previous.Sent) * 8 / 1000d / seconds, 1), "kbit/s");
+            }
+        }
+
+        _previousBytes = (received, sent, now);
     }
 
     private static async Task<(double LossPercent, double? MedianLatency)> PingAsync(IReadOnlyList<IPAddress> targets, int countPerTarget, CancellationToken cancellationToken)
