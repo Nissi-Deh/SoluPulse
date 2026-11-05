@@ -17,8 +17,17 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $root
 
+# git et gh écrivent leur progression sur la sortie d'erreur : seul le code de retour compte.
 function Invoke-Native([string]$File, [string[]]$Arguments) {
-    $output = & $File @Arguments 2>&1
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = & $File @Arguments 2>&1 | ForEach-Object { "$_" }
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+
     if ($LASTEXITCODE -ne 0) { throw "$File $($Arguments -join ' ') : $output" }
     return $output
 }
