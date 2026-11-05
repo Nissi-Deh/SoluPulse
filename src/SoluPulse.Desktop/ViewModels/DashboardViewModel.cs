@@ -7,7 +7,7 @@ using SoluPulse.Desktop.Services;
 
 namespace SoluPulse.Desktop.ViewModels;
 
-/// <summary>Tableau de bord : score de santé, quatre domaines, alertes actives (EF-IHM-01).</summary>
+/// <summary>Tableau de bord : score de santé, quatre domaines, valeurs en direct, alertes actives (EF-IHM-01).</summary>
 public sealed partial class DashboardViewModel(AgentClient client, MainViewModel main) : PageViewModel
 {
     public override string Title => "Tableau de bord";
@@ -15,6 +15,8 @@ public sealed partial class DashboardViewModel(AgentClient client, MainViewModel
     public ObservableCollection<DomainItem> Domains { get; } = [];
 
     public ObservableCollection<AlertItem> ActiveAlerts { get; } = [];
+
+    public ObservableCollection<GaugeItem> Live { get; } = [];
 
     public ObservableCollection<string> SensorIssues { get; } = [];
 
@@ -42,6 +44,9 @@ public sealed partial class DashboardViewModel(AgentClient client, MainViewModel
     [ObservableProperty]
     private bool _hasSensorIssues;
 
+    [ObservableProperty]
+    private bool _hasLive;
+
     public override Task RefreshAsync() => RunAsync(async () =>
     {
         var status = await client.Api.GetStatusAsync(AgentClient.Empty);
@@ -54,7 +59,28 @@ public sealed partial class DashboardViewModel(AgentClient client, MainViewModel
         }
 
         HasAlerts = ActiveAlerts.Count > 0;
+        await RefreshLiveAsync();
     });
+
+    /// <summary>Met à jour les valeurs en direct ; une erreur ici ne doit pas masquer le reste du tableau de bord.</summary>
+    public async Task RefreshLiveAsync()
+    {
+        try
+        {
+            var metrics = new MetricValues(await client.Api.GetLiveMetricsAsync(AgentClient.Empty));
+            Live.Clear();
+            foreach (var gauge in ComponentCards.LiveGauges(metrics))
+            {
+                Live.Add(gauge);
+            }
+
+            HasLive = Live.Count > 0;
+        }
+        catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
+        {
+            // Les valeurs précédentes restent affichées jusqu'au prochain relevé.
+        }
+    }
 
     public void Apply(StatusReply status)
     {
@@ -108,4 +134,7 @@ public sealed partial class DashboardViewModel(AgentClient client, MainViewModel
 
     [RelayCommand]
     private void ShowAlerts() => main.Navigate(main.Alerts);
+
+    [RelayCommand]
+    private void ShowComputer() => main.Navigate(main.Computer);
 }

@@ -11,6 +11,7 @@
         WindowStartupLocation="CenterScreen">
   <Window.DataTemplates>
     <DataTemplate DataType="vm:DashboardViewModel"><v:DashboardView /></DataTemplate>
+    <DataTemplate DataType="vm:ComputerViewModel"><v:ComputerView /></DataTemplate>
     <DataTemplate DataType="vm:AlertsViewModel"><v:AlertsView /></DataTemplate>
     <DataTemplate DataType="vm:HistoryViewModel"><v:HistoryView /></DataTemplate>
     <DataTemplate DataType="vm:JournalViewModel"><v:JournalView /></DataTemplate>

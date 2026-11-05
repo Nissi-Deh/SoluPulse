@@ -5,9 +5,9 @@
              x:DataType="vm:InventoryViewModel">
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,16">
-      <TextBlock Classes="h1" Text="Inventaire" />
+      <TextBlock Classes="h1" Text="Inventaire système" />
       <TextBlock Classes="muted" TextWrapping="Wrap"
-                 Text="Ce que SoluPulse a relevé sur ce PC. Ces informations restent sur votre PC." />
+                 Text="Programmes, services, mises à jour et événements relevés par SoluPulse. Le matériel est détaillé sur la page « Mon PC ». Ces informations restent sur votre PC." />
       <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>
     <ScrollViewer>
@@ -21,7 +21,7 @@
                   <TextBlock Text="{Binding Date}" Classes="muted" />
                 </StackPanel>
               </Expander.Header>
-              <SelectableTextBlock Text="{Binding Text}" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" TextWrapping="Wrap" />
+              <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" LineHeight="22" />
             </Expander>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

@@ -45,6 +45,7 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private readonly AgentClient _client;
     private readonly NotificationService _notifications;
+    private readonly DispatcherTimer _liveTimer = new() { Interval = TimeSpan.FromSeconds(15) };
     private SettingsReply? _settings;
 
     public MainViewModel(AgentClient client, NotificationService notifications)
@@ -52,6 +53,7 @@ public sealed partial class MainViewModel : ObservableObject
         _client = client;
         _notifications = notifications;
         Dashboard = new DashboardViewModel(client, this);
+        Computer = new ComputerViewModel(client);
         Alerts = new AlertsViewModel(client, this);
         History = new HistoryViewModel(client);
         Journal = new JournalViewModel(client);
@@ -60,13 +62,24 @@ public sealed partial class MainViewModel : ObservableObject
         Navigation =
         [
             new("Tableau de bord", "◉", Dashboard),
+            new("Mon PC", "💻", Computer),
             new("Alertes", "⚠", Alerts),
             new("Historique", "📈", History),
             new("Journal des corrections", "✔", Journal),
-            new("Inventaire", "☰", Inventory),
+            new("Inventaire système", "☰", Inventory),
             new("Paramètres", "⚙", Settings),
         ];
         _selectedNavigation = Navigation[0];
+
+        // Valeurs en direct du tableau de bord : relues tant qu'il est affiché et que la fenêtre est ouverte.
+        _liveTimer.Tick += (_, _) =>
+        {
+            if (Connected && WindowVisible && CurrentPage == Dashboard)
+            {
+                _ = Dashboard.RefreshLiveAsync();
+            }
+        };
+        _liveTimer.Start();
 
         client.EventReceived += (_, e) => Dispatcher.UIThread.Post(() => OnAgentEvent(e));
         client.ConnectionChanged += (_, connected) => Dispatcher.UIThread.Post(() => OnConnectionChanged(connected));
@@ -74,6 +87,8 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public DashboardViewModel Dashboard { get; }
+
+    public ComputerViewModel Computer { get; }
 
     public AlertsViewModel Alerts { get; }
 
@@ -107,6 +122,9 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _disconnected = true;
 
     public PageViewModel CurrentPage => SelectedNavigation.Page;
+
+    /// <summary>Faux quand l'application tourne dans la zone de notification ; fourni par la fenêtre.</summary>
+    public bool WindowVisible { get; set; } = true;
 
     partial void OnSelectedNavigationChanged(NavigationItem value)
     {
@@ -173,6 +191,11 @@ public sealed partial class MainViewModel : ObservableObject
             case "etat" when agentEvent.Status is not null:
                 Dashboard.Apply(agentEvent.Status);
                 StatusChanged?.Invoke(this, agentEvent.Status);
+                if (CurrentPage == Dashboard)
+                {
+                    _ = Dashboard.RefreshLiveAsync();
+                }
+
                 break;
             case "alerte_ouverte" when agentEvent.Alert is not null:
                 if (ShouldNotify(agentEvent.Alert))

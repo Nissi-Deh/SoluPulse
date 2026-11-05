@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using SoluPulse.Desktop.ViewModels;
@@ -16,6 +17,15 @@ public sealed partial class MainWindow : Window
                 main.ShowCorrection = ShowCorrectionAsync;
             }
         };
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == IsVisibleProperty && DataContext is MainViewModel main)
+        {
+            main.WindowVisible = change.GetNewValue<bool>();
+        }
     }
 
     private async Task ShowCorrectionAsync(CorrectionViewModel correction)

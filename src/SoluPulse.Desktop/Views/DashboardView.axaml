@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SoluPulse.Desktop.ViewModels"
              x:Class="SoluPulse.Desktop.Views.DashboardView"
+             xmlns:v="using:SoluPulse.Desktop.Views"
              x:DataType="vm:DashboardViewModel">
   <ScrollViewer>
     <StackPanel Spacing="20">
@@ -48,6 +49,23 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+
+      <StackPanel Spacing="10" IsVisible="{Binding HasLive}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="h2" Text="En direct" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="Voir tous les composants" Command="{Binding ShowComputerCommand}" />
+        </Grid>
+        <ItemsControl Classes="live" ItemsSource="{Binding Live}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:GaugeItem">
+              <v:GaugeTile />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
 
       <TextBlock Classes="h2" Text="Alertes actives" />
       <TextBlock Classes="muted" Text="Aucune alerte : rien à faire pour le moment." IsVisible="{Binding !HasAlerts}" />
