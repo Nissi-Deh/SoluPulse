@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.Extensions.Options;
 using SoluPulse.Core.Corrections;
+using SoluPulse.Platform.Windows.Interop;
 
 namespace SoluPulse.Agent.Security;
 
@@ -15,26 +15,14 @@ namespace SoluPulse.Agent.Security;
 /// </summary>
 internal sealed partial class CallerAuthenticator(IOptions<AgentOptions> options, ILogger<CallerAuthenticator> logger)
 {
-    private static readonly SecurityIdentifier Interactive = new(WellKnownSidType.InteractiveSid, null);
-
     public CallerIdentity Authenticate(ServerCallContext context)
     {
         var pipe = context.GetHttpContext().Features.Get<IConnectionNamedPipeFeature>()?.NamedPipe
             ?? throw new RpcException(new Status(StatusCode.PermissionDenied, "Seul le canal nommé local est accepté."));
 
-        CallerIdentity? caller = null;
-        var interactive = false;
-        pipe.RunAsClient(() =>
-        {
-            using var identity = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
-            interactive = identity.Groups?.Contains(Interactive) == true;
-            if (identity.User is { } sid)
-            {
-                caller = new CallerIdentity(sid.Value, identity.Name);
-            }
-        });
-
-        if (caller is null || !caller.UserSid.StartsWith("S-1-5-21-", StringComparison.Ordinal) || !interactive)
+        var identity = PipeCaller.Identify(pipe);
+        var caller = identity is null ? null : new CallerIdentity(identity.User.Value, identity.UserName);
+        if (caller is null || !caller.UserSid.StartsWith("S-1-5-21-", StringComparison.Ordinal) || identity?.Interactive != true)
         {
             logger.LogWarning("Appel refusé : appelant non interactif ou inconnu ({Caller}).", caller?.UserName);
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Appelant non autorisé."));

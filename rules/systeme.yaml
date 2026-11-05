@@ -84,7 +84,7 @@ regles:
     cause_probable: Service qui a planté ou qui n'a pas réussi à démarrer
     explication_simple: >
       Un service de Windows qui devrait tourner est arrêté. SoluPulse peut le redémarrer.
-    explication_technique: Service en démarrage automatique, sans déclencheur, à l'arrêt.
+    explication_technique: Service en démarrage automatique, sans déclencheur, arrêté avec un code d'erreur (plantage ou échec du démarrage).
     corrections: [ACT-SYS-SERVICE-START]
 
   - id: SYS-UPD-001

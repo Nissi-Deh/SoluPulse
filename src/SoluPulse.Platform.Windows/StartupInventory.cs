@@ -75,6 +75,13 @@ public static class StartupInventory
         return key?.GetValue("ProfileImagePath") as string;
     }
 
+    /// <summary>Dossiers de tous les profils utilisateurs du PC, connectés ou non.</summary>
+    public static IReadOnlyList<string> UserProfilePaths()
+    {
+        using var key = Registry.LocalMachine.OpenSubKey(ProfileList);
+        return (key?.GetSubKeyNames() ?? []).Where(IsUserSid).Select(ProfilePath).OfType<string>().ToList();
+    }
+
     // Une clé ou un dossier illisible (autre utilisateur, droits insuffisants) est ignoré : l'inventaire
     // continue avec ce qui est lisible.
     private static void ReadRun(List<StartupEntry> entries, RegistryKey root, string path, StartupLocation location, string? sid)
