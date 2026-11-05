@@ -72,13 +72,13 @@ public sealed class ActionSafetyTests : IDisposable
     public async Task SetDnsRejectsProvidersOutsideTheClosedList()
     {
         var action = new SetDnsAction();
-        var adapter = (await action.GetChoicesAsync("carte", Caller, default)).FirstOrDefault();
-        if (adapter is null)
+        var adapters = await action.GetChoicesAsync("carte", Caller, default);
+        if (adapters.Count == 0)
         {
             return; // Machine sans carte réseau active.
         }
 
-        await Assert.ThrowsAsync<ActionParameterException>(() => action.ValidateAsync(Context(("carte", adapter.Value), ("fournisseur", "8.8.8.8; del C:\\")), default));
+        await Assert.ThrowsAsync<ActionParameterException>(() => action.ValidateAsync(Context(("carte", adapters[0].Value), ("fournisseur", "8.8.8.8; del C:\\")), default));
     }
 
     [Fact]

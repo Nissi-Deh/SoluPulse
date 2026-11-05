@@ -80,7 +80,7 @@ public sealed partial class HistoryViewModel(AgentClient client) : PageViewModel
         }
 
         SelectedPeriod ??= Periods[0];
-        SelectedMetric = Metrics.FirstOrDefault(m => m.Metric == current) ?? Metrics.FirstOrDefault();
+        SelectedMetric = Metrics.FirstOrDefault(m => m.Metric == current) ?? (Metrics.Count > 0 ? Metrics[0] : null);
     });
 
     private Task LoadAsync() => SelectedMetric is null || SelectedPeriod is null ? Task.CompletedTask : RunAsync(async () =>

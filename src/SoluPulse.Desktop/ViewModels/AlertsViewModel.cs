@@ -35,7 +35,7 @@ public sealed partial class AlertsViewModel(AgentClient client, MainViewModel ma
         }
 
         IsEmpty = Items.Count == 0;
-        Selected = Items.FirstOrDefault(a => a.Id == selectedId) ?? Items.FirstOrDefault();
+        Selected = Items.FirstOrDefault(a => a.Id == selectedId) ?? (Items.Count > 0 ? Items[0] : null);
     });
 
     public async Task<AlertItem?> SelectAsync(string alertId)
