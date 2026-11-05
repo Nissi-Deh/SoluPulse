@@ -1,0 +1,22 @@
+# Build
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Tests
+TestResults/
+coverage*/
+
+# Données locales de l'agent
+*.db
+*.db-shm
+*.db-wal
+logs/

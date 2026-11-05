@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SoluPulse.Desktop.MainWindow"
+        Title="SoluPulse"
+        Width="900"
+        Height="620"
+        MinWidth="640"
+        MinHeight="480">
+  <StackPanel Margin="32" Spacing="16">
+    <TextBlock Text="SoluPulse" FontSize="30" FontWeight="Bold" />
+    <TextBlock Text="État de santé du PC" FontSize="18" />
+    <Border Padding="20" CornerRadius="8" BorderThickness="1">
+      <StackPanel Spacing="12">
+        <TextBlock Text="Diagnostic en préparation" FontSize="22" />
+        <TextBlock Text="Le service et l’interface sont installés. Les collecteurs seront ajoutés dans les prochaines étapes." TextWrapping="Wrap" />
+        <ProgressBar Value="0" Maximum="100" Height="10" />
+      </StackPanel>
+    </Border>
+    <TextBlock Text="Aucune mesure n’est collectée pour le moment." Opacity="0.7" />
+  </StackPanel>
+</Window>
