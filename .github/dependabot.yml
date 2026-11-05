@@ -1,0 +1,18 @@
+# Mises à jour des dépendances (cahier des charges §6.5).
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      avalonia:
+        patterns: ["Avalonia*"]
+      grpc:
+        patterns: ["Grpc*", "Google.Protobuf"]
+      tests:
+        patterns: ["xunit*", "Microsoft.NET.Test.Sdk", "NSubstitute", "coverlet*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

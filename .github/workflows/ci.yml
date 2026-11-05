@@ -1,0 +1,100 @@
+# Intégration continue (cahier des charges §6.5) : compilation, tests et couverture,
+# puis installeur MSI, signé si le certificat est configuré dans les secrets du dépôt.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test:
+    name: Compilation et tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restauration
+        run: dotnet restore SoluPulse.sln
+
+      - name: Compilation
+        run: dotnet build SoluPulse.sln -c Release --no-restore -warnaserror
+
+      - name: Tests et couverture
+        run: >
+          dotnet test SoluPulse.sln -c Release --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory TestResults
+          --logger "trx;LogFilePrefix=resultats"
+          -- DataCollectionRunSettings.DataCollector.Configuration.Format=cobertura
+
+      - name: Rapport de couverture
+        if: always()
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:TestResults/couverture -reporttypes:"MarkdownSummaryGithub;Html"
+          Get-Content TestResults/couverture/SummaryGithub.md >> $env:GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultats-tests
+          path: TestResults
+
+  installer:
+    name: Installeur MSI
+    runs-on: windows-latest
+    needs: build-test
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.SIGNING_CERT_PFX_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # Le certificat (PFX en base 64) et son mot de passe sont des secrets du dépôt.
+      # Sans eux, l'installeur est produit non signé : utilisable pour les tests, jamais pour une diffusion.
+      - name: Import du certificat de signature
+        id: certificate
+        if: env.HAS_SIGNING_CERT == 'true'
+        shell: pwsh
+        env:
+          SIGNING_CERT: ${{ secrets.SIGNING_CERT_PFX_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "signature.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERT))
+          $password = ConvertTo-SecureString $env:SIGNING_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          Remove-Item $pfx
+          "thumbprint=$($certificate.Thumbprint)" >> $env:GITHUB_OUTPUT
+
+      - name: Construction de l'installeur
+        shell: pwsh
+        env:
+          SOLUPULSE_SIGN_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
+        run: ./build/build-installer.ps1 -Version "1.0.${{ github.run_number }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installeur
+          path: artifacts/installer/*.msi
