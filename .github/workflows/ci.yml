@@ -61,6 +61,8 @@ jobs:
     name: Installeur MSI
     runs-on: windows-latest
     needs: build-test
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     env:
       HAS_SIGNING_CERT: ${{ secrets.SIGNING_CERT_PFX_BASE64 != '' }}
     steps:
@@ -95,8 +97,33 @@ jobs:
 
       # Le script télécharge l'installeur officiel de PawnIO et vérifie sa signature Authenticode.
       - uses: actions/upload-artifact@v4
+        id: upload
         with:
           name: installeur
           path: |
             artifacts/installer/*.msi
             artifacts/installer/SoluPulse-Setup-*.exe
+
+  # Signature gratuite par SignPath Foundation (docs/signature.md). Active dès que le secret
+  # SIGNPATH_API_TOKEN et la variable SIGNPATH_ORGANIZATION_ID sont configurés ; chaque demande
+  # attend l'approbation manuelle dans SignPath.
+  signature:
+    name: Signature SignPath
+    runs-on: ubuntu-latest
+    needs: installer
+    if: github.ref == 'refs/heads/main' && vars.SIGNPATH_ORGANIZATION_ID != ''
+    steps:
+      - uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: SoluPulse
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ needs.installer.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installeur-signe
+          path: signe

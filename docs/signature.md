@@ -1,14 +1,38 @@
-# Signature de code sans budget
+# Signature de code
 
-Le cahier des charges exige des exécutables et un installeur signés (ENF-SEC-04). Un certificat reconnu par Windows coûte de l'argent (environ 100 à 300 $ par an). Voici comment avancer sans dépenser, et ce qu'il faudra le jour de la diffusion publique.
+Le cahier des charges exige des exécutables et un installeur signés (ENF-SEC-04). SoluPulse étant open source (GPL-3.0), la signature est **gratuite** grâce à SignPath Foundation.
 
 ## Ce qui se passe sans signature
 
-SoluPulse fonctionne normalement. À l'ouverture de l'installeur, Windows SmartScreen affiche « Windows a protégé votre ordinateur » et « Éditeur : inconnu ». L'utilisateur clique sur **Informations complémentaires**, puis **Exécuter quand même**. Pour une diffusion au grand public, c'est un frein réel ; pour des tests et une bêta encadrée, c'est acceptable.
+SoluPulse fonctionne normalement, mais Windows SmartScreen affiche « Windows a protégé votre ordinateur » et « Éditeur : inconnu ». L'utilisateur doit cliquer sur **Informations complémentaires**, puis **Exécuter quand même**.
 
-## Gratuit, tout de suite : certificat de test auto-signé
+## Signature gratuite par SignPath Foundation
 
-Pour les machines virtuelles et les 10 PC de la bêta :
+[SignPath Foundation](https://signpath.org) signe gratuitement les projets open source, avec un certificat reconnu par Windows. L'éditeur affiché est « SignPath Foundation ».
+
+### Candidature (une seule fois)
+
+Conditions principales : licence approuvée par l'OSI (GPL-3.0 ✓), dépôt public (✓), construction par l'intégration continue (✓, GitHub Actions), politique de signature publiée (✓, [politique-signature.md](politique-signature.md)), authentification à deux facteurs sur GitHub et SignPath.
+
+1. Activer l'authentification à deux facteurs sur le compte GitHub.
+2. Remplir le formulaire de candidature sur <https://signpath.org/apply> avec l'adresse du dépôt.
+3. Une fois accepté, SignPath crée l'organisation et le projet. Dans SignPath :
+   - relier le projet au dépôt GitHub (« trusted build system » GitHub.com) ;
+   - créer une politique de signature `release-signing` et y importer [`.signpath/artifact-configuration.xml`](../.signpath/artifact-configuration.xml) ;
+   - créer un jeton d'API pour l'intégration continue.
+4. Dans GitHub, **Settings > Secrets and variables > Actions** :
+   - secret `SIGNPATH_API_TOKEN` : le jeton d'API ;
+   - variable `SIGNPATH_ORGANIZATION_ID` : l'identifiant de l'organisation SignPath.
+
+### Fonctionnement
+
+Dès que ces deux valeurs existent, l'intégration continue envoie l'installeur à SignPath à chaque construction de `main`. La signature attend l'approbation manuelle dans SignPath, puis les fichiers signés sont publiés comme artefact `installeur-signe`. Sans ces valeurs, l'installeur reste produit non signé, comme aujourd'hui.
+
+Limite actuelle : l'installeur complet embarque le MSI tel qu'il était avant signature. La signature de `SoluPulse-Setup.exe` couvre le fichier que l'utilisateur télécharge, c'est celle que vérifient SmartScreen et la demande d'autorisation de Windows. Le MSI diffusé seul est signé en profondeur (exécutables et bibliothèques SoluPulse compris). Amélioration possible : signer en deux passes (binaires et MSI, puis installeur complet et son moteur Burn).
+
+## En attendant : certificat de test gratuit
+
+Pour les machines virtuelles et la bêta, avant l'acceptation par SignPath :
 
 ```powershell
 ./build/new-test-certificate.ps1                     # crée le certificat et affiche son empreinte
@@ -22,21 +46,9 @@ Import-Certificate -FilePath SoluPulse-Test.cer -CertStoreLocation Cert:\LocalMa
 Import-Certificate -FilePath SoluPulse-Test.cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher
 ```
 
-Sur ces PC, SoluPulse apparaît signé par « Solutech SoluPulse (test) ». La chaîne de signature est testée de bout en bout. Sur les autres PC, le certificat n'est pas reconnu : il ne sert pas pour une diffusion publique.
-
-## Piste écartée : SignPath Foundation
-
-[SignPath Foundation](https://signpath.org/) signe gratuitement les projets open source. SoluPulse étant **propriétaire** (décision du 5 novembre 2026), cette piste ne s'applique pas.
+Sur ces PC seulement, SoluPulse apparaît signé par « Solutech SoluPulse (test) ».
 
 ## Gratuit, à faire dans tous les cas
 
-- **Soumettre l'installeur à Microsoft** pour analyse avant chaque diffusion : <https://www.microsoft.com/wdsi/filesubmission>. Cela évite les fausses détections de Defender (critère d'acceptation V1).
-- **Diffuser toujours depuis la même adresse** (page des versions GitHub par exemple) : la réputation SmartScreen se construit avec le nombre de téléchargements sans incident.
-
-## Le jour de la diffusion publique
-
-SoluPulse étant propriétaire, un certificat payant est le seul moyen d'obtenir une signature reconnue par tous les PC. Le moins cher est un certificat OV, par exemple Certum Standard (cloud), autour de 100 à 120 $ par an. Il est émis au nom de Solutech et devrait être pris en charge par l'entreprise, comme le reste du budget de diffusion. Une fois acheté :
-
-1. ajouter les secrets `SIGNING_CERT_PFX_BASE64` et `SIGNING_CERT_PASSWORD` au dépôt (ou adapter le script au service de signature en ligne du fournisseur) ;
-2. l'intégration continue signe automatiquement les exécutables, le MSI et l'installeur complet ;
-3. pour l'installeur complet, signer aussi le moteur Burn (`wix burn detach` puis `reattach`) avant la signature finale.
+- **Soumettre l'installeur à Microsoft** avant chaque diffusion : <https://www.microsoft.com/wdsi/filesubmission>. Cela évite les fausses détections de Defender.
+- **Diffuser toujours depuis la même adresse** (page des versions GitHub) : la réputation SmartScreen se construit avec les téléchargements sans incident.

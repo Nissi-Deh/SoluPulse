@@ -26,3 +26,6 @@ artifacts/
 
 # Installeur PawnIO téléchargé au moment de la construction (non versionné)
 installer/redist/
+
+# Cahier des charges : document interne, hors du dépôt public
+SoluPulse Cahier des charges et cahier des exigences.md

@@ -38,6 +38,21 @@
         </Border>
 
         <Border Classes="card">
+          <!-- Mentions légales appropriées (GPL-3.0, article 0). -->
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h2" Text="À propos de SoluPulse" />
+            <TextBlock Text="{Binding Version}" />
+            <TextBlock TextWrapping="Wrap" Text="© 2026 Solutech. SoluPulse est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la licence GNU GPL version 3 ou ultérieure." />
+            <TextBlock TextWrapping="Wrap" Text="SoluPulse est fourni SANS AUCUNE GARANTIE, dans les limites permises par la loi." />
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <HyperlinkButton Content="Lire la licence" NavigateUri="https://www.gnu.org/licenses/gpl-3.0.html" Padding="0" />
+              <HyperlinkButton Content="Code source" NavigateUri="https://github.com/Nissi-Deh/SoluPulse" Padding="0" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Le texte de la licence et la liste des composants tiers sont aussi dans le dossier Licences de l'installation." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Classes="h2" Text="Seuils d'alerte" />
             <TextBlock Classes="muted" TextWrapping="Wrap" Text="Laissez vide pour garder le seuil recommandé." />

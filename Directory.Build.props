@@ -10,7 +10,8 @@
     <Company>Solutech</Company>
     <Product>SoluPulse</Product>
     <Version>1.0.0</Version>
-    <Copyright>© 2026 Solutech. Tous droits réservés.</Copyright>
+    <Copyright>© 2026 Solutech. Licence GPL-3.0-or-later.</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <NeutralLanguage>fr-FR</NeutralLanguage>
     <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
   </PropertyGroup>

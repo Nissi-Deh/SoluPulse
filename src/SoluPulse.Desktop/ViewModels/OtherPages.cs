@@ -209,6 +209,8 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
 
     public IReadOnlyList<string> Severities { get; } = ["information", "attention", "critique"];
 
+    public string Version { get; } = $"Version {typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3)}";
+
     public ObservableCollection<ThresholdItem> Thresholds { get; } = [];
 
     [ObservableProperty]

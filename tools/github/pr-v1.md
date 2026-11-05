@@ -13,7 +13,7 @@ Implémentation de la **V1** de SoluPulse selon le cahier des charges : service 
 | Exécuteur de corrections | EF-COR-01 à 06, ENF-FIA-02, ENF-SEC-06 |
 | Service (`SoluPulse.Agent`) | EF-COL-01, ENF-SEC-01/02, ENF-MAIN-04, ENF-PERF-06 |
 | Application Avalonia (`SoluPulse.Desktop`) | EF-IHM-01 à 06, ENF-ERG-02 à 04 |
-| Installeur complet `SoluPulse-Setup.exe` (PawnIO + MSI WiX 5), script de signature, certificat de test gratuit | ENF-COMP-03, ENF-FIA-01, ENF-SEC-04 (signature reconnue dès qu'un certificat existe) |
+| Installeur complet `SoluPulse-Setup.exe` (PawnIO + MSI WiX 5), signature SignPath dans la CI, certificat de test gratuit | ENF-COMP-03, ENF-FIA-01, ENF-SEC-04 (signature reconnue dès qu'un certificat existe) |
 | CI GitHub Actions, CodeQL, Dependabot | §6.5, §7.3 |
 | 33 règles matériel, système, réseau ; documentation | Livrables V1 du §8.1 |
 
@@ -34,6 +34,6 @@ Implémentation de la **V1** de SoluPulse selon le cahier des charges : service 
 
 ## Reste à faire avant la sortie V1
 
-Voir le jalon **V1** : financement du certificat de signature (ou SignPath si open source), validation de l'installeur PawnIO, tests de chaque action sur VM, mesures de performance, bêta, tests de compréhension des explications, analyse Defender, licence.
+Voir le jalon **V1** : candidature à la signature gratuite SignPath (SoluPulse est sous GPL-3.0), validation de l'installeur PawnIO, tests de chaque action sur VM, mesures de performance, bêta, tests de compréhension des explications, analyse Defender.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

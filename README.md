@@ -1,6 +1,6 @@
 # SoluPulse
 
-Agent Windows qui surveille le PC en continu, explique les problèmes en français simple et propose des corrections que l'utilisateur valide. Projet Solutech ; le cahier des charges complet est dans [`SoluPulse Cahier des charges et cahier des exigences.md`](SoluPulse%20Cahier%20des%20charges%20et%20cahier%20des%20exigences.md).
+Agent Windows qui surveille le PC en continu, explique les problèmes en français simple et propose des corrections que l'utilisateur valide. Projet Solutech. Les références du type EF-COR-01 ou ENF-SEC-04 renvoient aux exigences du cahier des charges interne.
 
 Ce dépôt contient la **V1** : service Windows, application de bureau, diagnostic local, alertes, corrections réversibles et installeur MSI.
 
@@ -85,4 +85,6 @@ Pas de budget pour un certificat : voir [docs/signature.md](docs/signature.md) (
 
 ## Licence
 
-SoluPulse est un logiciel propriétaire de Solutech, tous droits réservés : voir [LICENSE](LICENSE). Les composants tiers restent sous leur propre licence ([installer/licences](installer/licences)).
+SoluPulse est un logiciel libre de Solutech, distribué sous la licence [GNU GPL version 3 ou ultérieure](LICENSE). Toute version modifiée et redistribuée doit rester sous cette licence, avec ses sources. Les composants tiers restent sous leur propre licence ([installer/licences](installer/licences)).
+
+La signature de code est fournie gratuitement par [SignPath.io](https://signpath.io), avec un certificat de [SignPath Foundation](https://signpath.org) : voir la [politique de signature](docs/politique-signature.md).

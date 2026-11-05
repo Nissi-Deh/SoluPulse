@@ -61,13 +61,14 @@ if (-not ($milestones -contains "V1")) {
 
 $docs = "https://github.com/$Repo/blob/main/docs"
 $issues = @(
-    @{ Title = "Financer le certificat de signature avant la diffusion publique"; Labels = "v1,hors-code,securite"; Body = @"
-Bloquant pour une diffusion publique (ENF-SEC-04), pas pour les tests ni la bêta. Détails : [docs/signature.md]($docs/signature.md).
+    @{ Title = "Candidater à la signature gratuite SignPath Foundation"; Labels = "v1,hors-code,securite"; Body = @"
+SoluPulse est open source (GPL-3.0) : la signature est gratuite avec SignPath Foundation (ENF-SEC-04). Détails : [docs/signature.md]($docs/signature.md).
 
-- [ ] Tests et bêta : certificat de test gratuit (``build/new-test-certificate.ps1``), installé sur les PC de test
-- [ ] Diffusion publique : certificat OV au nom de Solutech (Certum Standard cloud, environ 100 à 120 `$/an), ou SignPath Foundation si SoluPulse devient open source
-- [ ] Ajouter les secrets ``SIGNING_CERT_PFX_BASE64`` et ``SIGNING_CERT_PASSWORD`` : la CI signe alors automatiquement
-- [ ] Signer aussi le moteur Burn de l'installeur complet (``wix burn detach`` / ``reattach``)
+- [ ] Activer l'authentification à deux facteurs sur GitHub
+- [ ] Candidater sur https://signpath.org/apply
+- [ ] Après acceptation : relier le dépôt, créer la politique ``release-signing`` avec ``.signpath/artifact-configuration.xml``
+- [ ] Ajouter le secret ``SIGNPATH_API_TOKEN`` et la variable ``SIGNPATH_ORGANIZATION_ID`` : la CI signe alors chaque version de ``main``
+- [ ] En attendant : certificat de test gratuit (``build/new-test-certificate.ps1``) pour les VM et la bêta
 "@ },
     @{ Title = "Valider l'installeur complet avec PawnIO"; Labels = "v1,tests,securite"; Body = @"
 L'installeur ``SoluPulse-Setup.exe`` embarque l'installeur officiel de PawnIO, téléchargé par la CI avec vérification de signature.
@@ -81,8 +82,7 @@ L'installeur ``SoluPulse-Setup.exe`` embarque l'installeur officiel de PawnIO, t
     @{ Title = "Mesurer les performances sur 3 PC de gammes différentes"; Labels = "v1,hors-code,tests"; Body = "ENF-PERF-01 à 04 : CPU < 1 % sur 1 h, service < 80 Mo, interface < 200 Mo, diagnostic < 2 min, ouverture < 3 s. Inclure un PC à 4 Go de RAM (ENF-COMP-02). Mesure indicative en développement : 46 Mo d'octets privés pour le service (build Debug)." },
     @{ Title = "Bêta de 4 semaines sur 10 PC"; Labels = "v1,hors-code,tests"; Body = "Critère d'acceptation V1 : aucun PC endommagé, moins d'une fausse alerte critique par semaine et par PC (ENF-FIA-05). Ajuster les seuils des règles selon les retours. Installer le certificat de test sur les PC de la bêta ([docs/signature.md]($docs/signature.md))." },
     @{ Title = "Tester la compréhension des explications"; Labels = "v1,hors-code,tests"; Body = "ENF-ERG-01 : 8 testeurs non techniciens sur 10 reformulent correctement le problème à partir de l'explication simple. Tester au moins les 10 règles les plus fréquentes ; corriger les textes dans ``rules/*.yaml``." },
-    @{ Title = "Analyse Microsoft Defender de l'installeur"; Labels = "v1,hors-code,securite"; Body = "Critère d'acceptation V1 : aucune détection sur l'installeur et le dossier installé (ENF-SEC-07). Soumettre l'installeur à Microsoft avant chaque diffusion : https://www.microsoft.com/wdsi/filesubmission" },
-    @{ Title = "Décider de la licence de SoluPulse"; Labels = "v1,hors-code"; Body = "Point ouvert §9.2 (propriétaire ou open source). Une licence open source ouvre la signature gratuite par SignPath Foundation. Principales dépendances : MIT, Apache-2.0, MPL-2.0 (LibreHardwareMonitorLib), MS-RL (WiX), GPL-2.0 avec exception (PawnIO, redistribué sans modification). À vérifier : licence de RAMSPDToolkit-NDD (dépendance de LibreHardwareMonitorLib)." }
+    @{ Title = "Analyse Microsoft Defender de l'installeur"; Labels = "v1,hors-code,securite"; Body = "Critère d'acceptation V1 : aucune détection sur l'installeur et le dossier installé (ENF-SEC-07). Soumettre l'installeur à Microsoft avant chaque diffusion : https://www.microsoft.com/wdsi/filesubmission" }
 )
 
 $existing = Invoke-Native gh @("issue", "list", "--repo", $Repo, "--state", "all", "--limit", "200", "--json", "title", "--jq", ".[].title")
