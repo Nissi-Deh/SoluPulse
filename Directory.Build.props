@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Journalisation peu fréquente : les délégués LoggerMessage n'apportent rien ici. -->
+    <NoWarn>$(NoWarn);CA1848;CA1873</NoWarn>
     <Company>Solutech</Company>
     <Product>SoluPulse</Product>
     <Version>1.0.0</Version>

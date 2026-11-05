@@ -118,6 +118,26 @@ public sealed class RuleEngineTests
         Assert.Single(engine.Evaluate(values, Measurements.T0.AddMinutes(10), overrides));
     }
 
+    // Régression : une table de seuils qui ne contient pas la règle ne doit pas imposer un seuil à 0.
+    [Fact]
+    public void OverridesForOtherRulesDoNotAffectThisRule()
+    {
+        var bsod = Rules.Load("""
+            id: SYS-BSOD-001
+            domaine: systeme
+            titre: Écran bleu récent
+            gravite: critique
+            condition: { metrique: evenements.ecrans_bleus_7j, operateur: ">=", seuil: 1 }
+            cause_probable: Pilote
+            explication_simple: Écran bleu.
+            """);
+        var engine = new RuleEngine([bsod]);
+        var overrides = new Dictionary<string, double> { ["AUTRE-REGLE-001"] = 50 };
+
+        Assert.Empty(engine.Evaluate(Measurements.Of(("evenements.ecrans_bleus_7j", 0)), Measurements.T0, overrides));
+        Assert.Empty(engine.Evaluate(Measurements.Of(("evenements.ecrans_bleus_7j", 0)), Measurements.T0, new Dictionary<string, double>()));
+    }
+
     [Fact]
     public void RestoreReportsAlertsWhoseRuleNoLongerExists()
     {

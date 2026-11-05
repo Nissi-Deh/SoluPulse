@@ -75,31 +75,45 @@ public static class StartupInventory
         return key?.GetValue("ProfileImagePath") as string;
     }
 
+    // Une clé ou un dossier illisible (autre utilisateur, droits insuffisants) est ignoré : l'inventaire
+    // continue avec ce qui est lisible.
     private static void ReadRun(List<StartupEntry> entries, RegistryKey root, string path, StartupLocation location, string? sid)
     {
-        using var key = root.OpenSubKey(path);
-        if (key is null)
+        try
         {
-            return;
-        }
+            using var key = root.OpenSubKey(path);
+            if (key is null)
+            {
+                return;
+            }
 
-        foreach (var name in key.GetValueNames().Where(n => n.Length > 0))
+            foreach (var name in key.GetValueNames().Where(n => n.Length > 0))
+            {
+                var command = key.GetValue(name, "", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "";
+                Add(entries, name, command, location, sid);
+            }
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
         {
-            var command = key.GetValue(name, "", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "";
-            Add(entries, name, command, location, sid);
         }
     }
 
     private static void ReadFolder(List<StartupEntry> entries, string folder, StartupLocation location, string? sid)
     {
-        if (!Directory.Exists(folder))
+        try
         {
-            return;
-        }
+            if (!Directory.Exists(folder))
+            {
+                return;
+            }
 
-        foreach (var file in Directory.EnumerateFiles(folder).Where(f => !f.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase)))
+            foreach (var file in Directory.EnumerateFiles(folder).Where(f => !f.EndsWith("desktop.ini", StringComparison.OrdinalIgnoreCase)))
+            {
+                Add(entries, Path.GetFileName(file), file, location, sid);
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
-            Add(entries, Path.GetFileName(file), file, location, sid);
         }
     }
 
@@ -112,9 +126,16 @@ public static class StartupInventory
 
     private static bool IsEnabled(StartupEntry entry)
     {
-        var (root, subKey, valueName) = entry.ApprovalKey(Registry.Users);
-        using var key = root.OpenSubKey(subKey);
-        // Premier octet pair : activé ; impair (03, 07…) : désactivé.
-        return key?.GetValue(valueName) is not byte[] { Length: > 0 } flags || (flags[0] & 1) == 0;
+        try
+        {
+            var (root, subKey, valueName) = entry.ApprovalKey(Registry.Users);
+            using var key = root.OpenSubKey(subKey);
+            // Premier octet pair : activé ; impair (03, 07…) : désactivé.
+            return key?.GetValue(valueName) is not byte[] { Length: > 0 } flags || (flags[0] & 1) == 0;
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException)
+        {
+            return true;
+        }
     }
 }

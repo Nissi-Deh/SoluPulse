@@ -205,7 +205,7 @@ public sealed class SetDnsAction : SystemActionBase, IActionParameterChoices
             return false;
         }
 
-        for (var i = 1; i < servers.Count; i++)
+        for (var i = 1; i < servers.Length; i++)
         {
             await SystemTools.RunAsync("netsh.exe", ["interface", "ipv4", "add", "dnsservers", adapter, servers[i], $"index={i + 1}", "no"], TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
         }

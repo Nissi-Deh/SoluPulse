@@ -72,7 +72,7 @@ public sealed class RuleEngine
         var transitions = new List<AlertTransition>();
         foreach (var rule in _rules.Values)
         {
-            var thresholdOverride = thresholdOverrides?.GetValueOrDefault(rule.Id) is { } t ? t : (double?)null;
+            double? thresholdOverride = thresholdOverrides is not null && thresholdOverrides.TryGetValue(rule.Id, out var t) ? t : null;
             var seen = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var (subject, primaryValue) in Instances(rule, latest))
