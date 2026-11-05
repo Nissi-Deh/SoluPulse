@@ -3,5 +3,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <Company>Solutech</Company>
+    <Product>SoluPulse</Product>
+    <Version>1.0.0</Version>
+    <NeutralLanguage>fr-FR</NeutralLanguage>
+    <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
   </PropertyGroup>
 </Project>
