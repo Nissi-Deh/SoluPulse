@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Crée un certificat de signature de code auto-signé, gratuit, pour les tests sur VM et la bêta.
 

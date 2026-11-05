@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Publie la V1 sur GitHub : envoi de la branche feat/v1, pull request, jalon V1 et tickets.
 

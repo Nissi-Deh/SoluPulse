@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Construit l'installeur de SoluPulse : le MSI, puis l'installeur complet (.exe) qui ajoute PawnIO.
 
