@@ -27,8 +27,8 @@ param(
     [string]$TimestampUrl = "http://timestamp.digicert.com",
     [string]$PawnIOSetup,
     [string]$PawnIOUrl = "https://github.com/namazso/PawnIO.Setup/releases/latest/download/PawnIO_setup.exe",
-    # Nom attendu dans le certificat de PawnIO (vide : signature valide exigée, signataire affiché)
-    [string]$PawnIOSigner = ""
+    # Signataire attendu de PawnIO : relevé sur la version officielle (CN=namazso.eu, O=namazso, Debrecen, HU)
+    [string]$PawnIOSigner = "CN=namazso.eu"
 )
 
 $ErrorActionPreference = "Stop"

@@ -9,6 +9,17 @@ Critère d'acceptation V1 (§8.2) : *chaque action du catalogue testée sur mach
 - Un **point de contrôle Hyper-V** « propre » avant chaque série ; on y revient après chaque test destructif.
 - Installer `SoluPulse-Setup-<version>.exe` produit par l'intégration continue (artefact `installeur`).
 
+## Vérifications automatiques
+
+Après l'installation, en administrateur sur la VM :
+
+```powershell
+./tests/vm/Test-SoluPulseInstall.ps1          # I2, I3, I4, I5, I10, I13, absence de WinRing0, journal sans erreur
+./tools/mesurer-performances.ps1 -MesurerOuverture   # ENF-PERF-01, 02 et 04 sur 1 heure
+```
+
+Le premier script arrête de force le service pour vérifier sa reprise (I3) : ne pas le lancer sur un PC de production, ou ajouter `-SkipRestartTest`.
+
 ## Installation (UC-01)
 
 | # | Vérification | Attendu |
