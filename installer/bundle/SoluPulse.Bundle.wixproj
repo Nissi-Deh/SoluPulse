@@ -1,0 +1,20 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    Installeur complet de SoluPulse : un seul .exe qui installe le pilote PawnIO puis le MSI.
+    Construit par build/build-installer.ps1 après le MSI.
+  -->
+  <PropertyGroup>
+    <OutputType>Bundle</OutputType>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <OutputName>SoluPulse-Setup-$(ProductVersion)</OutputName>
+    <MsiPath Condition="'$(MsiPath)' == ''">..\..\artifacts\installer\SoluPulse-$(ProductVersion)-x64.msi</MsiPath>
+    <PawnIOSetup Condition="'$(PawnIOSetup)' == ''">..\redist\PawnIO_setup.exe</PawnIOSetup>
+    <DefineConstants>ProductVersion=$(ProductVersion);MsiPath=$(MsiPath);PawnIOSetup=$(PawnIOSetup)</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Bal.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

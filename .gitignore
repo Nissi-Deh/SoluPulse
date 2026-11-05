@@ -23,3 +23,6 @@ logs/
 
 # Sorties de build-installer.ps1
 artifacts/
+
+# Installeur PawnIO téléchargé au moment de la construction (non versionné)
+installer/redist/

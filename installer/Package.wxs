@@ -31,6 +31,7 @@
       <Directory Id="INSTALLFOLDER" Name="SoluPulse">
         <Directory Id="AgentFolder" Name="Agent" />
         <Directory Id="AppFolder" Name="App" />
+        <Directory Id="LicencesFolder" Name="Licences" />
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
@@ -38,6 +39,7 @@
     <Feature Id="Main" Title="SoluPulse" Level="1">
       <ComponentGroupRef Id="AgentFiles" />
       <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="LicenceFiles" />
       <ComponentRef Id="AgentService" />
       <ComponentRef Id="AppEntryPoints" />
       <ComponentRef Id="StartMenuEntry" />
@@ -73,6 +75,13 @@
         <Exclude Files="$(var.AgentDir)\appsettings.Development.json" />
         <Exclude Files="$(var.AgentDir)\**\*.pdb" />
       </Files>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <!-- Avis des composants tiers et licence GPL-2.0 de PawnIO, installé par l'installeur complet. -->
+    <ComponentGroup Id="LicenceFiles" Directory="LicencesFolder">
+      <Files Include="licences\*.txt" />
     </ComponentGroup>
   </Fragment>
 

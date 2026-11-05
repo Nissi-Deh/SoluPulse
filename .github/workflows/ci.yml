@@ -94,7 +94,10 @@ jobs:
           SOLUPULSE_SIGN_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
         run: ./build/build-installer.ps1 -Version "1.0.${{ github.run_number }}"
 
+      # Le script télécharge l'installeur officiel de PawnIO et vérifie sa signature Authenticode.
       - uses: actions/upload-artifact@v4
         with:
           name: installeur
-          path: artifacts/installer/*.msi
+          path: |
+            artifacts/installer/*.msi
+            artifacts/installer/SoluPulse-Setup-*.exe

@@ -4,9 +4,11 @@ SoluPulse surveille votre PC en permanence, vous prévient quand quelque chose n
 
 ## Installation
 
-1. Lancez `SoluPulse-1.0.0-x64.msi` et acceptez la demande d'autorisation de Windows.
+1. Lancez `SoluPulse-Setup-1.0.0.exe` et acceptez la demande d'autorisation de Windows. Si Windows affiche « Windows a protégé votre ordinateur » (version de test non signée), cliquez sur **Informations complémentaires** puis **Exécuter quand même**.
 2. À la fin de l'installation, le service SoluPulse démarre aussitôt et fait ses premières mesures.
 3. Ouvrez **SoluPulse** depuis le menu Démarrer. Aux ouvertures de session suivantes, il se lance tout seul dans la zone de notification (près de l'horloge).
+
+L'installeur ajoute aussi le pilote **PawnIO**, qui permet de lire la température du processeur et la vitesse des ventilateurs. Il reste installé si vous désinstallez SoluPulse, car d'autres logiciels peuvent l'utiliser.
 
 Configuration requise : Windows 10 22H2 ou Windows 11, 64 bits, 4 Go de mémoire.
 

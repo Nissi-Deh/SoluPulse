@@ -7,7 +7,7 @@ Critère d'acceptation V1 (§8.2) : *chaque action du catalogue testée sur mach
 - Hyper-V avec deux VM : Windows 10 22H2 x64 et Windows 11 x64, 4 Go de RAM, 2 cœurs (ENF-COMP-02).
 - Protection du système activée sur C: (points de restauration).
 - Un **point de contrôle Hyper-V** « propre » avant chaque série ; on y revient après chaque test destructif.
-- Installer le MSI produit par l'intégration continue (artefact `installeur`).
+- Installer `SoluPulse-Setup-<version>.exe` produit par l'intégration continue (artefact `installeur`).
 
 ## Installation (UC-01)
 
@@ -22,6 +22,10 @@ Critère d'acceptation V1 (§8.2) : *chaque action du catalogue testée sur mach
 | I7 | Analyse Microsoft Defender du MSI et du dossier installé | Aucune détection (ENF-SEC-07) |
 | I8 | Désinstallation | Service supprimé, fichiers du programme supprimés, PC sans erreur |
 | I9 | Mise à jour (installer 1.0.1 par-dessus 1.0.0) | Historique conservé, service redémarré |
+| I10 | PawnIO absent avant installation | PawnIO installé, température CPU et ventilateurs visibles, aucun « capteur indisponible » pour eux |
+| I11 | PawnIO déjà installé (par LibreHardwareMonitor ou FanControl) | PawnIO non réinstallé ; désinstaller SoluPulse laisse PawnIO en place |
+| I12 | Échec forcé de PawnIO (fichier corrompu) | SoluPulse s'installe quand même, capteurs signalés absents |
+| I13 | `C:\Program Files\SoluPulse\Licences` | Licence GPL-2.0 de PawnIO et avis des composants tiers présents |
 
 ## Actions du catalogue
 

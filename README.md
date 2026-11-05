@@ -61,11 +61,18 @@ Sans droits administrateur, certains capteurs sont absents (SMART, durée de dé
 ## Installeur
 
 ```powershell
-./build/build-installer.ps1 -Version 1.0.0                                  # non signé, pour les tests
-./build/build-installer.ps1 -Version 1.0.0 -CertificateThumbprint <empreinte>  # signé (diffusion)
+./build/build-installer.ps1 -Version 1.0.0                                    # non signé
+./build/build-installer.ps1 -Version 1.0.0 -CertificateThumbprint <empreinte>  # signé
 ```
 
-Le MSI (`artifacts/installer/`) installe le service (compte SYSTEM, démarrage automatique, redémarrage après échec), l'application (lancée à chaque ouverture de session) et le runtime .NET. L'intégration continue le produit à chaque commit ; elle le signe si les secrets `SIGNING_CERT_PFX_BASE64` et `SIGNING_CERT_PASSWORD` sont configurés.
+Le script produit dans `artifacts/installer/` :
+
+- **`SoluPulse-Setup-<version>.exe`**, l'installeur à distribuer : il installe le pilote PawnIO (capteurs du processeur et des ventilateurs) puis SoluPulse ;
+- **`SoluPulse-<version>-x64.msi`**, SoluPulse seul : service (compte SYSTEM, démarrage automatique, redémarrage après échec), application (lancée à chaque ouverture de session), runtime .NET et licences.
+
+PawnIO est téléchargé depuis GitHub et sa signature Authenticode vérifiée. Sur un réseau qui bloque GitHub, déposez `PawnIO_setup.exe` dans `installer/redist/` ; sinon, seul le MSI est produit. L'intégration continue construit les deux à chaque commit.
+
+Pas de budget pour un certificat : voir [docs/signature.md](docs/signature.md) (certificat de test gratuit pour les VM et la bêta).
 
 ## Documentation
 
@@ -73,4 +80,5 @@ Le MSI (`artifacts/installer/`) installe le service (compte SYSTEM, démarrage a
 - [Données collectées](docs/donnees-collectees.md) (ENF-CONF-02)
 - [Format des règles](docs/regles.md)
 - [Plan de test sur machines virtuelles](docs/tests-vm.md) (critères d'acceptation V1)
+- [Signature de code sans budget](docs/signature.md)
 - [Signaler une vulnérabilité](SECURITY.md)
