@@ -1,0 +1,271 @@
+// Contrat entre l'application SoluPulse (session de l'utilisateur, sans droits administrateur)
+// et le service SoluPulse (compte SYSTEM). Transport : gRPC sur canal nommé local protégé par ACL.
+syntax = "proto3";
+
+package solupulse.v1;
+
+option csharp_namespace = "SoluPulse.Contracts";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service AgentService {
+  // Tableau de bord (EF-IHM-01, EF-DIA-07).
+  rpc GetStatus (google.protobuf.Empty) returns (StatusReply);
+  rpc ListAlerts (ListAlertsRequest) returns (AlertList);
+  rpc GetAlert (AlertRequest) returns (AlertInfo);
+
+  // Diagnostic complet à la demande (EF-DIA-08).
+  rpc RunDiagnostic (google.protobuf.Empty) returns (StatusReply);
+
+  // Corrections : fiche, validation explicite, annulation (EF-COR-01 à 05).
+  rpc ListActions (google.protobuf.Empty) returns (ActionList);
+  rpc GetActionChoices (ChoicesRequest) returns (ChoicesReply);
+  rpc PrepareCorrection (PrepareRequest) returns (CorrectionCard);
+  rpc ConfirmCorrection (TokenRequest) returns (CorrectionReply);
+  rpc CancelCorrection (TokenRequest) returns (google.protobuf.Empty);
+  rpc UndoCorrection (UndoRequest) returns (CorrectionReply);
+  rpc ListExecutions (ListRequest) returns (ExecutionList);
+
+  // Historique et inventaire (EF-IHM-05).
+  rpc ListMetrics (google.protobuf.Empty) returns (MetricList);
+  rpc GetHistory (HistoryRequest) returns (HistoryReply);
+  rpc GetInventory (google.protobuf.Empty) returns (InventoryReply);
+
+  // Paramètres (EF-IHM-06).
+  rpc GetSettings (google.protobuf.Empty) returns (SettingsReply);
+  rpc UpdateSettings (SettingsUpdate) returns (SettingsReply);
+
+  // Intégrité du journal d'audit (ENF-SEC-06).
+  rpc VerifyAudit (google.protobuf.Empty) returns (AuditReply);
+
+  // Flux d'événements pour les notifications (ENF-PERF-06).
+  rpc WatchEvents (google.protobuf.Empty) returns (stream AgentEvent);
+}
+
+message DomainStatus {
+  string domain = 1;          // materiel, systeme, securite, reseau
+  string label = 2;
+  bool evaluated = 3;
+  int32 score = 4;
+  int32 active_alerts = 5;
+  string worst_severity = 6;  // vide, information, attention, critique
+}
+
+message SensorIssueInfo {
+  string collector = 1;
+  string sensor = 2;
+  string message = 3;
+}
+
+message StatusReply {
+  int32 global_score = 1;
+  repeated DomainStatus domains = 2;
+  int32 active_alerts = 3;
+  string worst_severity = 4;
+  google.protobuf.Timestamp last_collection = 5;
+  repeated SensorIssueInfo sensor_issues = 6;
+  bool diagnostic_running = 7;
+  repeated string rule_errors = 8;
+  string agent_version = 9;
+}
+
+message ActionInfo {
+  string id = 1;
+  string family = 2;
+  string title = 3;
+  string description = 4;
+  repeated string steps = 5;
+  string risk = 6;              // faible, moyen, eleve
+  bool reversible = 7;
+  bool requires_reboot = 8;
+  int32 estimated_seconds = 9;
+  bool guide = 10;
+  repeated string parameter_names = 11;
+  bool restore_point = 12;
+}
+
+message AlertInfo {
+  string id = 1;
+  string rule_id = 2;
+  string subject = 3;
+  string domain = 4;
+  string severity = 5;
+  bool active = 6;
+  string title = 7;
+  string simple_explanation = 8;
+  string technical_explanation = 9;
+  string probable_cause = 10;
+  google.protobuf.Timestamp opened_at = 11;
+  google.protobuf.Timestamp resolved_at = 12;
+  optional double trigger_value = 13;
+  string metric = 14;
+  repeated ActionInfo corrections = 15;
+}
+
+message ListAlertsRequest {
+  bool include_resolved = 1;
+  int32 limit = 2;
+}
+
+message AlertList {
+  repeated AlertInfo alerts = 1;
+}
+
+message AlertRequest {
+  string id = 1;
+}
+
+message ActionList {
+  repeated ActionInfo actions = 1;
+}
+
+message ChoicesRequest {
+  string action_id = 1;
+  string parameter = 2;
+}
+
+message Choice {
+  string value = 1;
+  string label = 2;
+  string detail = 3;
+}
+
+message ChoicesReply {
+  repeated Choice choices = 1;
+}
+
+message PrepareRequest {
+  string action_id = 1;
+  string alert_id = 2;
+  map<string, string> parameters = 3;
+}
+
+// La fiche affichée avant validation (EF-COR-02). Le jeton n'est valable qu'une fois,
+// pour l'utilisateur qui l'a demandé, pendant 10 minutes.
+message CorrectionCard {
+  string token = 1;
+  ActionInfo action = 2;
+  string estimate = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  map<string, string> parameters = 5;
+}
+
+message TokenRequest {
+  string token = 1;
+}
+
+message CorrectionReply {
+  string execution_id = 1;
+  string state = 2;
+  string message = 3;
+  string verification = 4;
+  bool requires_reboot = 5;
+}
+
+message UndoRequest {
+  string execution_id = 1;
+}
+
+message ListRequest {
+  int32 limit = 1;
+}
+
+message ExecutionInfo {
+  string id = 1;
+  string action_id = 2;
+  string action_title = 3;
+  string alert_id = 4;
+  string origin = 5;
+  string validated_by = 6;
+  google.protobuf.Timestamp validated_at = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp finished_at = 9;
+  string state = 10;
+  string message = 11;
+  string verification = 12;
+  bool can_undo = 13;
+}
+
+message ExecutionList {
+  repeated ExecutionInfo executions = 1;
+}
+
+message MetricInfo {
+  string metric = 1;
+  string unit = 2;
+  double last_value = 3;
+  google.protobuf.Timestamp last_seen = 4;
+}
+
+message MetricList {
+  repeated MetricInfo metrics = 1;
+}
+
+message HistoryRequest {
+  string metric = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  int32 max_points = 4;
+}
+
+message HistoryPoint {
+  google.protobuf.Timestamp at = 1;
+  double value = 2;
+  double min = 3;
+  double max = 4;
+}
+
+message HistoryReply {
+  string metric = 1;
+  repeated HistoryPoint points = 2;
+}
+
+message InventoryItem {
+  string kind = 1;
+  google.protobuf.Timestamp at = 2;
+  string json = 3;
+}
+
+message InventoryReply {
+  repeated InventoryItem items = 1;
+}
+
+message RuleThreshold {
+  string rule_id = 1;
+  string title = 2;
+  string metric = 3;
+  string operator = 4;
+  double default_threshold = 5;
+  optional double override = 6;
+}
+
+message SettingsReply {
+  bool notifications_enabled = 1;
+  string notification_min_severity = 2;
+  int32 detail_retention_days = 3;
+  bool internet_probes = 4;
+  string language = 5;
+  repeated RuleThreshold thresholds = 6;
+}
+
+message SettingsUpdate {
+  optional bool notifications_enabled = 1;
+  optional string notification_min_severity = 2;
+  optional int32 detail_retention_days = 3;
+  optional bool internet_probes = 4;
+  map<string, double> threshold_overrides = 5;
+  repeated string reset_thresholds = 6;
+}
+
+message AuditReply {
+  bool intact = 1;
+  int64 entries = 2;
+  int64 first_broken = 3;
+}
+
+message AgentEvent {
+  string kind = 1;      // alerte_ouverte, alerte_resolue, etat
+  AlertInfo alert = 2;
+  StatusReply status = 3;
+}

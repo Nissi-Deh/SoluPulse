@@ -1,0 +1,35 @@
+SoluPulse - Composants tiers
+============================
+
+Pilote PawnIO
+-------------
+L'installeur de SoluPulse installe le pilote PawnIO, sans modification, pour lire
+les capteurs de temperature et les ventilateurs.
+
+  Auteur  : namazso
+  Licence : GNU General Public License version 2 (texte complet : PawnIO-GPL-2.0.txt),
+            avec une exception pour les programmes qui communiquent avec PawnIO
+            par son interface IOCTL, comme SoluPulse.
+  Sources : https://github.com/namazso/PawnIO
+            https://github.com/namazso/PawnIO.Setup
+
+PawnIO reste installe si SoluPulse est desinstalle, car d'autres logiciels
+peuvent l'utiliser. Il se desinstalle depuis Parametres > Applications.
+
+SoluPulse est un logiciel libre de Solutech, sous licence GNU GPL version 3 ou
+ulterieure (texte complet : SoluPulse-GPL-3.0.txt ; sources :
+https://github.com/Nissi-Deh/SoluPulse). Les composants ci-dessous restent sous
+leur propre licence, toutes compatibles avec la GPL-3.0.
+
+Autres composants
+-----------------
+SoluPulse utilise notamment : .NET (MIT), Avalonia (MIT), LiveCharts2 (MIT),
+CommunityToolkit.Mvvm (MIT), YamlDotNet (MIT), Microsoft.Data.Sqlite (MIT),
+Dapper (Apache-2.0), gRPC pour .NET (Apache-2.0), Serilog (Apache-2.0),
+LibreHardwareMonitorLib (MPL-2.0, utilisee sans modification ; sources :
+https://github.com/LibreHardwareMonitor/LibreHardwareMonitor),
+Microsoft.Toolkit.Uwp.Notifications (MIT), RAMSPDToolkit-NDD (MPL-2.0) et
+HidSharp (Apache-2.0), dependances de LibreHardwareMonitorLib.
+
+L'installeur est construit avec WiX Toolset (MS-RL) : son moteur d'installation
+et ses actions personnalisees sont des programmes distincts de SoluPulse.

@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.JournalView"
+             x:DataType="vm:JournalViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,16">
+      <TextBlock Classes="h1" Text="Journal des corrections" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Chaque correction est inscrite ici avec la personne qui l'a validée. Les corrections annulables gardent un bouton « Annuler »." />
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Button Content="Vérifier l'intégrité du journal" Command="{Binding VerifyAuditCommand}" />
+        <TextBlock Text="{Binding AuditStatus}" VerticalAlignment="Center" TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Classes="muted" Text="Aucune correction pour le moment." IsVisible="{Binding IsEmpty}" />
+    </StackPanel>
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Items}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ExecutionItem">
+            <Border Classes="card" Margin="0,0,0,10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Classes="badge" Background="{Binding StateBrush}">
+                      <TextBlock Text="{Binding StateLabel}" />
+                    </Border>
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Date}" Classes="muted" />
+                  <TextBlock Text="{Binding ValidatedBy}" Classes="muted" />
+                  <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Annuler cette correction" VerticalAlignment="Center" Margin="12,0,0,0"
+                        IsVisible="{Binding CanUndo}"
+                        Command="{Binding $parent[UserControl].((vm:JournalViewModel)DataContext).UndoCommand}" CommandParameter="{Binding}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

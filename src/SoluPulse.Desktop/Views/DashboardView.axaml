@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="20">
+      <TextBlock Classes="h1" Text="État de santé du PC" />
+
+      <Border Classes="card">
+        <Grid ColumnDefinitions="Auto,*" >
+          <Border Width="150" Height="150" CornerRadius="75" BorderThickness="10" BorderBrush="{Binding ScoreBrush}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+              <TextBlock Text="{Binding ScoreText}" FontSize="44" FontWeight="Bold" HorizontalAlignment="Center" />
+              <TextBlock Text="sur 100" Classes="muted" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Border>
+          <StackPanel Grid.Column="1" Margin="28,0,0,0" VerticalAlignment="Center" Spacing="8">
+            <TextBlock Classes="h2" Text="{Binding Verdict}" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" Text="{Binding LastCollection}" />
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
+              <Button Classes="accent" Content="Lancer un diagnostic complet" Command="{Binding RunDiagnosticCommand}" IsEnabled="{Binding !DiagnosticRunning}" />
+              <Button Content="Voir les alertes" Command="{Binding ShowAlertsCommand}" />
+            </StackPanel>
+            <StackPanel IsVisible="{Binding DiagnosticRunning}" Spacing="4">
+              <ProgressBar IsIndeterminate="True" Height="6" />
+              <TextBlock Classes="muted" Text="Diagnostic en cours : moins de 2 minutes." />
+            </StackPanel>
+            <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding Domains}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:DomainItem">
+            <Border Classes="card" Margin="0,0,12,0">
+              <StackPanel Spacing="6">
+                <Rectangle Height="5" RadiusX="2" RadiusY="2" Fill="{Binding Brush}" />
+                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding ScoreText}" FontSize="30" FontWeight="Bold" />
+                <TextBlock Text="{Binding StateText}" Classes="muted" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock Classes="h2" Text="Alertes actives" />
+      <TextBlock Classes="muted" Text="Aucune alerte : rien à faire pour le moment." IsVisible="{Binding !HasAlerts}" />
+      <ItemsControl ItemsSource="{Binding ActiveAlerts}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:AlertItem">
+            <Border Classes="card" Margin="0,0,0,10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Classes="badge" Background="{Binding SeverityBrush}">
+                      <TextBlock Text="{Binding SeverityLabel}" />
+                    </Border>
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Subject}" Classes="muted" IsVisible="{Binding HasSubject}" />
+                  <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0" Content="Voir"
+                        Command="{Binding $parent[UserControl].((vm:DashboardViewModel)DataContext).OpenAlertCommand}" CommandParameter="{Binding}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Expander Header="Capteurs indisponibles sur ce PC" IsVisible="{Binding HasSensorIssues}" HorizontalAlignment="Stretch">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="La surveillance continue sans ces mesures. Certains capteurs n'existent pas sur tous les PC." />
+          <ItemsControl ItemsSource="{Binding SensorIssues}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

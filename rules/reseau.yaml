@@ -1,0 +1,94 @@
+# Règles du domaine réseau. Format : voir docs/regles.md.
+regles:
+  - id: NET-GW-001
+    domaine: reseau
+    titre: Box injoignable
+    gravite: attention
+    condition:
+      metrique: reseau.passerelle.perte_pct
+      operateur: ">="
+      seuil: 50
+      duree_min: 5m
+      hysteresis: 30
+    cause_probable: Box éteinte, Wi-Fi coupé ou carte réseau bloquée
+    explication_simple: >
+      Votre PC n'arrive plus à joindre votre box. Vérifiez que la box est allumée ;
+      SoluPulse peut aussi redémarrer la carte réseau.
+    explication_technique: Plus de 50 % de perte de paquets ICMP vers la passerelle par défaut.
+    corrections: [ACT-NET-RESTART-ADAPTER, ACT-NET-RENEW-IP]
+
+  - id: NET-INET-001
+    domaine: reseau
+    titre: Internet coupé alors que la box répond
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: reseau.internet.perte_pct, operateur: ">=", seuil: 50, duree_min: 5m, hysteresis: 30 }
+        - { metrique: reseau.passerelle.perte_pct, operateur: "<", seuil: 20 }
+    cause_probable: Panne chez le fournisseur d'accès ou configuration réseau abîmée
+    explication_simple: >
+      Votre box répond, mais Internet ne passe pas. Si le problème touche aussi vos autres appareils,
+      il vient de votre fournisseur d'accès.
+    explication_technique: Passerelle joignable mais plus de 50 % de perte vers les sondes Internet.
+    corrections: [ACT-NET-RENEW-IP, ACT-NET-FLUSH-DNS, ACT-NET-RESET-WINSOCK, ACT-NET-RESET-TCPIP]
+
+  - id: NET-DNS-001
+    domaine: reseau
+    titre: Les noms de sites ne sont plus résolus
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: reseau.dns.echec, operateur: "==", seuil: 1, duree_min: 5m }
+        - { metrique: reseau.internet.perte_pct, operateur: "<", seuil: 50 }
+    cause_probable: Serveur DNS de la box ou du fournisseur en panne
+    explication_simple: >
+      Internet fonctionne, mais votre PC n'arrive plus à trouver l'adresse des sites.
+      Changer de serveur DNS règle souvent le problème.
+    explication_technique: Échec de résolution DNS alors que les sondes ICMP Internet répondent.
+    corrections: [ACT-NET-FLUSH-DNS, ACT-NET-SET-DNS]
+
+  - id: NET-LAT-001
+    domaine: reseau
+    titre: Connexion Internet lente
+    gravite: information
+    condition:
+      metrique: reseau.internet.latence_ms
+      operateur: ">"
+      seuil: 250
+      duree_min: 15m
+      hysteresis: 50
+    cause_probable: Réseau saturé (téléchargements, vidéos) ou connexion faible
+    explication_simple: >
+      Votre connexion répond lentement depuis un quart d'heure. Les pages et les appels vidéo peuvent ramer.
+    explication_technique: Latence ICMP médiane vers Internet supérieure à 250 ms pendant 15 minutes.
+
+  - id: NET-WIFI-001
+    domaine: reseau
+    titre: Signal Wi-Fi faible
+    gravite: information
+    condition:
+      metrique: reseau.wifi.signal_pct
+      operateur: "<"
+      seuil: 30
+      duree_min: 10m
+      hysteresis: 10
+    cause_probable: PC trop loin de la box ou obstacles (murs, appareils)
+    explication_simple: >
+      Le signal Wi-Fi est faible. Rapprochez-vous de la box ou dégagez ce qui se trouve entre les deux.
+    explication_technique: Qualité du signal Wi-Fi rapportée par Windows inférieure à 30 %.
+
+  - id: NET-GW-LAT-001
+    domaine: reseau
+    titre: Box lente à répondre
+    gravite: information
+    condition:
+      metrique: reseau.passerelle.latence_ms
+      operateur: ">"
+      seuil: 100
+      duree_min: 10m
+      hysteresis: 30
+    cause_probable: Wi-Fi encombré ou box surchargée
+    explication_simple: >
+      Votre box met du temps à répondre. Redémarrer la box ou se rapprocher d'elle peut aider.
+    explication_technique: Latence ICMP médiane vers la passerelle supérieure à 100 ms pendant 10 minutes.
+    corrections: [ACT-NET-RESTART-ADAPTER]

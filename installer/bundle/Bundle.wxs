@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Bundle Name="SoluPulse"
+          Manufacturer="Solutech"
+          Version="$(var.ProductVersion)"
+          UpgradeCode="A401F6E9-AFA1-44D8-8FFA-BAF38C21300B"
+          IconSourceFile="..\..\src\SoluPulse.Desktop\Assets\solupulse.ico">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication Theme="rtfLicense"
+                                              LicenseFile="notice.rtf"
+                                              LogoFile="..\..\src\SoluPulse.Desktop\Assets\solupulse.png"
+                                              ShowVersion="yes"
+                                              SuppressOptionsUI="yes" />
+    </BootstrapperApplication>
+
+    <!-- PawnIO est déjà installé (par SoluPulse ou un autre logiciel) : on ne le réinstalle pas. -->
+    <util:RegistrySearch Id="PawnIOServiceSearch" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\PawnIO"
+                         Result="exists" Variable="PawnIOInstalled" Bitness="always64" />
+
+    <Chain>
+      <!--
+        Pilote PawnIO, redistribué sans modification (GPL-2.0, voir installer/licences).
+        Permanent : d'autres logiciels peuvent l'utiliser, il n'est pas retiré avec SoluPulse.
+        Non vital : sans lui, SoluPulse fonctionne, seuls les capteurs CPU et ventilateurs manquent.
+      -->
+      <ExePackage Id="PawnIO"
+                  DisplayName="Pilote de capteurs PawnIO"
+                  SourceFile="$(var.PawnIOSetup)"
+                  Name="redist\PawnIO_setup.exe"
+                  InstallArguments="-install -silent"
+                  DetectCondition="PawnIOInstalled"
+                  PerMachine="yes"
+                  Permanent="yes"
+                  Vital="no">
+        <ExitCode Value="3010" Behavior="scheduleReboot" />
+      </ExePackage>
+
+      <MsiPackage Id="SoluPulseMsi" SourceFile="$(var.MsiPath)" Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

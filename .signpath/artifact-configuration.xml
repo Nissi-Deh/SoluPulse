@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuration d'artefact SignPath, à importer dans la politique de signature « release-signing ».
+  L'artefact envoyé par la CI est un zip contenant l'installeur complet et le MSI.
+  Le MSI est signé en profondeur : les exécutables et bibliothèques SoluPulse qu'il contient le sont aussi.
+  PawnIO_setup.exe, déjà signé par son auteur, n'est pas re-signé.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <msi-file path="SoluPulse-*-x64.msi">
+      <directory path="*">
+        <pe-file path="SoluPulse.*.exe" max-matches="unbounded">
+          <authenticode-sign />
+        </pe-file>
+        <pe-file path="SoluPulse.*.dll" max-matches="unbounded">
+          <authenticode-sign />
+        </pe-file>
+      </directory>
+      <authenticode-sign />
+    </msi-file>
+    <pe-file path="SoluPulse-Setup-*.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

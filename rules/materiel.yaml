@@ -1,0 +1,222 @@
+# Règles du domaine matériel. Format : voir docs/regles.md.
+regles:
+  - id: HW-DISK-001
+    domaine: materiel
+    titre: Disque système presque plein
+    gravite: critique
+    condition:
+      metrique: disque.systeme.espace_libre_pct
+      operateur: "<"
+      seuil: 10
+      duree_min: 10m
+      hysteresis: 2
+    cause_probable: Fichiers temporaires et caches accumulés
+    explication_simple: >
+      Votre disque principal est presque plein.
+      Windows peut ralentir et les mises à jour peuvent échouer.
+    explication_technique: >
+      Moins de 10 % d'espace libre sur le volume système. Windows Update, la mémoire virtuelle et
+      les points de restauration ont besoin d'espace libre pour fonctionner.
+    corrections: [ACT-CLEAN-TEMP, ACT-CLEAN-WU-CACHE, ACT-CLEAN-DO-CACHE, ACT-CLEAN-RECYCLE-BIN]
+
+  - id: HW-DISK-002
+    domaine: materiel
+    titre: Disque secondaire presque plein
+    gravite: attention
+    condition:
+      metrique: volume.*.espace_libre_pct
+      operateur: "<"
+      seuil: 5
+      duree_min: 30m
+      hysteresis: 2
+    cause_probable: Fichiers personnels ou téléchargements volumineux
+    explication_simple: >
+      Un de vos disques est presque plein. Vous ne pourrez bientôt plus y enregistrer de fichiers.
+    explication_technique: Moins de 5 % d'espace libre sur un volume de données.
+    corrections: [ACT-CLEAN-RECYCLE-BIN]
+
+  - id: HW-DISK-003
+    domaine: materiel
+    titre: Windows signale un disque en mauvaise santé
+    gravite: critique
+    condition:
+      metrique: disque_physique.*.etat_sante
+      operateur: ">="
+      seuil: 1
+    cause_probable: Usure ou défaillance du disque
+    explication_simple: >
+      Windows indique qu'un de vos disques ne va pas bien. Vos fichiers risquent de devenir illisibles.
+      Sauvegardez-les sans attendre.
+    explication_technique: >
+      MSFT_PhysicalDisk.HealthStatus vaut Warning (1) ou Unhealthy (2).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-SMART-001
+    domaine: materiel
+    titre: Le disque annonce une panne prochaine
+    gravite: critique
+    condition:
+      metrique: disque_physique.*.prediction_panne
+      operateur: "=="
+      seuil: 1
+    cause_probable: Usure avancée du disque
+    explication_simple: >
+      Le disque lui-même prévient qu'il risque de tomber en panne bientôt.
+      Sauvegardez vos fichiers maintenant et prévoyez son remplacement.
+    explication_technique: MSStorageDriver_FailurePredictStatus.PredictFailure est vrai (seuil SMART dépassé).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-SMART-002
+    domaine: materiel
+    titre: Secteurs défectueux sur le disque
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.secteurs_realloues
+      operateur: ">"
+      seuil: 0
+    cause_probable: Zones du disque devenues illisibles et remplacées par des zones de réserve
+    explication_simple: >
+      Le disque a commencé à remplacer des zones abîmées. C'est un signe d'usure :
+      faites une sauvegarde et surveillez l'évolution.
+    explication_technique: Attribut SMART 5 (Reallocated Sectors Count) supérieur à zéro.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-SMART-003
+    domaine: materiel
+    titre: Secteurs illisibles sur le disque
+    gravite: critique
+    conditions:
+      au_moins_un:
+        - { metrique: disque_physique.*.secteurs_en_attente, operateur: ">", seuil: 0 }
+        - { metrique: disque_physique.*.secteurs_irrecuperables, operateur: ">", seuil: 0 }
+    cause_probable: Surface du disque endommagée
+    explication_simple: >
+      Certaines zones du disque ne peuvent plus être lues. Des fichiers sont peut-être déjà abîmés.
+      Sauvegardez vos fichiers immédiatement.
+    explication_technique: Attributs SMART 197 (Current Pending Sector) ou 198 (Offline Uncorrectable) non nuls.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK, ACT-SYS-CHKDSK]
+
+  - id: HW-SSD-001
+    domaine: materiel
+    titre: SSD très usé
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.usure_pct
+      operateur: ">="
+      seuil: 90
+    cause_probable: Le SSD approche du nombre d'écritures prévu par le fabricant
+    explication_simple: >
+      Votre SSD a presque atteint sa durée de vie prévue. Il fonctionne encore,
+      mais il est prudent de préparer son remplacement.
+    explication_technique: MSFT_StorageReliabilityCounter.Wear supérieur ou égal à 90 %.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-DISK-TEMP-001
+    domaine: materiel
+    titre: Disque trop chaud
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.temperature_c
+      operateur: ">"
+      seuil: 60
+      duree_min: 5m
+      hysteresis: 5
+    cause_probable: Mauvaise ventilation du boîtier
+    explication_simple: >
+      Un disque chauffe trop. La chaleur use les disques plus vite.
+    explication_technique: Température du disque au-dessus de 60 °C pendant plus de 5 minutes.
+    corrections: [ACT-HW-GUIDE-COOLING]
+
+  - id: HW-CPU-001
+    domaine: materiel
+    titre: Processeur trop chaud
+    gravite: attention
+    condition:
+      metrique: cpu.temperature_c
+      operateur: ">"
+      seuil: 90
+      duree_min: 5m
+      hysteresis: 8
+    cause_probable: Ventilateur encrassé ou pâte thermique sèche
+    explication_simple: >
+      Le processeur chauffe beaucoup. Le PC ralentit pour se protéger et peut s'éteindre brutalement.
+    explication_technique: Température processeur au-dessus de 90 °C pendant plus de 5 minutes.
+    corrections: [ACT-HW-GUIDE-COOLING]
+
+  - id: HW-CPU-002
+    domaine: materiel
+    titre: Processeur chaud et ventilateur lent
+    gravite: critique
+    conditions:
+      tous:
+        - { metrique: cpu.temperature_c, operateur: ">", seuil: 80, duree_min: 2m, hysteresis: 5 }
+        - { metrique: ventilateur.*.tours_min, operateur: "<", seuil: 300 }
+    cause_probable: Ventilateur bloqué, débranché ou en panne
+    explication_simple: >
+      Le processeur chauffe alors que le ventilateur tourne à peine. Le ventilateur est peut-être bloqué
+      par la poussière ou en panne.
+    explication_technique: Température CPU > 80 °C avec un ventilateur sous 300 tr/min.
+    corrections: [ACT-HW-GUIDE-COOLING]
+
+  - id: HW-GPU-001
+    domaine: materiel
+    titre: Carte graphique trop chaude
+    gravite: attention
+    condition:
+      metrique: gpu.*.temperature_c
+      operateur: ">"
+      seuil: 90
+      duree_min: 5m
+      hysteresis: 8
+    cause_probable: Ventilation insuffisante
+    explication_simple: >
+      La carte graphique chauffe beaucoup. Les jeux et les vidéos peuvent saccader.
+    explication_technique: Température GPU au-dessus de 90 °C pendant plus de 5 minutes.
+    corrections: [ACT-HW-GUIDE-COOLING]
+
+  - id: HW-BAT-001
+    domaine: materiel
+    titre: Batterie usée
+    gravite: attention
+    condition:
+      metrique: batterie.sante_pct
+      operateur: "<"
+      seuil: 60
+      hysteresis: 3
+    cause_probable: Usure normale de la batterie avec les cycles de charge
+    explication_simple: >
+      Votre batterie ne garde plus qu'une partie de sa charge d'origine. L'autonomie est réduite.
+    explication_technique: Capacité de pleine charge inférieure à 60 % de la capacité d'origine.
+    corrections: [ACT-HW-GUIDE-BATTERY]
+
+  - id: HW-BAT-002
+    domaine: materiel
+    titre: Batterie en fin de vie
+    gravite: critique
+    condition:
+      metrique: batterie.sante_pct
+      operateur: "<"
+      seuil: 40
+      hysteresis: 3
+    cause_probable: Batterie arrivée en fin de vie
+    explication_simple: >
+      Votre batterie est en fin de vie. Le PC peut s'éteindre sans prévenir quand il n'est pas branché.
+    explication_technique: Capacité de pleine charge inférieure à 40 % de la capacité d'origine.
+    corrections: [ACT-HW-GUIDE-BATTERY]
+
+  - id: HW-RAM-001
+    domaine: materiel
+    titre: Mémoire presque saturée
+    gravite: attention
+    condition:
+      metrique: memoire.utilisation_pct
+      operateur: ">"
+      seuil: 90
+      duree_min: 15m
+      hysteresis: 10
+    cause_probable: Trop de programmes ouverts ou lancés au démarrage
+    explication_simple: >
+      La mémoire de votre PC est presque pleine depuis un moment. Le PC devient lent.
+      Fermez les programmes inutiles ou désactivez ceux qui se lancent au démarrage.
+    explication_technique: Utilisation de la mémoire physique au-dessus de 90 % pendant 15 minutes.
+    corrections: [ACT-STARTUP-DISABLE]

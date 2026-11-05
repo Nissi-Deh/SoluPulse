@@ -1,0 +1,28 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    Installeur MSI de SoluPulse (cahier des charges §6.5, WiX Toolset).
+    Construit par build/build-installer.ps1, qui publie d'abord le service et l'application
+    en mode autonome (runtime .NET embarqué, ENF-COMP-03) puis passe leurs dossiers ici.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <OutputName>SoluPulse-$(ProductVersion)-x64</OutputName>
+    <AgentDir Condition="'$(AgentDir)' == ''">..\artifacts\publish\Agent</AgentDir>
+    <AppDir Condition="'$(AppDir)' == ''">..\artifacts\publish\App</AppDir>
+    <DefineConstants>ProductVersion=$(ProductVersion);AgentDir=$(AgentDir);AppDir=$(AppDir)</DefineConstants>
+    <SuppressValidation>false</SuppressValidation>
+    <Cultures>fr-FR</Cultures>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- L'installeur complet (bundle\) est un projet séparé : seul Package.wxs appartient au MSI. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Package.wxs" />
+  </ItemGroup>
+</Project>
