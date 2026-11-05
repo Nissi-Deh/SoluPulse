@@ -15,7 +15,8 @@ Configuration requise : Windows 10 22H2 ou Windows 11, 64 bits, 4 Go de mémoire
 ## Le tableau de bord
 
 - **Le score sur 100** résume l'état du PC. Vert à partir de 80, orange de 50 à 79, rouge en dessous.
-- **Les quatre domaines** : matériel, système et logiciels, réseau, et sécurité (disponible dans une prochaine version).
+- **Les quatre domaines** : matériel, système et logiciels, réseau, et sécurité (antivirus, pare-feu, démarrage sécurisé, chiffrement).
+- **En direct** : utilisation du processeur et de la mémoire, températures, espace disque, batterie et Internet, mis à jour toutes les 15 secondes. **Voir tous les composants** ouvre la page *Mon PC*.
 - **Les alertes actives** : cliquez sur **Voir** pour lire l'explication.
 - **Lancer un diagnostic complet** refait toutes les mesures en moins de 2 minutes.
 - **Capteurs indisponibles** : certains PC n'ont pas tous les capteurs. Ce n'est pas un problème : SoluPulse surveille tout ce qui est lisible.
@@ -48,10 +49,14 @@ Certaines corrections sont des **recommandations** (nettoyer un ventilateur, sau
 
 Ouvrez **Journal des corrections**. Les corrections annulables ont un bouton **Annuler cette correction**, qui remet le réglage précédent. Le journal indique aussi qui a validé chaque correction ; le bouton **Vérifier l'intégrité du journal** contrôle qu'il n'a pas été modifié.
 
+## Mon PC
+
+Une fiche par composant détecté, avec ses caractéristiques et ses mesures en direct : ordinateur et BIOS, sécurité, processeur, mémoire (chaque barrette et les emplacements libres), cartes graphiques, disques (température, usure, état), espace disque, batterie, réseau et périphériques (écrans, son, caméra, Bluetooth, imprimantes). Une pastille de couleur accompagne chaque état, toujours doublée d'un texte. **Tous les capteurs** liste en bas de page chaque valeur lue sur le PC.
+
 ## Historique et inventaire
 
 - **Historique** : choisissez une mesure (température, espace disque, mémoire…) et une période pour voir son évolution.
-- **Inventaire** : ce que SoluPulse a relevé (programmes au démarrage, disques, programmes gourmands…).
+- **Inventaire système** : programmes au démarrage, services en panne, programmes gourmands, mises à jour en attente, événements récents.
 
 ## Paramètres
 
