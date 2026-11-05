@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="SoluPulse"
+           Manufacturer="Solutech"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="496A980B-AA97-46CC-B4E6-668EA34980DB"
+           Scope="perMachine"
+           Language="1036"
+           Codepage="1252"
+           Compressed="yes">
+    <SummaryInformation Description="SoluPulse : surveillance et diagnostic du PC" Manufacturer="Solutech" />
+
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente de SoluPulse est déjà installée." Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Windows 10 22H2 (build 19045) ou Windows 11, 64 bits (ENF-COMP-01). -->
+    <Property Id="WINDOWSBUILD">
+      <RegistrySearch Id="WindowsBuildSearch" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="CurrentBuild" Type="raw" />
+    </Property>
+    <Launch Condition="Installed OR VersionNT64" Message="SoluPulse nécessite une version 64 bits de Windows." />
+    <Launch Condition="Installed OR WINDOWSBUILD &gt;= &quot;19045&quot;" Message="SoluPulse nécessite Windows 10 22H2 ou Windows 11." />
+
+    <Icon Id="SoluPulseIcon" SourceFile="..\src\SoluPulse.Desktop\Assets\solupulse.ico" />
+    <Property Id="ARPPRODUCTICON" Value="SoluPulseIcon" />
+    <Property Id="ARPCOMMENTS" Value="Surveille la santé du PC et propose des corrections que vous validez." />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <!-- Dossier du programme : écriture réservée aux administrateurs (ACL par défaut de Program Files, §7.2). -->
+      <Directory Id="INSTALLFOLDER" Name="SoluPulse">
+        <Directory Id="AgentFolder" Name="Agent" />
+        <Directory Id="AppFolder" Name="App" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="SoluPulse" Level="1">
+      <ComponentGroupRef Id="AgentFiles" />
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="AgentService" />
+      <ComponentRef Id="AppEntryPoints" />
+      <ComponentRef Id="StartMenuEntry" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <!-- Service : compte SYSTEM, démarrage automatique sans session ouverte (EF-COL-01),
+         redémarrage automatique en 30 secondes après un arrêt anormal (ENF-FIA-01). -->
+    <Component Id="AgentService" Directory="AgentFolder" Guid="7C1C2C8E-4C2B-4F0B-9D5B-1B6E2F3D9A11">
+      <File Id="AgentExe" Source="$(var.AgentDir)\SoluPulse.Agent.exe" KeyPath="yes" />
+      <ServiceInstall Id="SoluPulseServiceInstall"
+                      Name="SoluPulse"
+                      DisplayName="SoluPulse"
+                      Description="Surveille la santé du PC, explique les problèmes et applique les corrections que vous validez."
+                      Type="ownProcess"
+                      Start="auto"
+                      ErrorControl="normal"
+                      Account="LocalSystem"
+                      Vital="yes">
+        <util:ServiceConfig FirstFailureActionType="restart"
+                            SecondFailureActionType="restart"
+                            ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="30"
+                            ResetPeriodInDays="1" />
+      </ServiceInstall>
+      <ServiceControl Id="SoluPulseServiceControl" Name="SoluPulse" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <ComponentGroup Id="AgentFiles" Directory="AgentFolder">
+      <Files Include="$(var.AgentDir)\**">
+        <Exclude Files="$(var.AgentDir)\SoluPulse.Agent.exe" />
+        <Exclude Files="$(var.AgentDir)\appsettings.Development.json" />
+        <Exclude Files="$(var.AgentDir)\**\*.pdb" />
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="AppFiles" Directory="AppFolder">
+      <Files Include="$(var.AppDir)\**">
+        <Exclude Files="$(var.AppDir)\**\*.pdb" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- L'application démarre avec chaque session, dans la zone de notification, sans droits administrateur. -->
+    <Component Id="AppEntryPoints" Directory="AppFolder" Guid="3F0D8B52-6E4A-4C77-A2B1-8C0F5E7D2B44">
+      <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="SoluPulse"
+                     Type="string" Value="&quot;[AppFolder]SoluPulse.Desktop.exe&quot; --background" KeyPath="yes" />
+    </Component>
+
+    <!-- Modèle WiX standard pour un raccourci non annoncé : la clé de référence est sous HKCU (ICE43, ICE57). -->
+    <Component Id="StartMenuEntry" Directory="ProgramMenuFolder" Guid="9A6E1D3C-2B7F-4E58-8C19-5D4F0A3B7E62">
+      <Shortcut Id="StartMenuShortcut" Name="SoluPulse" Description="Santé de votre PC"
+                Target="[AppFolder]SoluPulse.Desktop.exe" WorkingDirectory="AppFolder" />
+      <RegistryValue Root="HKCU" Key="Software\Solutech\SoluPulse" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

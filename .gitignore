@@ -20,3 +20,6 @@ coverage*/
 *.db-shm
 *.db-wal
 logs/
+
+# Sorties de build-installer.ps1
+artifacts/
