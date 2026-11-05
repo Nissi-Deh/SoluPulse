@@ -1,7 +1,88 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SoluPulse.Desktop.App">
+             x:Class="SoluPulse.Desktop.App"
+             RequestedThemeVariant="Default">
+  <!-- RequestedThemeVariant="Default" : clair ou sombre selon le réglage de Windows (ENF-ERG-04). -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="PageBackground" Color="#F3F5F7" />
+          <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="CardBorder" Color="#D9DEE3" />
+          <SolidColorBrush x:Key="SidebarBackground" Color="#E8EEF2" />
+          <SolidColorBrush x:Key="MutedText" Color="#4A5560" />
+          <SolidColorBrush x:Key="Accent" Color="#0E7490" />
+          <SolidColorBrush x:Key="BannerBackground" Color="#FDECEA" />
+          <SolidColorBrush x:Key="BannerText" Color="#8A1C14" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="PageBackground" Color="#1C1E21" />
+          <SolidColorBrush x:Key="CardBackground" Color="#26292D" />
+          <SolidColorBrush x:Key="CardBorder" Color="#3A3F45" />
+          <SolidColorBrush x:Key="SidebarBackground" Color="#202326" />
+          <SolidColorBrush x:Key="MutedText" Color="#B9C1C9" />
+          <SolidColorBrush x:Key="Accent" Color="#38BDD8" />
+          <SolidColorBrush x:Key="BannerBackground" Color="#4A1D1A" />
+          <SolidColorBrush x:Key="BannerText" Color="#FFD7D3" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="18" />
+    </Style>
+    <Style Selector="Border.badge">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="10,3" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Border.badge > TextBlock">
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.h1">
+      <Setter Property="FontSize" Value="26" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.h2">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="Foreground" Value="{DynamicResource BannerText}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.accent">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
   </Application.Styles>
+
+  <TrayIcon.Icons>
+    <TrayIcons>
+      <TrayIcon ToolTipText="SoluPulse">
+        <TrayIcon.Menu>
+          <NativeMenu>
+            <NativeMenuItem Header="Ouvrir SoluPulse" Click="OnTrayOpen" />
+            <NativeMenuItem Header="Lancer un diagnostic complet" Click="OnTrayDiagnostic" />
+            <NativeMenuItemSeparator />
+            <NativeMenuItem Header="Quitter l'application" Click="OnTrayQuit" />
+          </NativeMenu>
+        </TrayIcon.Menu>
+      </TrayIcon>
+    </TrayIcons>
+  </TrayIcon.Icons>
 </Application>

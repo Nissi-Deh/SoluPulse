@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="SoluPulse.Desktop.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,16">
+      <TextBlock Classes="h1" Text="Historique" />
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <ComboBox ItemsSource="{Binding Metrics}" SelectedItem="{Binding SelectedMetric}" MinWidth="420" PlaceholderText="Mesure">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:MetricChoice">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox ItemsSource="{Binding Periods}" SelectedItem="{Binding SelectedPeriod}" MinWidth="140">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:PeriodChoice">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <TextBlock Classes="muted" Text="{Binding Summary}" />
+      <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+    <Border Classes="card">
+      <lvc:CartesianChart Series="{Binding Series}" XAxes="{Binding XAxes}" ZoomMode="X" />
+    </Border>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
+      <Button Classes="accent" Content="Enregistrer" Command="{Binding SaveCommand}" />
+      <TextBlock Text="{Binding Message}" VerticalAlignment="Center" />
+      <TextBlock Classes="error" Text="{Binding Error}" VerticalAlignment="Center" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+    <ScrollViewer>
+      <StackPanel Spacing="16">
+        <TextBlock Classes="h1" Text="Paramètres" />
+
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Notifications" />
+            <ToggleSwitch IsChecked="{Binding NotificationsEnabled}" OnContent="Notifications activées" OffContent="Notifications désactivées" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="Me prévenir à partir du niveau" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding Severities}" SelectedItem="{Binding MinSeverity}" MinWidth="160" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Données et confidentialité" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="Garder le détail des mesures pendant" VerticalAlignment="Center" />
+              <NumericUpDown Value="{Binding RetentionDays}" Minimum="7" Maximum="365" Increment="1" FormatString="0" Width="130" />
+              <TextBlock Text="jours (ensuite, moyennes par heure)" VerticalAlignment="Center" Classes="muted" />
+            </StackPanel>
+            <ToggleSwitch IsChecked="{Binding InternetProbes}" OnContent="Tester la connexion Internet (quelques pings, aucune donnée envoyée)" OffContent="Tests de connexion Internet désactivés" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Langue : français. L'anglais arrivera dans une prochaine version." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Seuils d'alerte" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Laissez vide pour garder le seuil recommandé." />
+            <ItemsControl ItemsSource="{Binding Thresholds}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ThresholdItem">
+                  <Grid ColumnDefinitions="*,140" Margin="0,0,0,10">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Condition}" Classes="muted" FontSize="12" />
+                    </StackPanel>
+                    <TextBox Grid.Column="1" Text="{Binding OverrideText}" Watermark="par défaut" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

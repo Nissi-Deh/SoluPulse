@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+        xmlns:c="using:SoluPulse.Contracts"
+        x:Class="SoluPulse.Desktop.Views.CorrectionWindow"
+        x:DataType="vm:CorrectionViewModel"
+        Title="SoluPulse — Fiche de correction"
+        Icon="avares://SoluPulse.Desktop/Assets/solupulse.ico"
+        Width="600" SizeToContent="Height" MaxHeight="760" CanResize="False"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource PageBackground}">
+  <DockPanel Margin="24">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,18,0,0">
+      <Button Content="Ne rien faire" Command="{Binding CloseCommand}" IsVisible="{Binding !Finished}" IsEnabled="{Binding !Running}" />
+      <Button Classes="accent" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" IsVisible="{Binding !Finished}" />
+      <Button Classes="accent" Content="Fermer" Command="{Binding CloseCommand}" IsVisible="{Binding Finished}" />
+    </StackPanel>
+
+    <ScrollViewer>
+      <StackPanel Spacing="14">
+        <TextBlock Classes="h2" Text="{Binding Title}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+
+        <Border Classes="card" Padding="16">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Ce qui va être fait" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding Steps}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto" >
+          <TextBlock Grid.Row="0" Text="Niveau de risque" FontWeight="SemiBold" Margin="0,0,0,6" />
+          <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding RiskText}" TextWrapping="Wrap" />
+          <TextBlock Grid.Row="1" Text="Durée estimée" FontWeight="SemiBold" Margin="0,0,0,6" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DurationText}" />
+          <TextBlock Grid.Row="2" Text="Redémarrage" FontWeight="SemiBold" Margin="0,0,0,6" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding RebootText}" />
+          <TextBlock Grid.Row="3" Text="Annulable" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ReversibleText}" TextWrapping="Wrap" />
+        </Grid>
+        <TextBlock Text="{Binding RestorePointText}" IsVisible="{Binding HasRestorePoint}" TextWrapping="Wrap" FontWeight="SemiBold" />
+
+        <ItemsControl ItemsSource="{Binding Parameters}" IsVisible="{Binding HasParameters}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ParameterItem">
+              <StackPanel Spacing="4" Margin="0,0,0,10">
+                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" HorizontalAlignment="Stretch" PlaceholderText="Choisir…">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="c:Choice">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Label}" />
+                        <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Text="{Binding Estimate}" IsVisible="{Binding Estimate, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Classes="muted" TextWrapping="Wrap" />
+        <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <StackPanel IsVisible="{Binding Running}" Spacing="4">
+          <ProgressBar IsIndeterminate="True" Height="6" />
+          <TextBlock Classes="muted" Text="Correction en cours. Vous pouvez continuer à utiliser votre PC." />
+        </StackPanel>
+
+        <Border Classes="card" IsVisible="{Binding Finished}">
+          <StackPanel Spacing="6">
+            <TextBlock FontWeight="SemiBold" Text="Correction terminée" IsVisible="{Binding Success}" />
+            <TextBlock FontWeight="SemiBold" Text="La correction n'a pas abouti" IsVisible="{Binding !Success}" />
+            <TextBlock Text="{Binding ResultMessage}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
