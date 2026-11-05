@@ -82,3 +82,7 @@ Pas de budget pour un certificat : voir [docs/signature.md](docs/signature.md) (
 - [Plan de test sur machines virtuelles](docs/tests-vm.md) (critères d'acceptation V1)
 - [Signature de code sans budget](docs/signature.md)
 - [Signaler une vulnérabilité](SECURITY.md)
+
+## Licence
+
+SoluPulse est un logiciel propriétaire de Solutech, tous droits réservés : voir [LICENSE](LICENSE). Les composants tiers restent sous leur propre licence ([installer/licences](installer/licences)).

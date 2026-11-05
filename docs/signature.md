@@ -24,9 +24,9 @@ Import-Certificate -FilePath SoluPulse-Test.cer -CertStoreLocation Cert:\LocalMa
 
 Sur ces PC, SoluPulse apparaît signé par « Solutech SoluPulse (test) ». La chaîne de signature est testée de bout en bout. Sur les autres PC, le certificat n'est pas reconnu : il ne sert pas pour une diffusion publique.
 
-## Gratuit, si SoluPulse devient open source : SignPath Foundation
+## Piste écartée : SignPath Foundation
 
-[SignPath Foundation](https://signpath.org/) signe gratuitement les projets open source avec un certificat reconnu. Conditions principales : licence open source approuvée par l'OSI, dépôt public, construction par l'intégration continue (GitHub Actions convient), authentification à deux facteurs pour l'équipe. Le logiciel apparaît signé par « SignPath Foundation », pas par Solutech. Cette piste dépend du choix de licence (point ouvert §9.2).
+[SignPath Foundation](https://signpath.org/) signe gratuitement les projets open source. SoluPulse étant **propriétaire** (décision du 5 novembre 2026), cette piste ne s'applique pas.
 
 ## Gratuit, à faire dans tous les cas
 
@@ -35,7 +35,7 @@ Sur ces PC, SoluPulse apparaît signé par « Solutech SoluPulse (test) ». La c
 
 ## Le jour de la diffusion publique
 
-Le moins cher des certificats reconnus est un certificat OV, par exemple Certum Standard (cloud), autour de 100 à 120 $ par an. Il peut être pris en charge par Solutech, puisqu'il est émis au nom de l'entreprise. Une fois acheté :
+SoluPulse étant propriétaire, un certificat payant est le seul moyen d'obtenir une signature reconnue par tous les PC. Le moins cher est un certificat OV, par exemple Certum Standard (cloud), autour de 100 à 120 $ par an. Il est émis au nom de Solutech et devrait être pris en charge par l'entreprise, comme le reste du budget de diffusion. Une fois acheté :
 
 1. ajouter les secrets `SIGNING_CERT_PFX_BASE64` et `SIGNING_CERT_PASSWORD` au dépôt (ou adapter le script au service de signature en ligne du fournisseur) ;
 2. l'intégration continue signe automatiquement les exécutables, le MSI et l'installeur complet ;

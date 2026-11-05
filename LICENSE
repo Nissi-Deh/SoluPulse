@@ -1,0 +1,11 @@
+SoluPulse
+Copyright (c) 2026 Solutech. Tous droits réservés.
+
+Ce logiciel, son code source et sa documentation sont la propriété exclusive de Solutech.
+Toute reproduction, modification, distribution, publication, sous-licence ou utilisation,
+en tout ou en partie, est interdite sans l'autorisation écrite préalable de Solutech.
+
+Les composants tiers inclus dans SoluPulse restent soumis à leurs propres licences, listées
+dans installer/licences/COMPOSANTS-TIERS.txt. Le pilote PawnIO, installé par l'installeur
+complet, est un programme distinct distribué sans modification sous la licence GNU GPL
+version 2 (installer/licences/PawnIO-GPL-2.0.txt).

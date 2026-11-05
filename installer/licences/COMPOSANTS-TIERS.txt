@@ -16,9 +16,14 @@ les capteurs de temperature et les ventilateurs.
 PawnIO reste installe si SoluPulse est desinstalle, car d'autres logiciels
 peuvent l'utiliser. Il se desinstalle depuis Parametres > Applications.
 
+SoluPulse est un logiciel proprietaire de Solutech (tous droits reserves). Les
+composants ci-dessous restent sous leur propre licence.
+
 Autres composants
 -----------------
 SoluPulse utilise notamment : .NET (MIT), Avalonia (MIT), LiveCharts2 (MIT),
 CommunityToolkit.Mvvm (MIT), YamlDotNet (MIT), Microsoft.Data.Sqlite (MIT),
 Dapper (Apache-2.0), gRPC pour .NET (Apache-2.0), Serilog (Apache-2.0),
-LibreHardwareMonitorLib (MPL-2.0), Microsoft.Toolkit.Uwp.Notifications (MIT).
+LibreHardwareMonitorLib (MPL-2.0, utilisee sans modification ; sources :
+https://github.com/LibreHardwareMonitor/LibreHardwareMonitor),
+Microsoft.Toolkit.Uwp.Notifications (MIT).
