@@ -1,6 +1,6 @@
 namespace SoluPulse.Core.Corrections;
 
-/// <summary>Identifiants du catalogue V1 (cahier des charges §3.3).</summary>
+/// <summary>Identifiants du catalogue (cahier des charges §3.3), complété par les actions de sécurité.</summary>
 public static class ActionIds
 {
     // Nettoyage et optimisation
@@ -26,6 +26,17 @@ public static class ActionIds
     public const string ResetTcpIp = "ACT-NET-RESET-TCPIP";
     public const string SetDns = "ACT-NET-SET-DNS";
     public const string RestartAdapter = "ACT-NET-RESTART-ADAPTER";
+
+    // Sécurité
+    public const string EnableFirewall = "ACT-SEC-FIREWALL-ON";
+    public const string UpdateDefenderSignatures = "ACT-SEC-DEFENDER-UPDATE";
+    public const string DefenderQuickScan = "ACT-SEC-DEFENDER-SCAN";
+
+    // Sécurité : recommandations guidées
+    public const string GuideAntivirus = "ACT-SEC-GUIDE-ANTIVIRUS";
+    public const string GuideUac = "ACT-SEC-GUIDE-UAC";
+    public const string GuideSecureBoot = "ACT-SEC-GUIDE-SECUREBOOT";
+    public const string GuideEncryption = "ACT-SEC-GUIDE-ENCRYPTION";
 
     // Matériel : recommandations guidées
     public const string GuideCooling = "ACT-HW-GUIDE-COOLING";
@@ -89,5 +100,60 @@ public static class HardwareGuides
                 "Vérifiez que les fichiers copiés s'ouvrent.",
             ],
             RiskLevel.Faible, false, false, TimeSpan.FromMinutes(30))),
+    ];
+}
+
+/// <summary>Les recommandations de sécurité qui demandent un réglage par l'utilisateur ou dans le BIOS.</summary>
+public static class SecurityGuides
+{
+    private const string Family = "Sécurité";
+
+    public static IReadOnlyList<GuidanceAction> All { get; } =
+    [
+        new(new ActionDescriptor(
+            ActionIds.GuideAntivirus, Family,
+            "Rétablir la protection antivirus",
+            "Aucun antivirus ne protège le PC en ce moment, ou ses signatures ne sont plus à jour.",
+            [
+                "Ouvrez le menu Démarrer et lancez « Sécurité Windows ».",
+                "Cliquez sur « Protection contre les virus et menaces ».",
+                "Si un autre antivirus est installé mais expiré, renouvelez-le ou désinstallez-le : Microsoft Defender reprend alors la protection tout seul.",
+                "Activez « Protection en temps réel ».",
+                "Si le réglage est grisé, il est géré par votre entreprise : contactez votre support informatique.",
+            ],
+            RiskLevel.Faible, false, false, TimeSpan.FromMinutes(5))),
+        new(new ActionDescriptor(
+            ActionIds.GuideUac, Family,
+            "Réactiver le contrôle de compte d'utilisateur",
+            "Le contrôle de compte d'utilisateur demande votre accord avant qu'un programme modifie Windows. Il est désactivé.",
+            [
+                "Ouvrez le menu Démarrer et tapez « UAC ».",
+                "Ouvrez « Modifier les paramètres de contrôle de compte d'utilisateur ».",
+                "Placez le curseur sur le deuxième cran en partant du haut (réglage par défaut).",
+                "Cliquez sur OK, puis redémarrez le PC.",
+            ],
+            RiskLevel.Faible, false, true, TimeSpan.FromMinutes(5))),
+        new(new ActionDescriptor(
+            ActionIds.GuideSecureBoot, Family,
+            "Activer le démarrage sécurisé",
+            "Le démarrage sécurisé empêche un programme malveillant de se lancer avant Windows. Il se règle dans le BIOS du PC.",
+            [
+                "Si vous n'êtes pas à l'aise avec le BIOS, demandez à un technicien : un mauvais réglage peut empêcher Windows de démarrer.",
+                "Redémarrez le PC et appuyez sur la touche du BIOS dès l'allumage (F10 sur HP, F2 sur Dell, Lenovo ou Asus, Suppr sur les PC fixes).",
+                "Dans l'onglet « Sécurité » ou « Démarrage », mettez « Secure Boot » sur « Enabled ».",
+                "Enregistrez et quittez (souvent avec F10).",
+            ],
+            RiskLevel.Faible, false, true, TimeSpan.FromMinutes(10))),
+        new(new ActionDescriptor(
+            ActionIds.GuideEncryption, Family,
+            "Chiffrer le disque du PC",
+            "Le disque n'est pas chiffré : en cas de vol du PC, vos fichiers peuvent être lus en retirant le disque.",
+            [
+                "Windows Professionnel : ouvrez le menu Démarrer, tapez « Gérer BitLocker » et cliquez sur « Activer BitLocker ».",
+                "Windows Famille : ouvrez Paramètres > Confidentialité et sécurité > Chiffrement de l'appareil.",
+                "Enregistrez la clé de récupération dans votre compte Microsoft ou imprimez-la, et gardez-la en lieu sûr.",
+                "Laissez le PC allumé et branché pendant le chiffrement.",
+            ],
+            RiskLevel.Faible, false, false, TimeSpan.FromMinutes(15))),
     ];
 }

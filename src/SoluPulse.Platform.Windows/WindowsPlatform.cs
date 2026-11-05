@@ -5,7 +5,7 @@ using SoluPulse.Platform.Windows.Collectors;
 
 namespace SoluPulse.Platform.Windows;
 
-/// <summary>Point d'entrée de la couche Windows : collecteurs et catalogue d'actions V1.</summary>
+/// <summary>Point d'entrée de la couche Windows : collecteurs et catalogue d'actions.</summary>
 public static class WindowsPlatform
 {
     public static IReadOnlyList<ICollector> Collectors(TimeProvider timeProvider, NetworkProbeOptions networkOptions) =>
@@ -19,6 +19,8 @@ public static class WindowsPlatform
         new SystemInventoryCollector(timeProvider),
         new StorageHealthCollector(timeProvider),
         new WindowsUpdateCollector(timeProvider),
+        new SecurityCollector(timeProvider),
+        new HardwareInventoryCollector(timeProvider),
     ];
 
     public static IReadOnlyList<ISystemAction> Actions() =>
@@ -41,6 +43,10 @@ public static class WindowsPlatform
         new ResetTcpIpAction(),
         new SetDnsAction(),
         new RestartAdapterAction(),
+        new EnableFirewallAction(),
+        new UpdateDefenderSignaturesAction(),
+        new DefenderQuickScanAction(),
         .. HardwareGuides.All,
+        .. SecurityGuides.All,
     ];
 }
