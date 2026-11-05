@@ -18,4 +18,11 @@
   <ItemGroup>
     <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
   </ItemGroup>
+  <PropertyGroup>
+    <!-- L'installeur complet (bundle\) est un projet séparé : seul Package.wxs appartient au MSI. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Package.wxs" />
+  </ItemGroup>
 </Project>
