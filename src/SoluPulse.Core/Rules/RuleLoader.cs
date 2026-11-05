@@ -82,7 +82,11 @@ public static partial class RuleLoader
         try
         {
             var stream = new YamlStream();
-            stream.Load(new StringReader(content));
+            using (var reader = new StringReader(content))
+            {
+                stream.Load(reader);
+            }
+
             var isList = stream.Documents.Count > 0
                 && stream.Documents[0].RootNode is YamlMappingNode root
                 && root.Children.ContainsKey(new YamlScalarNode("regles"));

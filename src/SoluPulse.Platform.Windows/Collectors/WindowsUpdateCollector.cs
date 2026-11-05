@@ -24,7 +24,17 @@ public sealed class WindowsUpdateCollector(TimeProvider timeProvider) : ICollect
                 throw new TimeoutException("La recherche Windows Update n'a pas répondu en 5 minutes.");
             }
 
-            var titles = await search.ConfigureAwait(false);
+            List<string> titles;
+            try
+            {
+                titles = await search.ConfigureAwait(false);
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Recherche Windows Update impossible sur ce PC (code 0x{ex.HResult:X8}). Les mises à jour sont peut-être gérées par l'entreprise ou le service est désactivé.", ex);
+            }
+
             result.Add("systeme.mises_a_jour_en_attente", titles.Count, "");
             result.Snapshot("mises_a_jour", titles);
         }).ConfigureAwait(false);
@@ -41,7 +51,7 @@ public sealed class WindowsUpdateCollector(TimeProvider timeProvider) : ICollect
         var titles = new List<string>();
         for (var i = 0; i < (int)searchResult.Updates.Count; i++)
         {
-            titles.Add((string)searchResult.Updates.Item(i).Title);
+            titles.Add((string)searchResult.Updates[i].Title);
         }
 
         return titles;
