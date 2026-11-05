@@ -13,4 +13,6 @@ public sealed record HealthScore
     }
 
     public int Value { get; }
+
+    public static HealthScore Clamp(double value) => new((int)Math.Round(Math.Clamp(value, 0, 100)));
 }

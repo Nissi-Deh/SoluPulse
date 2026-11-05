@@ -1,0 +1,193 @@
+# Règles du domaine système et logiciels. Format : voir docs/regles.md.
+regles:
+  - id: SYS-BSOD-001
+    domaine: systeme
+    titre: Écran bleu récent
+    gravite: critique
+    condition:
+      metrique: evenements.ecrans_bleus_7j
+      operateur: ">="
+      seuil: 1
+    cause_probable: Pilote défectueux, fichiers système abîmés ou problème matériel
+    explication_simple: >
+      Votre PC a planté avec un écran bleu cette semaine. SoluPulse peut vérifier et réparer
+      les fichiers de Windows.
+    explication_technique: Événement BugCheck (ID 1001) dans le journal Système au cours des 7 derniers jours.
+    corrections: [ACT-SYS-SFC, ACT-SYS-DISM, ACT-SYS-CHKDSK]
+
+  - id: SYS-SHUTDOWN-001
+    domaine: systeme
+    titre: Arrêts brutaux répétés
+    gravite: attention
+    condition:
+      metrique: evenements.arrets_brutaux_7j
+      operateur: ">="
+      seuil: 3
+    cause_probable: Coupures de courant, surchauffe ou batterie défaillante
+    explication_simple: >
+      Votre PC s'est éteint plusieurs fois sans passer par « Arrêter ». Cela peut abîmer des fichiers.
+    explication_technique: Au moins 3 événements Kernel-Power 41 en 7 jours.
+    corrections: [ACT-SYS-CHKDSK, ACT-HW-GUIDE-COOLING]
+
+  - id: SYS-APP-001
+    domaine: systeme
+    titre: Plantages fréquents d'applications
+    gravite: attention
+    condition:
+      metrique: evenements.plantages_applications_24h
+      operateur: ">="
+      seuil: 5
+    cause_probable: Application défectueuse ou fichiers système abîmés
+    explication_simple: >
+      Des programmes se sont fermés brutalement plusieurs fois aujourd'hui.
+    explication_technique: Au moins 5 événements Application Error (ID 1000) en 24 heures.
+    corrections: [ACT-SYS-SFC, ACT-SYS-DISM]
+
+  - id: SYS-DISKERR-001
+    domaine: systeme
+    titre: Erreurs de lecture ou d'écriture sur le disque
+    gravite: critique
+    condition:
+      metrique: evenements.erreurs_disque_24h
+      operateur: ">="
+      seuil: 1
+    cause_probable: Disque ou câble défaillant, système de fichiers endommagé
+    explication_simple: >
+      Windows a eu du mal à lire ou écrire sur un disque aujourd'hui. Sauvegardez vos fichiers
+      et laissez SoluPulse planifier une vérification du disque.
+    explication_technique: Événements disk (7, 11, 51, 153) ou Ntfs (55) dans le journal Système en 24 heures.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-SYS-CHKDSK]
+
+  - id: SYS-DRV-001
+    domaine: systeme
+    titre: Périphérique en erreur
+    gravite: attention
+    condition:
+      metrique: systeme.pilotes_en_erreur
+      operateur: ">="
+      seuil: 1
+      duree_min: 30m
+    cause_probable: Pilote manquant, incompatible ou périphérique défaillant
+    explication_simple: >
+      Un périphérique de votre PC ne fonctionne pas correctement. Le détail est visible dans l'inventaire.
+    explication_technique: Au moins un Win32_PnPEntity avec ConfigManagerErrorCode différent de 0.
+
+  - id: SYS-SVC-001
+    domaine: systeme
+    titre: Service Windows arrêté
+    gravite: information
+    condition:
+      metrique: systeme.services_auto_arretes
+      operateur: ">="
+      seuil: 1
+      duree_min: 30m
+    cause_probable: Service qui a planté ou qui n'a pas réussi à démarrer
+    explication_simple: >
+      Un service de Windows qui devrait tourner est arrêté. SoluPulse peut le redémarrer.
+    explication_technique: Service en démarrage automatique, sans déclencheur, à l'arrêt.
+    corrections: [ACT-SYS-SERVICE-START]
+
+  - id: SYS-UPD-001
+    domaine: systeme
+    titre: Mises à jour en attente depuis longtemps
+    gravite: attention
+    condition:
+      metrique: systeme.mises_a_jour_en_attente
+      operateur: ">="
+      seuil: 1
+      duree_min: 7j
+    cause_probable: Windows Update bloqué ou mises à jour reportées
+    explication_simple: >
+      Des mises à jour de Windows attendent depuis plus d'une semaine. Elles corrigent souvent des failles
+      de sécurité. Ouvrez Windows Update pour les installer ; si elles restent bloquées, SoluPulse peut
+      réinitialiser Windows Update.
+    explication_technique: Recherche Windows Update « IsInstalled=0 and IsHidden=0 » non vide depuis 7 jours.
+    corrections: [ACT-SYS-WU-RESET, ACT-CLEAN-WU-CACHE]
+
+  - id: SYS-REBOOT-001
+    domaine: systeme
+    titre: Redémarrage en attente
+    gravite: information
+    condition:
+      metrique: systeme.redemarrage_en_attente
+      operateur: "=="
+      seuil: 1
+      duree_min: 3j
+    cause_probable: Une mise à jour attend un redémarrage pour se terminer
+    explication_simple: >
+      Windows attend un redémarrage pour finir d'installer des mises à jour. Redémarrez quand vous pouvez.
+    explication_technique: Clé RebootRequired de Windows Update ou PendingFileRenameOperations présente.
+
+  - id: SYS-UPTIME-001
+    domaine: systeme
+    titre: PC jamais redémarré
+    gravite: information
+    condition:
+      metrique: systeme.jours_depuis_demarrage
+      operateur: ">"
+      seuil: 14
+    cause_probable: Mise en veille au lieu de l'arrêt, démarrage rapide
+    explication_simple: >
+      Votre PC n'a pas redémarré depuis plus de deux semaines. Un redémarrage libère la mémoire
+      et termine les mises à jour.
+    explication_technique: Temps écoulé depuis le dernier démarrage supérieur à 14 jours.
+
+  - id: SYS-STARTUP-001
+    domaine: systeme
+    titre: Beaucoup de programmes au démarrage
+    gravite: information
+    condition:
+      metrique: systeme.programmes_demarrage
+      operateur: ">"
+      seuil: 15
+      hysteresis: 2
+    cause_probable: Programmes qui s'ajoutent au démarrage à leur installation
+    explication_simple: >
+      Beaucoup de programmes se lancent avec Windows. Le démarrage est plus long et la mémoire se remplit.
+    explication_technique: Plus de 15 entrées de démarrage actives (Run, RunOnce, dossiers Démarrage).
+    corrections: [ACT-STARTUP-DISABLE]
+
+  - id: SYS-BOOT-001
+    domaine: systeme
+    titre: Démarrage lent
+    gravite: attention
+    condition:
+      metrique: systeme.duree_demarrage_s
+      operateur: ">"
+      seuil: 120
+      hysteresis: 20
+    cause_probable: Programmes au démarrage, disque saturé ou fragmenté
+    explication_simple: >
+      Votre PC met plus de deux minutes à démarrer.
+    explication_technique: BootTime de l'événement 100 (Diagnostics-Performance) supérieur à 120 secondes.
+    corrections: [ACT-STARTUP-DISABLE, ACT-DRIVE-OPTIMIZE]
+
+  - id: SYS-CPU-001
+    domaine: systeme
+    titre: Processeur très sollicité
+    gravite: information
+    condition:
+      metrique: cpu.utilisation_pct
+      operateur: ">"
+      seuil: 90
+      duree_min: 15m
+      hysteresis: 20
+    cause_probable: Un programme utilise tout le processeur
+    explication_simple: >
+      Le processeur travaille à fond depuis un quart d'heure. Le PC peut être lent.
+      La liste des programmes les plus gourmands est dans l'inventaire.
+    explication_technique: Utilisation CPU moyenne au-dessus de 90 % pendant 15 minutes.
+
+  - id: SYS-POWER-001
+    domaine: systeme
+    titre: Mode économie d'énergie sur secteur
+    gravite: information
+    conditions:
+      tous:
+        - { metrique: systeme.plan_economie_energie, operateur: "==", seuil: 1, duree_min: 30m }
+        - { metrique: alimentation.secteur, operateur: "==", seuil: 1 }
+    cause_probable: Plan d'alimentation « Économie d'énergie » resté actif
+    explication_simple: >
+      Votre PC est branché mais reste en mode économie d'énergie, ce qui le ralentit.
+    explication_technique: Le schéma d'alimentation actif est « Économiseur d'énergie » alors que le PC est sur secteur.
+    corrections: [ACT-POWER-BALANCED]
