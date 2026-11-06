@@ -22,7 +22,7 @@ public sealed class EnableFirewallAction : SystemActionBase
         ["Mémoriser l'état du pare-feu pour chaque type de réseau", "Activer le pare-feu sur tous les types de réseau"],
         RiskLevel.Faible, Reversible: true, RequiresReboot: false, TimeSpan.FromSeconds(10));
 
-    public override Task<string?> BackupAsync(ActionContext context, CancellationToken cancellationToken) => Task.Run(() =>
+    public override Task<string?> BackupAsync(ActionContext context, CancellationToken cancellationToken) => Task.Run<string?>(() =>
     {
         var disabled = Wmi.Query(@"\\.\root\StandardCimv2", "SELECT Name, Enabled FROM MSFT_NetFirewallProfile")
             .Where(p => Wmi.Get<ushort>(p, "Enabled") != 1)
@@ -30,7 +30,7 @@ public sealed class EnableFirewallAction : SystemActionBase
             .OfType<string>()
             .Where(Profiles.ContainsKey)
             .ToArray();
-        return (string?)JsonSerializer.Serialize(disabled);
+        return JsonSerializer.Serialize(disabled);
     }, cancellationToken);
 
     public override async Task<ActionOutcome> ExecuteAsync(ActionContext context, CancellationToken cancellationToken)
