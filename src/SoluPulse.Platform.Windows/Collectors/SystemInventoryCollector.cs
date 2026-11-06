@@ -113,7 +113,7 @@ public sealed class SystemInventoryCollector(TimeProvider timeProvider) : IColle
             using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
             result.Snapshot("windows", new
             {
-                Edition = key?.GetValue("ProductName") as string,
+                Edition = EditionName(key?.GetValue("ProductName") as string, key?.GetValue("CurrentBuild") as string),
                 Version = key?.GetValue("DisplayVersion") as string,
                 Build = $"{key?.GetValue("CurrentBuild")}.{key?.GetValue("UBR")}",
                 Machine = Environment.MachineName,
@@ -123,4 +123,16 @@ public sealed class SystemInventoryCollector(TimeProvider timeProvider) : IColle
 
         return Task.FromResult(result.Build());
     }
+
+    /// <summary>
+    /// Windows 11 garde « Windows 10 » dans ProductName ; seul le numéro de build les distingue
+    /// (22000 et au-delà pour Windows 11).
+    /// </summary>
+    internal static string? EditionName(string? productName, string? build) =>
+        productName is not null
+        && productName.StartsWith("Windows 10", StringComparison.Ordinal)
+        && int.TryParse(build, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number)
+        && number >= 22000
+            ? "Windows 11" + productName["Windows 10".Length..]
+            : productName;
 }

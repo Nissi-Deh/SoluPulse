@@ -38,7 +38,7 @@ public abstract partial class PageViewModel : ObservableObject
     }
 }
 
-public sealed record NavigationItem(string Title, string Glyph, PageViewModel Page);
+public sealed record NavigationItem(string Title, Avalonia.Media.Geometry Icon, PageViewModel Page);
 
 /// <summary>Fenêtre principale : navigation, connexion au service, notifications, ouverture des fiches.</summary>
 public sealed partial class MainViewModel : ObservableObject
@@ -61,13 +61,13 @@ public sealed partial class MainViewModel : ObservableObject
         Settings = new SettingsViewModel(client, this);
         Navigation =
         [
-            new("Tableau de bord", "◉", Dashboard),
-            new("Mon PC", "💻", Computer),
-            new("Alertes", "⚠", Alerts),
-            new("Historique", "📈", History),
-            new("Journal des corrections", "✔", Journal),
-            new("Inventaire système", "☰", Inventory),
-            new("Paramètres", "⚙", Settings),
+            new("Tableau de bord", Icons.Dashboard, Dashboard),
+            new("Mon PC", Icons.Computer, Computer),
+            new("Alertes", Icons.Alert, Alerts),
+            new("Historique", Icons.History, History),
+            new("Journal des corrections", Icons.Journal, Journal),
+            new("Inventaire système", Icons.Inventory, Inventory),
+            new("Paramètres", Icons.Settings, Settings),
         ];
         _selectedNavigation = Navigation[0];
 

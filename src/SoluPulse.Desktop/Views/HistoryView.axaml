@@ -7,6 +7,7 @@
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,16">
       <TextBlock Classes="h1" Text="Historique" />
+      <TextBlock Classes="muted" TextWrapping="Wrap" Text="L'évolution de chaque mesure dans le temps, conservée sur votre PC." />
       <StackPanel Orientation="Horizontal" Spacing="12">
         <ComboBox ItemsSource="{Binding Metrics}" SelectedItem="{Binding SelectedMetric}" MinWidth="420" PlaceholderText="Mesure">
           <ComboBox.ItemTemplate>

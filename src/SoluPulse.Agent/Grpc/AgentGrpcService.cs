@@ -26,6 +26,7 @@ internal sealed class AgentGrpcService(
     SettingsService settings,
     EventHub events,
     AlertMapper mapper,
+    IHostApplicationLifetime lifetime,
     ILogger<AgentGrpcService> logger) : AgentService.AgentServiceBase
 {
     public override Task<StatusReply> GetStatus(Empty request, ServerCallContext context)
@@ -229,17 +230,21 @@ internal sealed class AgentGrpcService(
     {
         authenticator.Authenticate(context);
         var (id, reader) = events.Subscribe();
+
+        // Le flux se ferme aussi à l'arrêt du service : sinon Kestrel attend la fin du délai d'arrêt
+        // et le service est tué par Windows pendant une mise à jour.
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
         try
         {
-            await responseStream.WriteAsync(new AgentEvent { Kind = "etat", Status = await runner.StatusAsync(context.CancellationToken) });
-            await foreach (var agentEvent in reader.ReadAllAsync(context.CancellationToken))
+            await responseStream.WriteAsync(new AgentEvent { Kind = "etat", Status = await runner.StatusAsync(stop.Token) });
+            await foreach (var agentEvent in reader.ReadAllAsync(stop.Token))
             {
                 await responseStream.WriteAsync(agentEvent);
             }
         }
         catch (OperationCanceledException)
         {
-            // L'application s'est déconnectée.
+            // L'application s'est déconnectée ou le service s'arrête.
         }
         finally
         {

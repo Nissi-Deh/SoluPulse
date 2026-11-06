@@ -24,7 +24,11 @@ public sealed partial class DashboardViewModel(AgentClient client, MainViewModel
     private string _scoreText = "—";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScoreSweep))]
     private double _scoreValue;
+
+    /// <summary>Angle de l'anneau de score : 360° pour 100.</summary>
+    public double ScoreSweep => ScoreValue * 3.6;
 
     [ObservableProperty]
     private IBrush _scoreBrush = new SolidColorBrush(Palette.Unknown);

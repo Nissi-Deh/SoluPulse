@@ -2,11 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SoluPulse.Desktop.ViewModels"
         xmlns:v="using:SoluPulse.Desktop.Views"
+        xmlns:s="using:SoluPulse.Desktop.Services"
         x:Class="SoluPulse.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="SoluPulse"
         Icon="avares://SoluPulse.Desktop/Assets/solupulse.ico"
-        Width="1100" Height="720" MinWidth="820" MinHeight="560"
+        Width="1180" Height="760" MinWidth="860" MinHeight="580"
         Background="{DynamicResource PageBackground}"
         WindowStartupLocation="CenterScreen">
   <Window.DataTemplates>
@@ -19,21 +20,39 @@
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
   </Window.DataTemplates>
 
-  <Grid ColumnDefinitions="232,*">
-    <Border Background="{DynamicResource SidebarBackground}" Padding="14,20">
+  <Grid ColumnDefinitions="248,*">
+    <Border Background="{DynamicResource SidebarBackground}" Padding="16,22">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="6,0,0,24">
-          <Image Source="avares://SoluPulse.Desktop/Assets/solupulse.png" Width="34" Height="34" />
-          <TextBlock Text="SoluPulse" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="6,0,0,28">
+          <Image Source="avares://SoluPulse.Desktop/Assets/solupulse.png" Width="40" Height="40" />
+          <StackPanel VerticalAlignment="Center" Spacing="0">
+            <TextBlock Text="SoluPulse" FontSize="21" FontWeight="SemiBold" Foreground="White" />
+            <TextBlock Text="Santé de votre PC" FontSize="12" Foreground="{DynamicResource SidebarText}" />
+          </StackPanel>
         </StackPanel>
-        <Button DockPanel.Dock="Bottom" Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                Command="{Binding RunDiagnosticCommand}" Content="Diagnostic complet" Padding="10" />
-        <ListBox ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNavigation}" Background="Transparent">
+
+        <StackPanel DockPanel.Dock="Bottom" Spacing="14">
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="12,11"
+                  Command="{Binding RunDiagnosticCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <v:IconView Data="{x:Static s:Icons.Search}" />
+              <TextBlock Text="Diagnostic complet" />
+            </StackPanel>
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="6,0,0,0">
+            <Ellipse Width="8" Height="8" Fill="#34D399" IsVisible="{Binding Connected}" VerticalAlignment="Center" />
+            <Ellipse Width="8" Height="8" Fill="#F87171" IsVisible="{Binding Disconnected}" VerticalAlignment="Center" />
+            <TextBlock FontSize="12" Foreground="{DynamicResource SidebarText}" Text="Surveillance active" IsVisible="{Binding Connected}" />
+            <TextBlock FontSize="12" Foreground="{DynamicResource SidebarText}" Text="Service non joignable" IsVisible="{Binding Disconnected}" />
+          </StackPanel>
+        </StackPanel>
+
+        <ListBox Classes="nav" ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNavigation}" Background="Transparent">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:NavigationItem">
-              <StackPanel Orientation="Horizontal" Spacing="12" Margin="2,4">
-                <TextBlock Text="{Binding Glyph}" Width="20" TextAlignment="Center" />
-                <TextBlock Text="{Binding Title}" />
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <v:IconView Data="{Binding Icon}" Width="20" Height="20" />
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
@@ -42,11 +61,11 @@
     </Border>
 
     <DockPanel Grid.Column="1">
-      <Border DockPanel.Dock="Top" IsVisible="{Binding Disconnected}" Background="{DynamicResource BannerBackground}" Padding="16,10">
+      <Border DockPanel.Dock="Top" IsVisible="{Binding Disconnected}" Background="{DynamicResource BannerBackground}" Padding="20,12">
         <TextBlock Foreground="{DynamicResource BannerText}" TextWrapping="Wrap"
                    Text="Le service SoluPulse ne répond pas. La surveillance reprendra dès qu'il sera démarré ; aucune donnée n'est perdue." />
       </Border>
-      <ContentControl Content="{Binding CurrentPage}" Margin="28,24" />
+      <ContentControl Content="{Binding CurrentPage}" Margin="32,28,24,16" />
     </DockPanel>
   </Grid>
 </Window>

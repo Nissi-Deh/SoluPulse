@@ -32,6 +32,22 @@ public sealed class ComponentTests
     public void NamesMemoryTypes(uint smbios, string expected) =>
         Assert.Equal(expected, HardwareInventoryCollector.MemoryType(smbios));
 
+    [Theory]
+    [InlineData("Windows 10 Pro", "26300", "Windows 11 Pro")]
+    [InlineData("Windows 10 Home", "22000", "Windows 11 Home")]
+    [InlineData("Windows 10 Pro", "19045", "Windows 10 Pro")]
+    [InlineData("Windows Server 2022 Standard", "20348", "Windows Server 2022 Standard")]
+    [InlineData(null, "26300", null)]
+    public void NamesWindows11Correctly(string? productName, string? build, string? expected) =>
+        Assert.Equal(expected, SystemInventoryCollector.EditionName(productName, build));
+
+    [Theory]
+    [InlineData((ushort)17, "NVMe")]
+    [InlineData((ushort)8, "RAID")]
+    [InlineData((ushort)0, null)]
+    public void NamesDiskBuses(ushort busType, string? expected) =>
+        Assert.Equal(expected, StorageHealthCollector.BusName(busType));
+
     // S'exécute sur la machine de test : le processeur et la mémoire existent sur tout PC.
     [Fact]
     public async Task InventoryListsTheProcessorAndMemoryOfThisPc()

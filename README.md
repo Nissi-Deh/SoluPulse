@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/logo.png" width="128" alt="Logo SoluPulse"></p>
+
 # SoluPulse
 
 Agent Windows qui surveille le PC en continu, explique les problèmes en français simple et propose des corrections que l'utilisateur valide. Projet Solutech. Les références du type EF-COR-01 ou ENF-SEC-04 renvoient aux exigences du cahier des charges interne.
