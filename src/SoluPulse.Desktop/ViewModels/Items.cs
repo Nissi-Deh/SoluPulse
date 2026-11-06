@@ -36,12 +36,9 @@ internal static class Format
     {
         var decomposed = label.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
         var builder = new StringBuilder(decomposed.Length);
-        foreach (var c in decomposed)
+        foreach (var c in decomposed.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark))
         {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-            {
-                builder.Append(char.IsAsciiLetterOrDigit(c) ? c : '_');
-            }
+            builder.Append(char.IsAsciiLetterOrDigit(c) ? c : '_');
         }
 
         var segment = builder.ToString().Trim('_');
