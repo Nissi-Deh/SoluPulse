@@ -108,11 +108,26 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
         {
             d.Name,
             Type = d.MediaType switch { 3 => "HDD", 4 => "SSD", _ => "Inconnu" },
-            Bus = d.BusType == 17 ? "NVMe" : d.BusType == 11 ? "SATA" : d.BusType == 7 ? "USB" : d.BusType.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Bus = BusName(d.BusType),
             TailleGo = Math.Round(d.Size / 1e9, 0),
         }));
         return Task.FromResult(result.Build());
     }
+
+    /// <summary>Valeurs de MSFT_PhysicalDisk.BusType ; « RAID » couvre aussi les disques derrière Intel RST.</summary>
+    internal static string? BusName(ushort busType) => busType switch
+    {
+        1 => "SCSI",
+        3 => "ATA",
+        7 => "USB",
+        8 => "RAID",
+        10 => "SAS",
+        11 => "SATA",
+        12 => "carte SD",
+        13 => "carte MMC",
+        17 => "NVMe",
+        _ => null,
+    };
 
     private static void AddIfPresent(CollectorResultBuilder result, System.Management.ManagementBaseObject item, string property, string metric, string unit)
     {
