@@ -2,9 +2,23 @@
 
 # SoluPulse
 
+*[English version](README.en.md)*
+
 Agent Windows qui surveille le PC en continu, explique les problèmes en français simple et propose des corrections que l'utilisateur valide. Projet Solutech. Les références du type EF-COR-01 ou ENF-SEC-04 renvoient aux exigences du cahier des charges interne.
 
-Ce dépôt contient la **V1** : service Windows, application de bureau, diagnostic local, alertes, corrections réversibles et installeur MSI.
+Ce dépôt contient la **V1** : service Windows, application de bureau, diagnostic local, alertes, corrections réversibles et installeur MSI. La liste complète est dans [docs/fonctionnalites.md](docs/fonctionnalites.md).
+
+<p align="center"><img src="docs/images/tableau-de-bord.png" width="820" alt="Tableau de bord de SoluPulse : score de santé, domaines, valeurs en direct"></p>
+
+| Mon PC | Thème sombre |
+| --- | --- |
+| <img src="docs/images/mon-pc.png" width="400" alt="Page Mon PC : fiche de chaque composant"> | <img src="docs/images/tableau-de-bord-sombre.png" width="400" alt="Tableau de bord en thème sombre"> |
+
+## Téléchargement
+
+L'installeur de chaque version est publié sur la page des [versions](https://github.com/Nissi-Deh/SoluPulse/releases) : téléchargez `SoluPulse-Setup-<version>.exe` et lancez-le. Windows 10 22H2 ou Windows 11, 64 bits.
+
+Les installeurs sont signés gratuitement par [SignPath Foundation](https://signpath.org) ([politique de signature](docs/politique-signature.md)). Tant que la signature n'est pas active, Windows affiche « Éditeur inconnu » : cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
 
 ## Architecture
 
@@ -22,17 +36,17 @@ Deux processus séparés sur le PC (cahier des charges §5) :
 | --- | --- |
 | `SoluPulse.Core` | Domaine, moteur de règles YAML, scores, exécuteur de corrections, audit chaîné. Aucun appel Windows (ENF-MAIN-05). |
 | `SoluPulse.Storage` | Base SQLite (WAL) : mesures et agrégats, alertes, exécutions, audit, paramètres. |
-| `SoluPulse.Platform.Windows` | Collecteurs (capteurs, disques, batterie, performances, journaux, inventaire, réseau, Windows Update) et catalogue d'actions. |
+| `SoluPulse.Platform.Windows` | Collecteurs (capteurs, disques, batterie, performances, journaux, inventaire matériel et système, réseau, sécurité, Windows Update) et catalogue d'actions. |
 | `SoluPulse.Contracts` | Contrat gRPC entre l'application et le service. |
 | `SoluPulse.Agent` | Service Windows : planification, évaluation, API sur canal nommé. |
-| `SoluPulse.Desktop` | Application Avalonia : tableau de bord, alertes, fiche de validation, historique, journal, paramètres, notifications, icône de zone de notification. |
-| `rules/` | Base de règles livrée (33 règles matériel, système, réseau). Format : [docs/regles.md](docs/regles.md). |
+| `SoluPulse.Desktop` | Application Avalonia : tableau de bord, page Mon PC, alertes, fiche de validation, historique, journal, paramètres, notifications, icône de zone de notification. |
+| `rules/` | Base de règles livrée (41 règles matériel, système, réseau, sécurité). Format : [docs/regles.md](docs/regles.md). |
 | `installer/` | Installeur MSI (WiX 5). |
 
 ### Garanties de sécurité
 
 - **Aucune action sans validation** (EF-COR-01) : l'exécuteur n'agit qu'avec un jeton à usage unique, délivré quand la fiche est affichée, valable 10 minutes et réservé à l'utilisateur Windows qui l'a demandée. Un test automatisé le vérifie (`CorrectionExecutorTests`).
-- **Catalogue fermé** (EF-COR-07) : 18 actions compilées et 4 recommandations guidées. Les paramètres sont choisis dans une liste fournie par le service et revalidés avant exécution. Les outils Windows sont appelés avec des arguments fixes, sans interpréteur de commandes.
+- **Catalogue fermé** (EF-COR-07) : 21 actions compilées et 8 recommandations guidées. Les paramètres sont choisis dans une liste fournie par le service et revalidés avant exécution. Les outils Windows sont appelés avec des arguments fixes, sans interpréteur de commandes.
 - **Avant d'agir** : point de restauration pour tout risque moyen ou élevé, sauvegarde de l'état modifié, journal écrit avant chaque étape. Une correction interrompue est annulée au redémarrage (ENF-FIA-02).
 - **Canal local** : accessible aux seuls utilisateurs connectés localement, accès réseau refusé ; en production, seul l'exécutable SoluPulse installé est accepté comme client.
 - **Journal d'audit** chaîné par SHA-256 : toute modification ou suppression d'une entrée est détectée.
@@ -74,10 +88,13 @@ Le script produit dans `artifacts/installer/` :
 
 PawnIO est téléchargé depuis GitHub et sa signature Authenticode vérifiée. Sur un réseau qui bloque GitHub, déposez `PawnIO_setup.exe` dans `installer/redist/` ; sinon, seul le MSI est produit. L'intégration continue construit les deux à chaque commit.
 
+Pour publier une version : pousser une étiquette `v<version>` depuis `main` (par exemple `git tag v1.1.0 && git push origin v1.1.0`). Le numéro doit dépasser celui des installeurs de test `1.0.<numéro>` déjà installés, sinon la mise à jour est refusée. L'intégration continue construit l'installeur à ce numéro, le fait signer par SignPath si c'est configuré, puis crée la page de version avec les fichiers à télécharger.
+
 Pas de budget pour un certificat : voir [docs/signature.md](docs/signature.md) (certificat de test gratuit pour les VM et la bêta).
 
 ## Documentation
 
+- [Fonctionnalités](docs/fonctionnalites.md)
 - [Guide utilisateur](docs/guide-utilisateur.md)
 - [Données collectées](docs/donnees-collectees.md) (ENF-CONF-02)
 - [Format des règles](docs/regles.md)
