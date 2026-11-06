@@ -131,8 +131,8 @@ public sealed partial class NetworkCollector(TimeProvider timeProvider, NetworkP
             var seconds = Stopwatch.GetElapsedTime(previous.Timestamp, now).TotalSeconds;
             if (seconds > 0)
             {
-                result.Add("reseau.debit_recu_kbps", Math.Round((received - previous.Received) * 8 / 1000d / seconds, 1), "kbit/s");
-                result.Add("reseau.debit_envoye_kbps", Math.Round((sent - previous.Sent) * 8 / 1000d / seconds, 1), "kbit/s");
+                result.Add("reseau.debit_recu_kbps", Math.Round((received - previous.Received) * 8d / 1000 / seconds, 1), "kbit/s");
+                result.Add("reseau.debit_envoye_kbps", Math.Round((sent - previous.Sent) * 8d / 1000 / seconds, 1), "kbit/s");
             }
         }
 

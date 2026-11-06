@@ -291,7 +291,7 @@ internal static class ComponentCards
         }
         else if (metrics["securite.antivirus_a_jour"] is { } upToDate)
         {
-            card.Details.Add(new DetailRow("Définitions de virus", upToDate == 1 ? "à jour" : "périmées", upToDate == 1 ? Palette.Ok : Palette.Attention));
+            card.Details.Add(new DetailRow("Définitions de virus", upToDate >= 1 ? "à jour" : "périmées", upToDate >= 1 ? Palette.Ok : Palette.Attention));
         }
 
         if (metrics["securite.defender.dernier_scan_j"] is { } scan)
@@ -301,7 +301,7 @@ internal static class ComponentCards
 
         if (metrics["securite.pare_feu.profils_desactives"] is { } firewallOff)
         {
-            card.Details.Add(firewallOff == 0
+            card.Details.Add(firewallOff < 1
                 ? new DetailRow("Pare-feu", "actif sur tous les réseaux", Palette.Ok)
                 : new DetailRow("Pare-feu", $"coupé sur {Number(firewallOff)} type(s) de réseau", Palette.Critique));
         }
@@ -476,7 +476,7 @@ internal static class ComponentCards
             {
                 if (metrics[$"{prefix}.{metric}"] is { } count)
                 {
-                    card.Details.Add(new DetailRow(label, Number(count), count == 0 ? Palette.Ok : Palette.Attention));
+                    card.Details.Add(new DetailRow(label, Number(count), count < 1 ? Palette.Ok : Palette.Attention));
                 }
             }
 
