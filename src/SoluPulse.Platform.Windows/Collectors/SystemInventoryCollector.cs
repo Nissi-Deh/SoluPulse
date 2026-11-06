@@ -19,6 +19,8 @@ public sealed class SystemInventoryCollector(TimeProvider timeProvider) : IColle
         "ShellHWDetection", "CDPSvc", "MicrosoftEdgeElevationService", "sedsvc", "WSearch",
     };
 
+    private static readonly HashSet<uint> NormalExitCodes = [0, 1077];
+
     // Codes du gestionnaire de périphériques à ignorer : 22 désactivé par l'utilisateur, 45 non connecté.
     private static readonly HashSet<uint> IgnoredDeviceErrors = [22, 45];
 
@@ -40,12 +42,21 @@ public sealed class SystemInventoryCollector(TimeProvider timeProvider) : IColle
             return []; // Les services à démarrage différé n'ont pas encore démarré.
         }
 
+        // Un service arrêté proprement (code 0) ou jamais lancé depuis le démarrage (1077) n'est pas en panne :
+        // les services de mise à jour, par exemple, s'arrêtent d'eux-mêmes une fois leur travail fait.
+        var failed = Wmi.Query(@"\\.\root\cimv2", "SELECT Name, ExitCode FROM Win32_Service WHERE StartMode = 'Auto' AND State = 'Stopped'")
+            .Where(s => !NormalExitCodes.Contains(Wmi.Get<uint>(s, "ExitCode")))
+            .Select(s => Wmi.Get<string>(s, "Name"))
+            .OfType<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         return ServiceController.GetServices()
             .Where(s =>
             {
                 try
                 {
-                    return s.StartType == ServiceStartMode.Automatic
+                    return failed.Contains(s.ServiceName)
+                        && s.StartType == ServiceStartMode.Automatic
                         && s.Status == ServiceControllerStatus.Stopped
                         && !NormallyStoppedServices.Contains(s.ServiceName)
                         && ServiceIsTriggerStarted(s.ServiceName).Length == 0;

@@ -95,13 +95,7 @@ internal static class Files
     public static IEnumerable<string> TempFolders()
     {
         yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
-        var usersRoot = Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments)) ?? @"C:\Users";
-        if (!Directory.Exists(usersRoot))
-        {
-            yield break;
-        }
-
-        foreach (var profile in Directory.EnumerateDirectories(usersRoot))
+        foreach (var profile in StartupInventory.UserProfilePaths())
         {
             var temp = Path.Combine(profile, "AppData", "Local", "Temp");
             if (Directory.Exists(temp))

@@ -36,6 +36,14 @@ public sealed class PlatformTests
     }
 
     [Fact]
+    public void TempCleanupCoversTheCurrentUserProfile()
+    {
+        var userTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
+
+        Assert.Contains(userTemp, Actions.Files.TempFolders(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ParsesSmartAttributes()
     {
         var data = new byte[512];
