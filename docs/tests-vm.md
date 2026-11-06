@@ -2,6 +2,36 @@
 
 Critère d'acceptation V1 (§8.2) : *chaque action du catalogue testée sur machine virtuelle, annulation comprise.* Les tests automatisés vérifient la logique et la sécurité (validation, paramètres, sauvegardes) ; l'effet réel des actions sur Windows se vérifie ici.
 
+## Pas à pas : première machine virtuelle
+
+Pour qui n'a jamais créé de machine virtuelle. Compter une heure, dont 30 minutes d'installation de Windows. Il faut Windows 10 ou 11 **Pro** (Hyper-V n'existe pas dans l'édition Famille) et **60 Go libres** sur un disque : pas forcément C:, la machine virtuelle peut vivre sur un autre disque.
+
+1. **Activer Hyper-V.** PowerShell en administrateur, puis redémarrer le PC :
+   ```powershell
+   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+   ```
+2. **Télécharger Windows 11** : <https://www.microsoft.com/software-download/windows11>, section « Télécharger l'image disque (ISO) ». L'enregistrer dans un dossier du disque qui a de la place, par exemple `E:\VM`.
+3. **Ranger les machines virtuelles sur ce disque.** Ouvrir le **Gestionnaire Hyper-V** ; à droite, **Paramètres Hyper-V** : mettre `E:\VM` dans « Disques durs virtuels » et dans « Ordinateurs virtuels ».
+4. **Créer la machine.** À droite, **Nouveau > Ordinateur virtuel** :
+   - nom `SoluPulse-Test` ;
+   - **Génération 2** ;
+   - mémoire **4096 Mo** ;
+   - réseau **Default Switch** ;
+   - disque de **64 Go** ;
+   - « Installer un système d'exploitation à partir d'un fichier image » : choisir l'ISO.
+5. **Préparer la machine pour Windows 11.** Clic droit sur la machine, **Paramètres** :
+   - **Sécurité** : cocher « Activer le module de plateforme sécurisée » ;
+   - **Processeur** : 2 processeurs virtuels.
+6. **Installer Windows.** Double-cliquer sur la machine, **Démarrer**, appuyer sur une touche quand « Press any key » s'affiche. Choisir « Je n'ai pas de clé de produit », puis Windows 11 Pro. Sans activation, Windows fonctionne normalement pour ces tests.
+7. **Activer les points de restauration dans la machine.** Menu Démarrer, « Créer un point de restauration », disque C:, **Configurer**, « Activer la protection du système ».
+8. **Faire un point de contrôle « propre ».** Dans le Gestionnaire Hyper-V, clic droit sur la machine, **Point de contrôle**, le renommer `propre`. Après chaque test qui casse quelque chose, clic droit sur ce point de contrôle, **Appliquer**, et la machine revient à cet état en quelques secondes.
+9. **Copier les fichiers dans la machine.** La fenêtre de la machine s'ouvre en « session améliorée » : copier-coller directement depuis l'explorateur du PC vers le bureau de la machine :
+   - `SoluPulse-Setup-<version>.exe` (artefact `installeur` de l'intégration continue) ;
+   - `tests\vm\Test-SoluPulseInstall.ps1` et `tools\mesurer-performances.ps1` du dépôt.
+10. **Installer SoluPulse** dans la machine, puis lancer les vérifications automatiques ci-dessous dans un PowerShell administrateur, après `Set-ExecutionPolicy -Scope Process Bypass`.
+11. **Tester les actions** une par une avec le tableau [Actions du catalogue](#actions-du-catalogue), en revenant au point de contrôle `propre` entre les tests destructifs.
+12. **Noter les résultats** : copier la sortie des scripts et, pour chaque action, « OK » ou ce qui ne va pas, puis les reporter dans les tickets #3, #4 et #5.
+
 ## Laboratoire
 
 - Hyper-V avec deux VM : Windows 10 22H2 x64 et Windows 11 x64, 4 Go de RAM, 2 cœurs (ENF-COMP-02).
@@ -62,7 +92,10 @@ Pour chaque action : provoquer la condition, appliquer depuis la fiche, vérifie
 | ACT-NET-RESET-TCPIP | IP fixe configurée | Fiche avertit que l'IP fixe sera effacée ; réseau OK après redémarrage | — |
 | ACT-NET-SET-DNS | DNS automatique, puis DNS fixe | Serveurs du fournisseur choisi appliqués | Réglage d'origine (automatique ou fixe) restauré |
 | ACT-NET-RESTART-ADAPTER | — | Carte désactivée puis réactivée, réseau rétabli | — |
-| Recommandations ACT-HW-GUIDE-* | — | Aucune modification du système, entrée au journal | — |
+| ACT-SEC-FIREWALL-ON | `Set-NetFirewallProfile -Profile Private -Enabled False` | Pare-feu actif sur les trois profils (`Get-NetFirewallProfile`) | Seul le profil privé est de nouveau coupé |
+| ACT-SEC-DEFENDER-UPDATE | — | `Get-MpComputerStatus` : `AntivirusSignatureLastUpdated` à la date du jour | — |
+| ACT-SEC-DEFENDER-SCAN | — | `Get-MpComputerStatus` : `QuickScanEndTime` à l'heure du test | — |
+| Recommandations ACT-HW-GUIDE-* et ACT-SEC-GUIDE-* | — | Aucune modification du système, entrée au journal | — |
 
 ## Robustesse
 
