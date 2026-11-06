@@ -82,6 +82,12 @@ public static class Wmi
         return results.Cast<ManagementBaseObject>().ToList();
     }
 
+    public static ManagementBaseObject? QueryFirst(string scope, string query)
+    {
+        var rows = Query(scope, query);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
     public static T? Get<T>(ManagementBaseObject item, string property)
     {
         var value = item[property];

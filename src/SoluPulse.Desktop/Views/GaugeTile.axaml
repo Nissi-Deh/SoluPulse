@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.GaugeTile"
+             x:DataType="vm:GaugeItem">
+  <Border Classes="gauge" Width="184" Margin="0,0,10,10">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding Label}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Label}" />
+      <TextBlock Text="{Binding Value}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <ProgressBar Value="{Binding Percent}" Maximum="100" MinHeight="6" Height="6" Foreground="{Binding Brush}" IsVisible="{Binding HasBar}" />
+      <Rectangle Height="6" RadiusX="3" RadiusY="3" Fill="{Binding Brush}" Width="28" HorizontalAlignment="Left" IsVisible="{Binding !HasBar}" />
+    </StackPanel>
+  </Border>
+</UserControl>

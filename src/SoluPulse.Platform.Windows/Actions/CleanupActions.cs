@@ -7,6 +7,7 @@ internal static class Family
     public const string Cleanup = "Nettoyage et optimisation";
     public const string Repair = "Réparations système";
     public const string Network = "Réseau";
+    public const string Security = "Sécurité";
 }
 
 /// <summary>Fichiers temporaires de Windows et des utilisateurs, vieux de plus d'un jour.</summary>

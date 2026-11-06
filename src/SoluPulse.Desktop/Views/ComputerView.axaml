@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             xmlns:v="using:SoluPulse.Desktop.Views"
+             x:Class="SoluPulse.Desktop.Views.ComputerView"
+             x:DataType="vm:ComputerViewModel">
+  <DockPanel>
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h1" Text="Mon PC" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Tous les composants détectés et leurs mesures en direct. Ces informations restent sur votre PC." />
+        <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+      <Button Grid.Column="1" VerticalAlignment="Top" Content="Actualiser" Command="{Binding ReloadCommand}" IsEnabled="{Binding !Busy}" />
+    </Grid>
+
+    <ScrollViewer>
+      <StackPanel Spacing="12">
+        <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding Empty}"
+                   Text="L'inventaire n'est pas encore prêt : il est relevé dans la minute qui suit le démarrage du service." />
+
+        <ItemsControl ItemsSource="{Binding Cards}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ComponentCard">
+              <Border Classes="card" Margin="0,0,0,12">
+                <StackPanel Spacing="14">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <Border Classes="glyph">
+                      <TextBlock Text="{Binding Glyph}" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+                      <TextBlock Classes="h2" Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" Text="{Binding Subtitle}" IsVisible="{Binding HasSubtitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+
+                  <ItemsControl ItemsSource="{Binding Gauges}" IsVisible="{Binding HasGauges}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:GaugeItem">
+                        <v:GaugeTile />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <TextBlock Text="{Binding Hint}" IsVisible="{Binding HasHint}" Foreground="{Binding HintBrush}" TextWrapping="Wrap" FontWeight="SemiBold" />
+
+                  <ItemsControl ItemsSource="{Binding Details}" IsVisible="{Binding HasDetails}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DetailRow">
+                        <v:DetailLine />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Expander IsVisible="{Binding HasSensors}" HorizontalAlignment="Stretch">
+          <Expander.Header>
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding SensorsTitle}" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" FontSize="12" Text="Toutes les valeurs lues par les capteurs du PC, relevées toutes les 5 minutes." />
+            </StackPanel>
+          </Expander.Header>
+          <ItemsControl ItemsSource="{Binding Sensors}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SensorGroup">
+                <StackPanel Spacing="4" Margin="0,0,0,16">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                  <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DetailRow">
+                        <v:DetailLine />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

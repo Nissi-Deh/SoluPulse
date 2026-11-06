@@ -29,6 +29,8 @@ service AgentService {
 
   // Historique et inventaire (EF-IHM-05).
   rpc ListMetrics (google.protobuf.Empty) returns (MetricList);
+  // Dernières valeurs gardées en mémoire par le service, sans lecture de la base : pour l'affichage en direct.
+  rpc GetLiveMetrics (google.protobuf.Empty) returns (MetricList);
   rpc GetHistory (HistoryRequest) returns (HistoryReply);
   rpc GetInventory (google.protobuf.Empty) returns (InventoryReply);
 

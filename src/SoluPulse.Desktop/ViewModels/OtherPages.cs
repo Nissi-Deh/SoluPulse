@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text.Encodings.Web;
+using System.Text;
 using System.Text.Json;
 using Google.Protobuf.WellKnownTypes;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -76,7 +76,7 @@ public sealed partial class HistoryViewModel(AgentClient client) : PageViewModel
         Metrics.Clear();
         foreach (var metric in list.Metrics.OrderBy(m => Labels.ContainsKey(m.Metric) ? 0 : 1).ThenBy(m => m.Metric, StringComparer.Ordinal))
         {
-            Metrics.Add(new MetricChoice(metric.Metric, Labels.TryGetValue(metric.Metric, out var label) ? $"{label} ({metric.Metric})" : metric.Metric, metric.Unit));
+            Metrics.Add(new MetricChoice(metric.Metric, Labels.TryGetValue(metric.Metric, out var label) ? label : MetricLabels.Describe(metric.Metric), metric.Unit));
         }
 
         SelectedPeriod ??= Periods[0];
@@ -157,27 +157,28 @@ public sealed partial class JournalViewModel(AgentClient client) : PageViewModel
     });
 }
 
-/// <summary>Inventaire relevé par les collecteurs : programmes au démarrage, services, disques…</summary>
+/// <summary>Inventaire système : programmes au démarrage, services, processus, mises à jour… Le matériel est sur « Mon PC ».</summary>
 public sealed partial class InventoryViewModel(AgentClient client) : PageViewModel
 {
-    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
     private static readonly Dictionary<string, string> Titles = new(StringComparer.Ordinal)
     {
         ["windows"] = "Windows",
+        ["processus"] = "Programmes les plus gourmands",
+        ["demarrage"] = "Programmes au démarrage",
+        ["services_arretes"] = "Services en panne",
+        ["peripheriques_en_erreur"] = "Périphériques en erreur",
+        ["mises_a_jour"] = "Mises à jour en attente",
+        ["evenements_recents"] = "Événements récents",
+        ["cartes_reseau"] = "Cartes réseau actives",
         ["disques"] = "Disques",
         ["volumes"] = "Volumes",
         ["batterie"] = "Batterie",
-        ["processus"] = "Programmes les plus gourmands",
-        ["demarrage"] = "Programmes au démarrage",
-        ["services_arretes"] = "Services arrêtés",
-        ["peripheriques_en_erreur"] = "Périphériques en erreur",
-        ["mises_a_jour"] = "Mises à jour en attente",
-        ["cartes_reseau"] = "Cartes réseau",
-        ["evenements_recents"] = "Événements récents",
     };
 
-    public override string Title => "Inventaire";
+    // Affichés sous forme de fiches sur la page « Mon PC ».
+    private static readonly HashSet<string> ShownOnComputerPage = new(StringComparer.Ordinal) { "materiel", "securite", "capteurs" };
+
+    public override string Title => "Inventaire système";
 
     public ObservableCollection<InventoryEntry> Items { get; } = [];
 
@@ -185,12 +186,15 @@ public sealed partial class InventoryViewModel(AgentClient client) : PageViewMod
     {
         var reply = await client.Api.GetInventoryAsync(AgentClient.Empty);
         Items.Clear();
-        foreach (var item in reply.Items.OrderBy(i => Titles.Keys.ToList().IndexOf(i.Kind) is var index and >= 0 ? index : 99))
+        foreach (var item in reply.Items
+            .Where(i => !ShownOnComputerPage.Contains(i.Kind))
+            .OrderBy(i => Titles.Keys.ToList().IndexOf(i.Kind) is var index and >= 0 ? index : 99))
         {
             string text;
             try
             {
-                text = JsonSerializer.Serialize(JsonDocument.Parse(item.Json).RootElement, Indented);
+                using var document = JsonDocument.Parse(item.Json);
+                text = InventoryText.Render(document.RootElement);
             }
             catch (JsonException)
             {
@@ -200,6 +204,160 @@ public sealed partial class InventoryViewModel(AgentClient client) : PageViewMod
             Items.Add(new InventoryEntry(Titles.GetValueOrDefault(item.Kind, item.Kind), $"Relevé {Format.Ago(item.At)}", text));
         }
     });
+}
+
+/// <summary>Met un instantané JSON en texte lisible : une ligne par élément, des libellés en français.</summary>
+internal static class InventoryText
+{
+    private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
+    {
+        ["libelle"] = "Libellé",
+        ["memoireMo"] = "Mémoire (Mo)",
+        ["cpuPct"] = "Processeur (%)",
+        ["parCpu"] = "Par utilisation du processeur",
+        ["parMemoire"] = "Par utilisation de la mémoire",
+        ["emplacement"] = "Emplacement",
+        ["systeme"] = "Système",
+        ["active"] = "Activé",
+        ["presente"] = "Présente",
+        ["capaciteOrigineMwh"] = "Capacité d'origine (mWh)",
+        ["capaciteActuelleMwh"] = "Capacité actuelle (mWh)",
+        ["driveFormat"] = "Format",
+        ["lettre"] = "Lettre",
+        ["processeurs"] = "Processeurs logiques",
+    };
+
+    private static readonly Dictionary<string, string> Units = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["go"] = "(Go)",
+        ["mo"] = "(Mo)",
+        ["ko"] = "(Ko)",
+        ["pct"] = "(%)",
+        ["mbps"] = "(Mbit/s)",
+        ["mhz"] = "(MHz)",
+    };
+
+    public static string Render(JsonElement root)
+    {
+        var builder = new StringBuilder();
+        Write(builder, root, 0);
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void Write(StringBuilder builder, JsonElement element, int depth)
+    {
+        var indent = new string(' ', depth * 3);
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (!IsComposite(property.Value))
+                    {
+                        if (Scalar(property.Value) is { } value)
+                        {
+                            builder.Append(indent).Append(Label(property.Name)).Append(" : ").AppendLine(value);
+                        }
+                    }
+                    else
+                    {
+                        builder.Append(indent).Append(Label(property.Name)).AppendLine(" :");
+                        Write(builder, property.Value, depth + 1);
+                    }
+                }
+
+                break;
+            case JsonValueKind.Array:
+                var items = element.EnumerateArray().ToList();
+                if (items.Count == 0)
+                {
+                    builder.Append(indent).AppendLine("(aucun)");
+                }
+
+                foreach (var item in items)
+                {
+                    if (item.ValueKind == JsonValueKind.Object && !item.EnumerateObject().Any(p => IsComposite(p.Value)))
+                    {
+                        builder.Append(indent).Append("• ").AppendLine(Line(item));
+                    }
+                    else if (!IsComposite(item))
+                    {
+                        builder.Append(indent).Append("• ").AppendLine(Scalar(item) ?? "—");
+                    }
+                    else
+                    {
+                        Write(builder, item, depth + 1);
+                    }
+                }
+
+                break;
+            default:
+                builder.Append(indent).AppendLine(Scalar(element) ?? "—");
+                break;
+        }
+    }
+
+    private static string Line(JsonElement item)
+    {
+        string? name = null;
+        var parts = new List<string>();
+        foreach (var property in item.EnumerateObject())
+        {
+            if (Scalar(property.Value) is not { } value)
+            {
+                continue;
+            }
+
+            if (property.NameEquals("nom") || property.NameEquals("name"))
+            {
+                name = value;
+            }
+            else
+            {
+                parts.Add($"{Label(property.Name)} : {value}");
+            }
+        }
+
+        var details = string.Join(" · ", parts);
+        return name is null ? details : parts.Count == 0 ? name : $"{name} — {details}";
+    }
+
+    private static bool IsComposite(JsonElement element) => element.ValueKind is JsonValueKind.Object or JsonValueKind.Array;
+
+    private static string? Scalar(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.String => element.GetString() is { Length: > 0 } text ? text : null,
+        JsonValueKind.Number => element.GetDouble().ToString("0.##", Format.French),
+        JsonValueKind.True => "oui",
+        JsonValueKind.False => "non",
+        _ => null,
+    };
+
+    /// <summary>« tailleGo » devient « Taille (Go) », « vitesseMbps » devient « Vitesse (Mbit/s) ».</summary>
+    private static string Label(string name)
+    {
+        if (Labels.TryGetValue(name, out var label))
+        {
+            return label;
+        }
+
+        var words = new List<string>();
+        var current = new StringBuilder();
+        foreach (var c in name)
+        {
+            if (char.IsUpper(c) && current.Length > 0)
+            {
+                words.Add(current.ToString());
+                current.Clear();
+            }
+
+            current.Append(char.ToLowerInvariant(c));
+        }
+
+        words.Add(current.ToString());
+        var text = string.Join(' ', words.Select(w => Units.GetValueOrDefault(w, w)));
+        return text.Length == 0 ? name : char.ToUpperInvariant(text[0]) + text[1..];
+    }
 }
 
 /// <summary>Paramètres : seuils, notifications, rétention des données, langue (EF-IHM-06).</summary>

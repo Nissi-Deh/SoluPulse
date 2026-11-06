@@ -1,0 +1,127 @@
+# Règles du domaine sécurité. Format : voir docs/regles.md.
+regles:
+  - id: SEC-AV-001
+    domaine: securite
+    titre: Aucun antivirus actif
+    gravite: critique
+    condition:
+      metrique: securite.antivirus_actif
+      operateur: "<"
+      seuil: 1
+      duree_min: 15m
+    cause_probable: Antivirus désactivé, expiré ou désinstallé
+    explication_simple: >
+      Aucun antivirus ne protège votre PC en ce moment. Un fichier ou un site piégé pourrait
+      l'infecter sans être bloqué.
+    explication_technique: >
+      Aucun produit antivirus actif dans le Centre de sécurité Windows et protection en temps réel
+      de Microsoft Defender coupée.
+    corrections: [ACT-SEC-GUIDE-ANTIVIRUS]
+
+  - id: SEC-AV-002
+    domaine: securite
+    titre: Antivirus pas à jour
+    gravite: attention
+    condition:
+      metrique: securite.antivirus_a_jour
+      operateur: "<"
+      seuil: 1
+      duree_min: 6h
+    cause_probable: PC resté longtemps sans Internet ou mise à jour bloquée
+    explication_simple: >
+      Votre antivirus ne connaît pas les virus les plus récents. Une mise à jour suffit en général.
+    explication_technique: Le Centre de sécurité Windows signale des définitions antivirus périmées.
+    corrections: [ACT-SEC-DEFENDER-UPDATE, ACT-SEC-GUIDE-ANTIVIRUS]
+
+  - id: SEC-AV-003
+    domaine: securite
+    titre: Définitions de Microsoft Defender anciennes
+    gravite: attention
+    condition:
+      metrique: securite.defender.signatures_age_j
+      operateur: ">"
+      seuil: 7
+    cause_probable: Mises à jour de Defender bloquées ou PC peu connecté
+    explication_simple: >
+      Microsoft Defender n'a pas été mis à jour depuis plus d'une semaine. Il risque de laisser
+      passer les nouveaux virus.
+    explication_technique: AntivirusSignatureAge de MSFT_MpComputerStatus supérieur à 7 jours.
+    corrections: [ACT-SEC-DEFENDER-UPDATE]
+
+  - id: SEC-SCAN-001
+    domaine: securite
+    titre: Pas d'analyse antivirus depuis deux semaines
+    gravite: information
+    condition:
+      metrique: securite.defender.dernier_scan_j
+      operateur: ">"
+      seuil: 14
+    cause_probable: PC éteint ou occupé aux heures d'analyse automatique
+    explication_simple: >
+      Microsoft Defender n'a pas analysé votre PC depuis plus de deux semaines. Une analyse rapide
+      prend quelques minutes.
+    explication_technique: Âge de la dernière analyse rapide ou complète de Defender supérieur à 14 jours.
+    corrections: [ACT-SEC-DEFENDER-SCAN]
+
+  - id: SEC-FW-001
+    domaine: securite
+    titre: Pare-feu coupé
+    gravite: critique
+    condition:
+      metrique: securite.pare_feu.profils_desactives
+      operateur: ">="
+      seuil: 1
+      duree_min: 10m
+    cause_probable: Pare-feu désactivé à la main ou par un programme
+    explication_simple: >
+      Le pare-feu de Windows est coupé sur au moins un type de réseau. Votre PC est plus exposé,
+      surtout sur un Wi-Fi public.
+    explication_technique: >
+      Au moins un profil de MSFT_NetFirewallProfile désactivé, sans pare-feu tiers actif déclaré
+      au Centre de sécurité.
+    corrections: [ACT-SEC-FIREWALL-ON]
+
+  - id: SEC-UAC-001
+    domaine: securite
+    titre: Contrôle de compte d'utilisateur désactivé
+    gravite: attention
+    condition:
+      metrique: securite.uac_actif
+      operateur: "<"
+      seuil: 1
+    cause_probable: Réglage modifié pour éviter les fenêtres de confirmation
+    explication_simple: >
+      Windows ne vous demande plus votre accord quand un programme veut modifier le système.
+      Un programme malveillant peut donc agir sans que vous le voyiez.
+    explication_technique: Valeur EnableLUA à 0 dans HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System.
+    corrections: [ACT-SEC-GUIDE-UAC]
+
+  - id: SEC-BOOT-001
+    domaine: securite
+    titre: Démarrage sécurisé désactivé
+    gravite: information
+    condition:
+      metrique: securite.demarrage_securise
+      operateur: "<"
+      seuil: 1
+    cause_probable: Option désactivée dans le BIOS
+    explication_simple: >
+      Le démarrage sécurisé est désactivé. Il empêche un programme malveillant de se lancer avant
+      Windows. Il se règle dans le BIOS.
+    explication_technique: UEFISecureBootEnabled à 0 dans HKLM\SYSTEM\CurrentControlSet\Control\SecureBoot\State.
+    corrections: [ACT-SEC-GUIDE-SECUREBOOT]
+
+  - id: SEC-CRYPT-001
+    domaine: securite
+    titre: Disque du PC non chiffré
+    gravite: information
+    condition:
+      metrique: securite.chiffrement_disque_systeme
+      operateur: "<"
+      seuil: 1
+    cause_probable: BitLocker ou le chiffrement de l'appareil n'a jamais été activé
+    explication_simple: >
+      Le disque de Windows n'est pas chiffré. Si le PC est volé, quelqu'un peut lire vos fichiers
+      en retirant le disque.
+    explication_technique: ProtectionStatus de Win32_EncryptableVolume à 0 pour le volume système.
+    corrections: [ACT-SEC-GUIDE-ENCRYPTION]

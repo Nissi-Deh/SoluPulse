@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SoluPulse.Contracts;
@@ -30,6 +31,25 @@ internal static class Format
         };
     }
 
+    /// <summary>Même normalisation que <c>MetricName.Segment</c> côté service, pour relier un composant à ses mesures.</summary>
+    public static string Segment(string label)
+    {
+        var decomposed = label.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var c in decomposed.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark))
+        {
+            builder.Append(char.IsAsciiLetterOrDigit(c) ? c : '_');
+        }
+
+        var segment = builder.ToString().Trim('_');
+        while (segment.Contains("__", StringComparison.Ordinal))
+        {
+            segment = segment.Replace("__", "_", StringComparison.Ordinal);
+        }
+
+        return segment;
+    }
+
     public static string Duration(int seconds) => seconds switch
     {
         < 60 => "moins d'une minute",
@@ -45,7 +65,7 @@ public sealed class DomainItem(DomainStatus status)
     public string ScoreText { get; } = status.Evaluated ? status.Score.ToString(Format.French) : "—";
 
     public string StateText { get; } = !status.Evaluated
-        ? (status.Domain == "securite" ? "Disponible en V2" : "Non évalué")
+        ? "Non évalué"
         : status.ActiveAlerts == 0 ? "Aucun problème" : $"{status.ActiveAlerts} alerte{(status.ActiveAlerts > 1 ? "s" : "")} — {Palette.SeverityLabel(status.WorstSeverity).ToLower(Format.French)}";
 
     public IBrush Brush { get; } = new SolidColorBrush(status.Evaluated ? Palette.ForScore(status.Score) : Palette.Unknown);

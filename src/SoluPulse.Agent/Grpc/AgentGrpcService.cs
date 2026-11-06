@@ -142,6 +142,20 @@ internal sealed class AgentGrpcService(
         return reply;
     }
 
+    public override Task<MetricList> GetLiveMetrics(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        var reply = new MetricList();
+        reply.Metrics.AddRange(state.Latest().Values.OrderBy(m => m.Metric, StringComparer.Ordinal).Select(m => new Contracts.MetricInfo
+        {
+            Metric = m.Metric,
+            Unit = m.Unit,
+            LastValue = m.Value,
+            LastSeen = AlertMapper.Time(m.Timestamp),
+        }));
+        return Task.FromResult(reply);
+    }
+
     public override async Task<MetricList> ListMetrics(Empty request, ServerCallContext context)
     {
         authenticator.Authenticate(context);

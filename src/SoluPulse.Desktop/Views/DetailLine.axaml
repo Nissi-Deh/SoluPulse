@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.DetailLine"
+             x:DataType="vm:DetailRow">
+  <Grid ColumnDefinitions="18,230,*" Margin="0,3">
+    <Ellipse Width="10" Height="10" Fill="{Binding StateBrush}" IsVisible="{Binding HasState}" VerticalAlignment="Center" HorizontalAlignment="Left" />
+    <TextBlock Grid.Column="1" Text="{Binding Label}" Classes="muted" TextWrapping="Wrap" Margin="0,0,12,0" />
+    <SelectableTextBlock Grid.Column="2" Text="{Binding Value}" TextWrapping="Wrap" />
+  </Grid>
+</UserControl>
