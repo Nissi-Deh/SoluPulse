@@ -5,7 +5,7 @@
              x:DataType="vm:SettingsViewModel">
   <DockPanel>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
-      <Button Classes="accent" Content="Enregistrer" Command="{Binding SaveCommand}" />
+      <Button Classes="primary" Content="Enregistrer" Command="{Binding SaveCommand}" />
       <TextBlock Text="{Binding Message}" VerticalAlignment="Center" />
       <TextBlock Classes="error" Text="{Binding Error}" VerticalAlignment="Center" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>

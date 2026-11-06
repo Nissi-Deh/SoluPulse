@@ -34,9 +34,9 @@ public sealed class DetailRow(string label, string value, Color? state = null)
     public IBrush StateBrush { get; } = new SolidColorBrush(state ?? Palette.Unknown);
 }
 
-public sealed class ComponentCard(string glyph, string title, string? subtitle = null)
+public sealed class ComponentCard(Geometry icon, string title, string? subtitle = null)
 {
-    public string Glyph { get; } = glyph;
+    public Geometry Icon { get; } = icon;
 
     public string Title { get; } = title;
 
@@ -260,7 +260,7 @@ internal static class ComponentCards
     private static ComponentCard Computer(JsonElement hardware, JsonElement windows, MetricValues metrics)
     {
         var computer = hardware.Get("Ordinateur");
-        var card = new ComponentCard("💻", computer.Str("modele") ?? "Ce PC", Join(computer.Str("fabricant"), computer.Str("type")));
+        var card = new ComponentCard(Icons.Computer, computer.Str("modele") ?? "Ce PC", Join(computer.Str("fabricant"), computer.Str("type")));
         Add(card, "Windows", Join(windows.Str("edition"), windows.Str("version"), windows.Str("build") is { } build ? $"build {build}" : null));
         Add(card, "Nom du PC", windows.Str("machine"));
         Add(card, "Carte mère", computer.Str("carteMere"));
@@ -280,7 +280,7 @@ internal static class ComponentCards
             return null;
         }
 
-        var card = new ComponentCard("🛡", "Sécurité", "Protections de Windows");
+        var card = new ComponentCard(Icons.Shield, "Sécurité", "Protections de Windows");
         var antivirus = security.Items("Antivirus").Where(a => a.Bool("actif") == true).Select(a => a.Str("nom")).OfType<string>().ToList();
         card.Details.Add(metrics["securite.antivirus_actif"] == 1
             ? new DetailRow("Antivirus", antivirus.Count > 0 ? $"{string.Join(", ", antivirus)} : actif" : "Microsoft Defender : actif", Palette.Ok)
@@ -323,7 +323,7 @@ internal static class ComponentCards
         }
 
         var maxClock = processor.Num("frequenceMaxMhz");
-        var card = new ComponentCard("⚙", processor.Str("nom") ?? "Processeur", Join(
+        var card = new ComponentCard(Icons.Processor, processor.Str("nom") ?? "Processeur", Join(
             processor.Num("coeurs") is { } cores ? $"{Number(cores)} cœurs" : null,
             processor.Num("threads") is { } threads ? $"{Number(threads)} threads" : null,
             maxClock is { } clock ? $"{Number(clock / 1000)} GHz" : null));
@@ -369,7 +369,7 @@ internal static class ComponentCards
         var total = memory.Num("totaleGo") ?? Math.Round((totalMb ?? 0) / 1024);
         var type = modules.Select(m => m.Str("type")).FirstOrDefault(t => t is not null and not "inconnu");
         var slots = memory.Num("emplacements");
-        var card = new ComponentCard("🧠", $"{Number(total)} Go de mémoire{(type is null ? "" : $" {type}")}", Join(
+        var card = new ComponentCard(Icons.Memory, $"{Number(total)} Go de mémoire{(type is null ? "" : $" {type}")}", Join(
             modules.Count > 0 ? $"{modules.Count} barrette{(modules.Count > 1 ? "s" : "")}{(slots is > 0 ? $" sur {Number(slots.Value)} emplacements" : "")}" : null,
             memory.Num("maximumGo") is { } max and > 0 ? $"jusqu'à {Number(max)} Go" : null));
         if (metrics["memoire.utilisation_pct"] is { } used)
@@ -411,7 +411,7 @@ internal static class ComponentCards
         {
             var name = gpu.Str("nom") ?? "Carte graphique";
             var prefix = $"gpu.{Format.Segment(name)}";
-            var card = new ComponentCard("🎮", name, "Carte graphique");
+            var card = new ComponentCard(Icons.Graphics, name, "Carte graphique");
             if (metrics[$"{prefix}.temperature_c"] is { } temperature)
             {
                 card.Gauges.Add(Temperature("Température", temperature, 85, 95));
@@ -445,7 +445,7 @@ internal static class ComponentCards
         {
             var name = disk.Str("name") ?? "Disque";
             var prefix = $"disque_physique.{Format.Segment(name)}";
-            var card = new ComponentCard("💾", name, Join(disk.Str("type"), disk.Str("bus"), disk.Num("tailleGo") is { } size ? $"{Number(size)} Go" : null));
+            var card = new ComponentCard(Icons.Disk, name, Join(disk.Str("type"), disk.Str("bus"), disk.Num("tailleGo") is { } size ? $"{Number(size)} Go" : null));
             if (metrics[$"{prefix}.temperature_c"] is { } temperature)
             {
                 card.Gauges.Add(Temperature("Température", temperature, 55, 65));
@@ -492,7 +492,7 @@ internal static class ComponentCards
             return null;
         }
 
-        var card = new ComponentCard("📁", "Espace disque", $"{list.Count} volume{(list.Count > 1 ? "s" : "")}");
+        var card = new ComponentCard(Icons.Volumes, "Espace disque", $"{list.Count} volume{(list.Count > 1 ? "s" : "")}");
         foreach (var volume in list)
         {
             var size = volume.Num("tailleGo") ?? 0;
@@ -512,7 +512,7 @@ internal static class ComponentCards
             return null;
         }
 
-        var card = new ComponentCard("🔋", "Batterie", metrics["batterie.cycles"] is { } cycles ? $"{Number(cycles)} cycles de charge" : null);
+        var card = new ComponentCard(Icons.Battery, "Batterie", metrics["batterie.cycles"] is { } cycles ? $"{Number(cycles)} cycles de charge" : null);
         card.Gauges.Add(new GaugeItem("Santé", $"{Number(health)} %", health, LowIsBad(health, 70, 50)));
         if (metrics["batterie.charge_pct"] is { } charge)
         {
@@ -526,7 +526,7 @@ internal static class ComponentCards
 
     private static ComponentCard Network(JsonElement hardware, MetricValues metrics)
     {
-        var card = new ComponentCard("🌐", "Réseau", metrics["reseau.connecte"] == 0 ? "Déconnecté" : "Connecté");
+        var card = new ComponentCard(Icons.Network, "Réseau", metrics["reseau.connecte"] == 0 ? "Déconnecté" : "Connecté");
         if (metrics["reseau.internet.latence_ms"] is { } latency)
         {
             card.Gauges.Add(new GaugeItem("Latence Internet", $"{Number(latency)} ms", null, HighIsBad(latency, 100, 300)));
@@ -560,7 +560,7 @@ internal static class ComponentCards
 
     private static ComponentCard? Peripherals(JsonElement hardware)
     {
-        var card = new ComponentCard("🔌", "Périphériques", "Écrans, son, caméra, Bluetooth, imprimantes");
+        var card = new ComponentCard(Icons.Peripherals, "Périphériques", "Écrans, son, caméra, Bluetooth, imprimantes");
         Add(card, "Écrans", Names(hardware.Items("Ecrans").Select(e => Join(e.Str("nom"), e.Str("fabricant"), e.Num("annee") is { } year and > 0 ? Number(year) : null))));
         Add(card, "Son", Names(hardware.Items("Audio").Select(a => a.Str("nom"))));
         Add(card, "Caméras", Names(hardware.Items("Cameras").Select(c => c.Str("nom"))));

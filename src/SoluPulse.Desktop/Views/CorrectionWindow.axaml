@@ -12,8 +12,8 @@
   <DockPanel Margin="24">
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,18,0,0">
       <Button Content="Ne rien faire" Command="{Binding CloseCommand}" IsVisible="{Binding !Finished}" IsEnabled="{Binding !Running}" />
-      <Button Classes="accent" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" IsVisible="{Binding !Finished}" />
-      <Button Classes="accent" Content="Fermer" Command="{Binding CloseCommand}" IsVisible="{Binding Finished}" />
+      <Button Classes="primary" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" IsVisible="{Binding !Finished}" />
+      <Button Classes="primary" Content="Fermer" Command="{Binding CloseCommand}" IsVisible="{Binding Finished}" />
     </StackPanel>
 
     <ScrollViewer>

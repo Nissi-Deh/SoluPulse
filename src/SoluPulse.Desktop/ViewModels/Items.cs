@@ -65,6 +65,11 @@ public sealed class DomainItem(DomainStatus status)
 {
     public string Label { get; } = status.Label;
 
+    public Geometry Icon { get; } = Icons.ForDomain(status.Domain);
+
+    /// <summary>Remplissage de la barre de score, de 0 à 100 ; vide tant que le domaine n'est pas évalué.</summary>
+    public double Percent { get; } = status.Evaluated ? status.Score : 0;
+
     public string ScoreText { get; } = status.Evaluated ? status.Score.ToString(Format.French) : "—";
 
     public string StateText { get; } = !status.Evaluated

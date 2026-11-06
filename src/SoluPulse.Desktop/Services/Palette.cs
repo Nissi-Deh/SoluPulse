@@ -49,10 +49,11 @@ public static class Palette
         using var bitmap = new RenderTargetBitmap(new PixelSize(size, size), new Vector(96, 96));
         using (var context = bitmap.CreateDrawingContext())
         {
-            context.DrawRectangle(new SolidColorBrush(color), null, new RoundedRect(new Rect(0, 0, size, size), 14));
-            var pen = new Pen(Brushes.White, 6, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+            // Même tracé de pouls que la petite version du logo (Assets/solupulse.ico).
+            context.DrawRectangle(new SolidColorBrush(color), null, new RoundedRect(new Rect(0, 0, size, size), 15));
+            var pen = new Pen(Brushes.White, 7.5, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
             var geometry = new PolylineGeometry(
-                [new(9, 35), new(23, 35), new(29, 18), new(36, 49), new(42, 31), new(55, 31)],
+                [new(5.5, 35), new(21, 35), new(26.5, 18), new(34, 51), new(39.5, 27.5), new(43, 35), new(58.5, 35)],
                 isFilled: false);
             context.DrawGeometry(null, pen, geometry);
         }

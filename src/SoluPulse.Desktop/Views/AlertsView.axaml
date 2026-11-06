@@ -6,6 +6,8 @@
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,16">
       <TextBlock Classes="h1" Text="Alertes" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Les problèmes détectés sur votre PC, expliqués simplement, avec les corrections proposées." />
       <CheckBox Content="Afficher aussi les alertes résolues" IsChecked="{Binding ShowResolved}" />
       <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <TextBlock Classes="muted" Text="Aucune alerte." IsVisible="{Binding IsEmpty}" />
@@ -65,7 +67,7 @@
                         <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding Summary}" Classes="muted" TextWrapping="Wrap" />
                       </StackPanel>
-                      <Button Grid.Column="1" Classes="accent" Content="Corriger…" VerticalAlignment="Center" Margin="12,0,0,0"
+                      <Button Grid.Column="1" Classes="primary" Content="Corriger…" VerticalAlignment="Center" Margin="12,0,0,0"
                               Command="{Binding $parent[UserControl].((vm:AlertsViewModel)DataContext).FixCommand}" CommandParameter="{Binding}" />
                     </Grid>
                   </Border>
