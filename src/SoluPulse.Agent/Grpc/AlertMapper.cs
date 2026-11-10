@@ -67,9 +67,12 @@ public sealed class AlertMapper(ActionCatalog catalog)
             EstimatedSeconds = (int)descriptor.EstimatedDuration.TotalSeconds,
             Guide = descriptor.Kind == ActionKind.Guide,
             RestorePoint = descriptor.RequiresRestorePoint,
+            RestorePointMandatory = descriptor.RestorePointMandatory,
+            Automatic = descriptor.Automatic,
         };
         info.Steps.AddRange(descriptor.Steps);
         info.ParameterNames.AddRange(descriptor.ParameterNames ?? []);
+        info.MultiChoiceParameters.AddRange(descriptor.MultiChoiceParameters ?? []);
         return info;
     }
 
@@ -102,7 +105,7 @@ public sealed class AlertMapper(ActionCatalog catalog)
 
         if (rule is not null)
         {
-            info.Corrections.AddRange(rule.Corrections.Where(catalog.Contains).Select(id => Action(catalog.Get(id).Descriptor)));
+            info.Corrections.AddRange(rule.Corrections.Where(IsUseful).Select(id => Action(catalog.Get(id).Descriptor)));
         }
 
         return info;
@@ -160,6 +163,24 @@ public sealed class AlertMapper(ActionCatalog catalog)
         }
 
         return info;
+    }
+
+    /// <summary>Une action du catalogue qui a un effet sur ce PC (Docker présent, veille prolongée active…).</summary>
+    public bool IsUseful(string actionId)
+    {
+        if (!catalog.Contains(actionId))
+        {
+            return false;
+        }
+
+        try
+        {
+            return catalog.Get(actionId) is not IApplicableAction applicable || applicable.IsApplicable();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return true;
+        }
     }
 
     private static string Bind(string pattern, string subject)

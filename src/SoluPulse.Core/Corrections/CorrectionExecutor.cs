@@ -20,8 +20,10 @@ public sealed class CorrectionRejectedException(string message) : Exception(mess
 /// <summary>
 /// Applique les actions du catalogue. Une action ne peut s'exécuter qu'avec le jeton à usage unique
 /// délivré par <see cref="PrepareAsync"/>, c'est-à-dire après que la fiche a été affichée, puis
-/// validée par le même utilisateur Windows (EF-COR-01). Avant d'agir, l'exécuteur journalise, crée
-/// un point de restauration si le risque l'exige (EF-COR-03) et sauvegarde l'état (EF-COR-04).
+/// validée par le même utilisateur Windows (EF-COR-01). Seule exception : les actions marquées
+/// automatiques, sans risque et sans paramètre, que SoluPulse peut lancer seul si l'utilisateur l'a
+/// laissé activé (<see cref="ExecuteAutomaticAsync"/>). Avant d'agir, l'exécuteur journalise, tente
+/// un point de restauration (EF-COR-03) et sauvegarde l'état (EF-COR-04).
 /// Après, il relance la règle (EF-COR-06) et inscrit le résultat au journal d'audit (EF-COR-05).
 /// </summary>
 public sealed class CorrectionExecutor(
@@ -87,9 +89,37 @@ public sealed class CorrectionExecutor(
             throw new CorrectionRejectedException("Cette validation a déjà été utilisée.");
         }
 
-        var action = pending.Action;
+        return await RunAsync(pending.Action, pending.AlertId, pending.Parameters, caller, ExecutionOrigin.Utilisateur, now, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Exécution sans fiche, décidée par SoluPulse. Réservée aux actions du catalogue marquées
+    /// automatiques (faible risque, sans paramètre) : toute autre action est refusée. L'exécution
+    /// passe par les mêmes étapes et le même journal qu'une correction validée.
+    /// </summary>
+    public async Task<CorrectionResult> ExecuteAutomaticAsync(string actionId, Guid? alertId, CancellationToken cancellationToken)
+    {
+        var action = catalog.Get(actionId);
         var descriptor = action.Descriptor;
-        var context = new ActionContext(pending.Parameters, caller);
+        if (!descriptor.Automatic || descriptor.Kind != ActionKind.Systeme || descriptor.Risk != RiskLevel.Faible || (descriptor.ParameterNames?.Count ?? 0) > 0)
+        {
+            throw new CorrectionRejectedException($"L'action « {descriptor.Title} » demande la validation de l'utilisateur.");
+        }
+
+        return await RunAsync(action, alertId, new Dictionary<string, string>(), CallerIdentity.Automatic, ExecutionOrigin.Automatique, timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<CorrectionResult> RunAsync(
+        ISystemAction action,
+        Guid? alertId,
+        IReadOnlyDictionary<string, string> parameters,
+        CallerIdentity caller,
+        ExecutionOrigin origin,
+        DateTimeOffset validatedAt,
+        CancellationToken cancellationToken)
+    {
+        var descriptor = action.Descriptor;
+        var context = new ActionContext(parameters, caller);
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -99,8 +129,8 @@ public sealed class CorrectionExecutor(
 
             var executionId = Guid.NewGuid();
             var record = new ExecutionRecord(
-                executionId, descriptor.Id, pending.AlertId, ExecutionOrigin.Utilisateur, pending.Parameters,
-                caller, now, timeProvider.GetUtcNow(), null, ExecutionState.EnCours, null, null,
+                executionId, descriptor.Id, alertId, origin, parameters,
+                caller, validatedAt, timeProvider.GetUtcNow(), null, ExecutionState.EnCours, null, null,
                 VerificationResult.NonApplicable, null);
             await journal.BeginAsync(record, cancellationToken).ConfigureAwait(false);
 
@@ -110,15 +140,24 @@ public sealed class CorrectionExecutor(
                 return await FinishAsync(record, ExecutionState.Reussie, guided.Message, VerificationResult.NonApplicable, cancellationToken).ConfigureAwait(false);
             }
 
+            // Un point de restauration est tenté avant chaque action. S'il échoue (protection du système
+            // désactivée, disque plein…), une action à faible risque continue avec sa propre sauvegarde ;
+            // au-delà, elle n'est pas appliquée.
+            var restoreNote = "";
             if (descriptor.RequiresRestorePoint)
             {
                 var restorePoint = await restorePoints.CreateAsync($"SoluPulse - {descriptor.Title}", cancellationToken).ConfigureAwait(false);
-                if (!restorePoint.Success)
+                if (!restorePoint.Success && descriptor.RestorePointMandatory)
                 {
                     return await FinishAsync(
                         record, ExecutionState.Echouee,
                         $"Correction non appliquée : le point de restauration n'a pas pu être créé ({restorePoint.Message}).",
                         VerificationResult.NonApplicable, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (!restorePoint.Success)
+                {
+                    restoreNote = $" (Point de restauration non créé : {restorePoint.Message}.)";
                 }
             }
 
@@ -153,14 +192,14 @@ public sealed class CorrectionExecutor(
                 outcome = outcome with { Message = $"{outcome.Message} Retour à l'état précédent : {rollback.Message}" };
             }
 
-            var verification = outcome.Success && pending.AlertId is { } alertId && !descriptor.RequiresReboot
-                ? await verifier.VerifyAsync(alertId, cancellationToken).ConfigureAwait(false)
+            var verification = outcome.Success && alertId is { } verifiedAlert && !descriptor.RequiresReboot
+                ? await verifier.VerifyAsync(verifiedAlert, cancellationToken).ConfigureAwait(false)
                 : VerificationResult.NonApplicable;
 
             return await FinishAsync(
                 record with { Backup = backup },
                 outcome.Success ? ExecutionState.Reussie : ExecutionState.Echouee,
-                outcome.Message, verification, cancellationToken).ConfigureAwait(false);
+                outcome.Message + restoreNote, verification, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

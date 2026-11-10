@@ -76,10 +76,18 @@ public static class StartupInventory
     }
 
     /// <summary>Dossiers de tous les profils utilisateurs du PC, connectés ou non.</summary>
-    public static IReadOnlyList<string> UserProfilePaths()
+    public static IReadOnlyList<string> UserProfilePaths() => UserProfiles().Select(p => p.Path).ToList();
+
+    /// <summary>Les profils utilisateurs du PC avec leur SID.</summary>
+    public static IReadOnlyList<(string Sid, string Path)> UserProfiles()
     {
         using var key = Registry.LocalMachine.OpenSubKey(ProfileList);
-        return (key?.GetSubKeyNames() ?? []).Where(IsUserSid).Select(ProfilePath).OfType<string>().ToList();
+        return (key?.GetSubKeyNames() ?? [])
+            .Where(IsUserSid)
+            .Select(sid => (Sid: sid, Path: ProfilePath(sid)))
+            .Where(p => p.Path is not null && Directory.Exists(p.Path))
+            .Select(p => (p.Sid, p.Path!))
+            .ToList();
     }
 
     // Une clé ou un dossier illisible (autre utilisateur, droits insuffisants) est ignoré : l'inventaire

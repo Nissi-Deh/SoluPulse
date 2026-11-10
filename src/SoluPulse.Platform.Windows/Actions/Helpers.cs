@@ -84,6 +84,80 @@ internal static class Files
         return (count, bytes, skipped);
     }
 
+    /// <summary>
+    /// Déplace l'arborescence fichier par fichier, pour libérer la source au fur et à mesure. Un fichier
+    /// utilisé par un programme reste à sa place ; s'il a déjà été copié, la copie est retirée pour ne
+    /// jamais laisser de doublon. Un fichier déjà présent à la destination n'est pas écrasé.
+    /// </summary>
+    public static (int Moved, long Bytes, int Skipped) MoveTree(string source, string target)
+    {
+        int moved = 0, skipped = 0;
+        long bytes = 0;
+        if (!Directory.Exists(source))
+        {
+            return (0, 0, 0);
+        }
+
+        var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+        Directory.CreateDirectory(target);
+        foreach (var directory in Directory.EnumerateDirectories(source, "*", options).ToList())
+        {
+            Directory.CreateDirectory(Path.Combine(target, Path.GetRelativePath(source, directory)));
+        }
+
+        foreach (var file in new DirectoryInfo(source).EnumerateFiles("*", options).ToList())
+        {
+            var destination = Path.Combine(target, Path.GetRelativePath(source, file.FullName));
+            if (File.Exists(destination))
+            {
+                skipped++;
+                continue;
+            }
+
+            var length = file.Length;
+            try
+            {
+                File.Move(file.FullName, destination);
+                moved++;
+                bytes += length;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Copié mais pas supprimé (fichier ouvert en lecture) : la copie est retirée.
+                if (File.Exists(file.FullName) && File.Exists(destination))
+                {
+                    TryDelete(destination);
+                }
+
+                skipped++;
+            }
+        }
+
+        DeleteEmptyDirectories(source);
+        return (moved, bytes, skipped);
+    }
+
+    /// <summary>Taille totale des fichiers d'un dossier, sans suivre les liens.</summary>
+    public static long SizeOf(string folder) => Measure([folder]).Bytes;
+
+    /// <summary>Identifiant court et stable d'un chemin, envoyé à l'application à la place du chemin lui-même.</summary>
+    public static string Id(string path) =>
+        Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path.ToUpperInvariant())))[..16];
+
+    public static bool TryDelete(string path)
+    {
+        try
+        {
+            File.SetAttributes(path, FileAttributes.Normal);
+            File.Delete(path);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     public static string Size(long bytes) => bytes switch
     {
         >= 1L << 30 => string.Create(CultureInfo.GetCultureInfo("fr-FR"), $"{bytes / (double)(1L << 30):0.0} Go"),
@@ -117,7 +191,7 @@ internal static class Files
         }
     }
 
-    private static void DeleteEmptyDirectories(string root)
+    internal static void DeleteEmptyDirectories(string root)
     {
         var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
         foreach (var directory in Directory.EnumerateDirectories(root, "*", options).OrderByDescending(d => d.Length).ToList())
@@ -135,4 +209,36 @@ internal static class Files
             }
         }
     }
+}
+
+internal static class Drives
+{
+    public static string SystemRoot => Path.GetPathRoot(Environment.SystemDirectory)!;
+
+    public static bool IsOnSystemDrive(string path) =>
+        string.Equals(Path.GetPathRoot(Path.GetFullPath(path)), SystemRoot, StringComparison.OrdinalIgnoreCase);
+
+    public static long FreeBytes(string root) => new DriveInfo(root).AvailableFreeSpace;
+
+    /// <summary>
+    /// Les autres disques fixes du PC, au format NTFS ou ReFS : ces formats gardent les droits d'accès
+    /// de l'utilisateur et acceptent les fichiers de plus de 4 Go.
+    /// </summary>
+    public static IReadOnlyList<DriveInfo> OtherFixedDrives(long minimumFree) => DriveInfo.GetDrives()
+        .Where(d =>
+        {
+            try
+            {
+                return d.DriveType == DriveType.Fixed
+                    && d.IsReady
+                    && !string.Equals(d.RootDirectory.FullName, SystemRoot, StringComparison.OrdinalIgnoreCase)
+                    && d.DriveFormat is "NTFS" or "ReFS"
+                    && d.AvailableFreeSpace >= minimumFree;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+        })
+        .ToList();
 }

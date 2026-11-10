@@ -11,7 +11,8 @@ public sealed record AgentSettings(
     int DetailRetentionDays,
     bool InternetProbes,
     string Language,
-    IReadOnlyDictionary<string, double> ThresholdOverrides);
+    IReadOnlyDictionary<string, double> ThresholdOverrides,
+    bool AutomaticCorrections = true);
 
 /// <summary>Paramètres modifiables depuis l'application (EF-IHM-06), avec valeurs par défaut et bornes.</summary>
 public sealed class SettingsService(SettingsStore store, NetworkProbeOptions networkOptions)
@@ -19,6 +20,7 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
     public const int MinRetentionDays = 7;
     public const int MaxRetentionDays = 365;
     private const string ThresholdPrefix = "seuil.";
+    private const string AutomaticKey = "corrections.automatiques";
 
     public async Task<AgentSettings> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -35,7 +37,8 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
             Math.Clamp(int.TryParse(values.GetValueOrDefault("retention.detail_jours"), CultureInfo.InvariantCulture, out var days) ? days : 90, MinRetentionDays, MaxRetentionDays),
             Bool(values, "reseau.sondes_internet", true),
             values.GetValueOrDefault("langue") ?? "fr",
-            overrides);
+            overrides,
+            Bool(values, AutomaticKey, true));
         networkOptions.InternetProbes = settings.InternetProbes;
         return settings;
     }
@@ -47,9 +50,15 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
         bool? internetProbes,
         IReadOnlyDictionary<string, double> thresholds,
         IEnumerable<string> resetThresholds,
+        bool? automaticCorrections = null,
         CancellationToken cancellationToken = default)
     {
         var changes = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (automaticCorrections is { } automatic)
+        {
+            changes[AutomaticKey] = automatic ? "true" : "false";
+        }
+
         if (notificationsEnabled is { } enabled)
         {
             changes["notifications.actives"] = enabled ? "true" : "false";

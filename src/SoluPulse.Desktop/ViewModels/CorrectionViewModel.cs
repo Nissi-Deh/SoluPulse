@@ -29,18 +29,34 @@ public sealed partial class CorrectionViewModel : ObservableObject
         ReversibleText = action.Guide ? "Sans objet"
             : action.Reversible ? "Oui : un bouton « Annuler » restera disponible dans le journal"
             : "Non : cette opération ne peut pas être annulée";
-        RestorePointText = action.RestorePoint ? "Un point de restauration Windows sera créé avant." : "";
+        RestorePointText = !action.RestorePoint ? ""
+            : action.RestorePointMandatory ? "Un point de restauration Windows sera créé avant ; sans lui, rien ne sera modifié."
+            : "Un point de restauration Windows sera créé avant, si la protection du système est active.";
         ConfirmLabel = action.Guide ? "J'ai compris" : "Valider la correction";
-        Parameters = new ObservableCollection<ParameterItem>(action.ParameterNames.Select(n => new ParameterItem(n)));
+        Parameters = new ObservableCollection<ParameterItem>(action.ParameterNames.Select(n => new ParameterItem(n, action.MultiChoiceParameters.Contains(n))));
         foreach (var parameter in Parameters)
         {
             parameter.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(ParameterItem.Selected))
+                if (e.PropertyName == nameof(ParameterItem.Value))
                 {
-                    _ = PrepareAsync();
+                    _ = PrepareSoonAsync();
                 }
             };
+        }
+    }
+
+    private int _pendingPrepare;
+    private int _prepareVersion;
+
+    /// <summary>Les cases cochées à la suite sont regroupées : une seule estimation après la dernière.</summary>
+    private async Task PrepareSoonAsync()
+    {
+        var version = ++_pendingPrepare;
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        if (version == _pendingPrepare)
+        {
+            await PrepareAsync();
         }
     }
 
@@ -125,23 +141,32 @@ public sealed partial class CorrectionViewModel : ObservableObject
 
     private async Task PrepareAsync()
     {
+        var version = ++_prepareVersion;
         Ready = false;
-        if (Parameters.Any(p => p.Selected is null))
+        await ReleaseTokenAsync();
+        if (Parameters.Any(p => p.Value is null))
         {
+            Estimate = "";
             return;
         }
 
-        await ReleaseTokenAsync();
         Estimate = "Estimation en cours…";
         try
         {
             var request = new PrepareRequest { ActionId = Action.Id, AlertId = _alertId ?? "" };
             foreach (var parameter in Parameters)
             {
-                request.Parameters[parameter.Name] = parameter.Selected!.Value;
+                request.Parameters[parameter.Name] = parameter.Value!;
             }
 
             var card = await _client.Api.PrepareCorrectionAsync(request);
+            if (version != _prepareVersion)
+            {
+                // Le choix a changé pendant l'estimation : cette fiche est périmée.
+                await CancelTokenAsync(card.Token);
+                return;
+            }
+
             _token = card.Token;
             Estimate = card.Estimate;
             Error = null;
@@ -149,8 +174,11 @@ public sealed partial class CorrectionViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Estimate = "";
-            Error = AgentClient.Describe(ex);
+            if (version == _prepareVersion)
+            {
+                Estimate = "";
+                Error = AgentClient.Describe(ex);
+            }
         }
     }
 
@@ -206,14 +234,19 @@ public sealed partial class CorrectionViewModel : ObservableObject
         if (_token is { } token)
         {
             _token = null;
-            try
-            {
-                await _client.Api.CancelCorrectionAsync(new TokenRequest { Token = token });
-            }
-            catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
-            {
-                // Le jeton expirera de lui-même.
-            }
+            await CancelTokenAsync(token);
+        }
+    }
+
+    private async Task CancelTokenAsync(string token)
+    {
+        try
+        {
+            await _client.Api.CancelCorrectionAsync(new TokenRequest { Token = token });
+        }
+        catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
+        {
+            // Le jeton expirera de lui-même.
         }
     }
 }

@@ -51,7 +51,7 @@
             <DataTemplate x:DataType="vm:ParameterItem">
               <StackPanel Spacing="4" Margin="0,0,0,10">
                 <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" HorizontalAlignment="Stretch" PlaceholderText="Choisir…">
+                <ComboBox IsVisible="{Binding IsSingle}" ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" HorizontalAlignment="Stretch" PlaceholderText="Choisir…">
                   <ComboBox.ItemTemplate>
                     <DataTemplate x:DataType="c:Choice">
                       <StackPanel>
@@ -61,6 +61,25 @@
                     </DataTemplate>
                   </ComboBox.ItemTemplate>
                 </ComboBox>
+                <StackPanel IsVisible="{Binding IsMulti}" Spacing="6">
+                  <Border Classes="card" Padding="10,6" MaxHeight="300">
+                    <ScrollViewer>
+                      <ItemsControl ItemsSource="{Binding Options}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:ChoiceItem">
+                            <CheckBox IsChecked="{Binding IsChecked}" Margin="0,2">
+                              <StackPanel>
+                                <TextBlock Text="{Binding Choice.Label}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Choice.Detail}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                              </StackPanel>
+                            </CheckBox>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </Border>
+                  <TextBlock Text="{Binding CheckedSummary}" Classes="muted" FontSize="12" />
+                </StackPanel>
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

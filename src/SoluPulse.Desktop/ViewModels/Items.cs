@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 using Avalonia.Media;
@@ -86,7 +87,7 @@ public sealed class ActionItem(ActionInfo info)
 
     public string Summary { get; } = info.Guide
         ? "Recommandation à suivre vous-même"
-        : $"Risque {Risk(info.Risk)} · {Format.Duration(info.EstimatedSeconds)}{(info.Reversible ? " · annulable" : "")}{(info.RequiresReboot ? " · redémarrage requis" : "")}";
+        : $"Risque {Risk(info.Risk)} · {Format.Duration(info.EstimatedSeconds)}{(info.Reversible ? " · annulable" : "")}{(info.RequiresReboot ? " · redémarrage requis" : "")}{(info.Automatic ? " · automatique" : "")}";
 
     public static string Risk(string risk) => risk switch
     {
@@ -141,7 +142,9 @@ public sealed class ExecutionItem(ExecutionInfo info)
 
     public string Date { get; } = Format.Date(info.StartedAt);
 
-    public string ValidatedBy { get; } = $"Validée par {info.ValidatedBy}";
+    public string ValidatedBy { get; } = info.Origin == "Automatique"
+        ? "Lancée automatiquement par SoluPulse (action sans risque)"
+        : $"Validée par {info.ValidatedBy}";
 
     public string Message { get; } = info.Message;
 
@@ -166,9 +169,26 @@ public sealed class ExecutionItem(ExecutionInfo info)
     });
 }
 
-public partial class ParameterItem(string name) : ObservableObject
+/// <summary>Une valeur proposée par le service, cochée ou non (paramètre à choix multiples).</summary>
+public sealed partial class ChoiceItem(Choice choice) : ObservableObject
+{
+    public Choice Choice { get; } = choice;
+
+    [ObservableProperty]
+    private bool _isChecked;
+}
+
+/// <summary>
+/// Un paramètre de la fiche. Les valeurs viennent toujours du service : une liste déroulante, ou des
+/// cases à cocher quand plusieurs valeurs sont possibles (gros fichiers à supprimer…).
+/// </summary>
+public partial class ParameterItem(string name, bool multi = false) : ObservableObject
 {
     public string Name { get; } = name;
+
+    public bool IsMulti { get; } = multi;
+
+    public bool IsSingle => !IsMulti;
 
     public string Label { get; } = name switch
     {
@@ -176,14 +196,46 @@ public partial class ParameterItem(string name) : ObservableObject
         "service" => "Service",
         "carte" => "Carte réseau",
         "fournisseur" => "Fournisseur DNS",
+        "dossier" => "Dossier à déplacer",
+        "destination" => "Disque de destination",
+        "fichiers" => "Fichiers à supprimer définitivement (cochez-les)",
         _ => name,
     };
+
+    public ObservableCollection<ChoiceItem> Options { get; } = [];
 
     [ObservableProperty]
     private IReadOnlyList<Choice> _choices = [];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Value))]
     private Choice? _selected;
+
+    /// <summary>La valeur envoyée au service, ou <c>null</c> tant que rien n'est choisi.</summary>
+    public string? Value => IsMulti
+        ? Options.Where(o => o.IsChecked).Select(o => o.Choice.Value).ToList() is { Count: > 0 } values ? string.Join('|', values) : null
+        : Selected?.Value;
+
+    public string CheckedSummary => Options.Count(o => o.IsChecked) is var count and > 0
+        ? $"{count} fichier{(count > 1 ? "s" : "")} coché{(count > 1 ? "s" : "")} sur {Options.Count}"
+        : $"Aucun fichier coché sur {Options.Count}";
+
+    partial void OnChoicesChanged(IReadOnlyList<Choice> value)
+    {
+        Options.Clear();
+        foreach (var choice in value)
+        {
+            var option = new ChoiceItem(choice);
+            option.PropertyChanged += (_, _) =>
+            {
+                OnPropertyChanged(nameof(Value));
+                OnPropertyChanged(nameof(CheckedSummary));
+            };
+            Options.Add(option);
+        }
+
+        OnPropertyChanged(nameof(CheckedSummary));
+    }
 }
 
 public partial class ThresholdItem(RuleThreshold threshold) : ObservableObject

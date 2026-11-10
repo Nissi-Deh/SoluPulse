@@ -85,6 +85,12 @@ message ActionInfo {
   bool guide = 10;
   repeated string parameter_names = 11;
   bool restore_point = 12;
+  // SoluPulse peut la lancer seul (faible risque, sans paramètre) si l'utilisateur l'a autorisé.
+  bool automatic = 13;
+  // Paramètres où l'utilisateur coche plusieurs valeurs, séparées par « | ».
+  repeated string multi_choice_parameters = 14;
+  // Le point de restauration doit réussir pour que l'action soit appliquée.
+  bool restore_point_mandatory = 15;
 }
 
 message AlertInfo {
@@ -249,6 +255,7 @@ message SettingsReply {
   bool internet_probes = 4;
   string language = 5;
   repeated RuleThreshold thresholds = 6;
+  bool automatic_corrections = 7;
 }
 
 message SettingsUpdate {
@@ -258,6 +265,7 @@ message SettingsUpdate {
   optional bool internet_probes = 4;
   map<string, double> threshold_overrides = 5;
   repeated string reset_thresholds = 6;
+  optional bool automatic_corrections = 7;
 }
 
 message AuditReply {

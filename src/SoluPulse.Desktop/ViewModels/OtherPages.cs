@@ -384,6 +384,9 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
     private bool _internetProbes;
 
     [ObservableProperty]
+    private bool _automaticCorrections = true;
+
+    [ObservableProperty]
     private string _message = "";
 
     public override Task RefreshAsync() => RunAsync(async () => Apply(await client.Api.GetSettingsAsync(AgentClient.Empty)));
@@ -397,6 +400,7 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
             NotificationMinSeverity = MinSeverity,
             DetailRetentionDays = (int)RetentionDays,
             InternetProbes = InternetProbes,
+            AutomaticCorrections = AutomaticCorrections,
         };
         foreach (var threshold in Thresholds)
         {
@@ -426,6 +430,7 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         MinSeverity = settings.NotificationMinSeverity;
         RetentionDays = settings.DetailRetentionDays;
         InternetProbes = settings.InternetProbes;
+        AutomaticCorrections = settings.AutomaticCorrections;
         Thresholds.Clear();
         foreach (var threshold in settings.Thresholds)
         {
