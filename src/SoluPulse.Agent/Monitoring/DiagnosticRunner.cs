@@ -101,6 +101,39 @@ public sealed class DiagnosticRunner : IDisposable
     }
 
     /// <summary>
+    /// Après une correction qui libère de la place, l'analyse de l'occupation du disque est relancée en
+    /// arrière-plan pour que la page « Mon PC » montre le nouvel état.
+    /// </summary>
+    public void RefreshDiskUsageAfter(string actionId, CancellationToken stoppingToken)
+    {
+        if (!IsSpaceAction(actionId) || _collectors.FirstOrDefault(c => c.Name == Platform.Windows.Collectors.DiskUsageCollector.CollectorName) is not { } collector)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RunCollectorAsync(collector, waitIfRunning: false, stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Le service s'arrête.
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Échec de l'analyse de l'occupation du disque après {Action}.", actionId);
+            }
+        }, CancellationToken.None);
+    }
+
+    private static bool IsSpaceAction(string actionId) =>
+        actionId.StartsWith("ACT-CLEAN-", StringComparison.Ordinal)
+        || actionId.StartsWith("ACT-DISK-", StringComparison.Ordinal)
+        || actionId == Core.Corrections.ActionIds.DisableHibernation;
+
+    /// <summary>
     /// Diagnostic complet à la demande (EF-DIA-08). La recherche Windows Update, qui peut durer
     /// plusieurs minutes, garde son rythme quotidien pour tenir l'objectif de 2 minutes (ENF-PERF-03).
     /// </summary>

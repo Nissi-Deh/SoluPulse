@@ -20,9 +20,21 @@ public enum ExecutionOrigin
 {
     Utilisateur,
     Technicien,
+
+    /// <summary>Lancée par SoluPulse lui-même : seules les actions marquées <see cref="ActionDescriptor.Automatic"/>.</summary>
+    Automatique,
 }
 
 /// <summary>Ce que l'utilisateur voit avant de valider (EF-COR-02).</summary>
+/// <param name="Automatic">
+/// Action sans risque que SoluPulse peut lancer seul quand l'alerte est ouverte et que l'utilisateur a
+/// laissé les corrections automatiques activées : faible risque, sans paramètre, sans perte de données.
+/// </param>
+/// <param name="TouchesSystem">
+/// Faux pour les actions qui ne touchent que les fichiers personnels (déplacement, suppression de gros
+/// fichiers) : un point de restauration Windows ne les protégerait pas, la sauvegarde propre à l'action oui.
+/// </param>
+/// <param name="MultiChoiceParameters">Paramètres où l'utilisateur coche plusieurs valeurs, séparées par <see cref="ActionContext.Separator"/>.</param>
 public sealed record ActionDescriptor(
     string Id,
     string Family,
@@ -34,21 +46,55 @@ public sealed record ActionDescriptor(
     bool RequiresReboot,
     TimeSpan EstimatedDuration,
     ActionKind Kind = ActionKind.Systeme,
-    IReadOnlyList<string>? ParameterNames = null)
+    IReadOnlyList<string>? ParameterNames = null,
+    bool Automatic = false,
+    bool TouchesSystem = true,
+    IReadOnlyList<string>? MultiChoiceParameters = null)
 {
-    public bool RequiresRestorePoint => Kind == ActionKind.Systeme && Risk >= RiskLevel.Moyen;
+    /// <summary>Un point de restauration est tenté avant chaque action qui modifie Windows (EF-COR-03).</summary>
+    public bool RequiresRestorePoint => Kind == ActionKind.Systeme && TouchesSystem;
+
+    /// <summary>Au-delà du risque faible, l'action n'est pas appliquée si le point de restauration échoue.</summary>
+    public bool RestorePointMandatory => RequiresRestorePoint && Risk >= RiskLevel.Moyen;
+
+    public bool IsMultiChoice(string parameter) => MultiChoiceParameters?.Contains(parameter, StringComparer.Ordinal) == true;
 }
 
 /// <summary>Identité Windows de l'utilisateur qui a validé, obtenue par le service via le canal nommé.</summary>
-public sealed record CallerIdentity(string UserSid, string UserName);
+public sealed record CallerIdentity(string UserSid, string UserName)
+{
+    /// <summary>L'identité inscrite au journal quand SoluPulse agit seul.</summary>
+    public static CallerIdentity Automatic { get; } = new("S-1-5-18", "SoluPulse (automatique)");
+}
 
 /// <param name="Backup">La sauvegarde faite juste avant l'exécution, transmise à l'action.</param>
 public sealed record ActionContext(IReadOnlyDictionary<string, string> Parameters, CallerIdentity Caller, string? Backup = null)
 {
+    /// <summary>Sépare les valeurs cochées d'un paramètre à choix multiples.</summary>
+    public const char Separator = '|';
+
     public string Get(string name) =>
         Parameters.TryGetValue(name, out var value)
             ? value
             : throw new ActionParameterException($"Paramètre « {name} » manquant.");
+
+    /// <summary>Les valeurs cochées, sans doublon ; au moins une est exigée.</summary>
+    public IReadOnlyList<string> GetAll(string name)
+    {
+        var values = Get(name).Split(Separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        return values.Count > 0 ? values : throw new ActionParameterException($"Cochez au moins un élément pour « {name} ».");
+    }
+}
+
+/// <summary>
+/// Une action qui ne concerne que certains PC (Docker installé, veille prolongée active…). Les
+/// alertes ne proposent que les actions utiles sur ce PC.
+/// </summary>
+public interface IApplicableAction
+{
+    bool IsApplicable();
 }
 
 public sealed class ActionParameterException(string message) : Exception(message);
@@ -130,7 +176,7 @@ public abstract class SystemActionBase : ISystemAction
 /// <summary>Une recommandation guidée : la fiche affiche les étapes, rien n'est exécuté.</summary>
 public sealed class GuidanceAction(ActionDescriptor descriptor) : SystemActionBase
 {
-    public override ActionDescriptor Descriptor { get; } = descriptor with { Kind = ActionKind.Guide, Reversible = false };
+    public override ActionDescriptor Descriptor { get; } = descriptor with { Kind = ActionKind.Guide, Reversible = false, Automatic = false };
 
     public override Task<ActionOutcome> ExecuteAsync(ActionContext context, CancellationToken cancellationToken) =>
         Task.FromResult(ActionOutcome.Ok("Recommandation consultée."));

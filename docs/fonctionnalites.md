@@ -13,6 +13,7 @@ Un service Windows tourne en arrière-plan, même quand l'application est fermé
 | Cartes graphiques | Température, charge, mémoire vidéo, consommation | 30 s |
 | Carte mère | Températures, ventilateurs | 30 s |
 | Disques | Espace libre par volume, température, usure des SSD, état selon Windows, attributs SMART (secteurs réalloués, en attente, illisibles), heures de fonctionnement, activité | 30 s (température, activité), 5 min (espace), 6 h (santé) |
+| Occupation du disque système | Taille de chaque dossier personnel (Documents, Téléchargements…), disque virtuel de Docker, caches des outils de développement, installeurs de mises à jour, veille prolongée, mémoire virtuelle, Windows.old, fichiers temporaires, corbeille, cache de Windows Update | 24 h, et après chaque correction d'espace disque |
 | Batterie | Charge, santé, capacité d'origine et actuelle, cycles, branchement secteur | 1 h |
 | Réseau | Latence et perte vers la box et vers Internet, résolution DNS, signal Wi-Fi, débit reçu et envoyé | 2 min |
 | Système | Écrans bleus, arrêts brutaux, plantages d'applications, erreurs disque, périphériques en erreur, services en panne, programmes au démarrage, durée de démarrage, temps depuis le dernier redémarrage, mode d'alimentation | 10 min (événements), 1 h (inventaire) |
@@ -30,27 +31,30 @@ Chaque règle produit une alerte expliquée (ce qui se passe, cause probable, ex
 
 Les seuils des règles sont modifiables dans les paramètres.
 
-## 3. Corrections validées par l'utilisateur : 21 corrections et 8 guides
+## 3. Corrections : 28 corrections et 9 guides
 
-Aucune correction n'est lancée sans validation. La fiche de correction indique ce qui va être fait, le risque, la durée, et si l'action est annulable. Un point de restauration Windows est créé avant chaque correction système de risque moyen.
+La fiche de correction indique ce qui va être fait, le gain estimé sur ce PC, le risque, la durée, et si l'action est annulable. Une alerte ne propose que les actions utiles sur ce PC (par exemple, le guide Docker seulement si Docker est installé). Un point de restauration Windows est tenté avant chaque correction qui modifie Windows ; à partir du risque moyen, la correction n'est pas appliquée sans lui.
 
+**Corrections automatiques sans risque** (désactivables dans les paramètres) : quand une alerte le justifie, SoluPulse supprime seul les fichiers temporaires, les installeurs de mises à jour déjà téléchargés et le cache d'optimisation de la distribution, au plus une fois par jour. Chaque exécution est inscrite au journal. Toutes les autres corrections attendent la validation de l'utilisateur.
+
+- **Espace disque** : déplacer un dossier personnel (Documents, Téléchargements, Bureau, Images, Vidéos, Musique) vers un autre disque avec la méthode de Windows (annulable) ; supprimer de gros fichiers cochés dans une liste ; vider les caches des outils de développement (pip, npm, Yarn, NuGet, Gradle…) ; supprimer les installeurs de mises à jour d'applications ; supprimer les anciennes versions laissées par Windows Update ; désactiver la veille prolongée (annulable) ; guide pour réduire ou déplacer le disque de Docker.
 - **Nettoyage** : fichiers temporaires, cache de Windows Update, cache d'optimisation de la distribution, corbeille.
-- **Système** : désactiver un programme au démarrage (annulable), repasser en mode d'alimentation normal (annulable), optimiser le disque système, réparer les fichiers de Windows (SFC), réparer l'image de Windows (DISM), vérifier le disque au prochain démarrage, redémarrer un service Windows (annulable), réinitialiser Windows Update (annulable).
+- **Système** : désactiver un programme au démarrage (annulable), repasser en mode d'alimentation normal (annulable), désactiver le démarrage rapide (annulable), optimiser le disque système, réparer les fichiers de Windows (SFC), réparer l'image de Windows (DISM), vérifier le disque au prochain démarrage, redémarrer un service Windows (annulable), réinitialiser Windows Update (annulable).
 - **Réseau** : vider le cache DNS, réinitialiser Winsock, réinitialiser TCP/IP, renouveler l'adresse IP, redémarrer la carte réseau, changer de serveur DNS (annulable).
 - **Sécurité** : réactiver le pare-feu (annulable), mettre à jour l'antivirus, lancer une analyse antivirus rapide.
-- **Guides pas à pas** pour ce que l'utilisateur fait lui-même : refroidissement, remplacement de disque, batterie, sauvegarde, antivirus, contrôle de compte, démarrage sécurisé, chiffrement.
+- **Guides pas à pas** pour ce que l'utilisateur fait lui-même : refroidissement, remplacement de disque, batterie, sauvegarde, antivirus, contrôle de compte, démarrage sécurisé, chiffrement, disque de Docker.
 
 Après une correction, SoluPulse vérifie que le problème a bien disparu.
 
 ## 4. Application de bureau
 
 - **Tableau de bord** : score de santé sur 100, score par domaine, valeurs en direct rafraîchies toutes les 15 secondes, alertes actives.
-- **Mon PC** : une fiche par composant (ordinateur et BIOS, sécurité, processeur, mémoire et chaque barrette, cartes graphiques, disques, espace disque, batterie, réseau, périphériques : écrans, son, caméras, Bluetooth, lecteurs biométriques, imprimantes) et le tableau de tous les capteurs.
+- **Mon PC** : une fiche par composant (ordinateur et BIOS, sécurité, processeur, mémoire et chaque barrette, cartes graphiques, disques, espace disque avec ce qui occupe le disque système, batterie, réseau, périphériques : écrans, son, caméras, Bluetooth, lecteurs biométriques, imprimantes) et le tableau de tous les capteurs.
 - **Alertes** : liste des alertes actives et résolues, explication simple et technique, corrections proposées.
 - **Historique** : graphique de chaque mesure sur 24 heures, 7 jours, 30 jours, 90 jours ou un an.
-- **Journal des corrections** : qui a validé quoi et quand, bouton « Annuler » pour les corrections annulables, vérification de l'intégrité du journal.
+- **Journal des corrections** : qui a validé quoi et quand (ou « lancée automatiquement »), bouton « Annuler » pour les corrections annulables, vérification de l'intégrité du journal.
 - **Inventaire système** : programmes au démarrage, services en panne, programmes gourmands, mises à jour en attente, événements récents.
-- **Paramètres** : notifications et niveau minimum, durée de conservation du détail des mesures, tests de connexion Internet, seuils des règles.
+- **Paramètres** : corrections automatiques sans risque, notifications et niveau minimum, durée de conservation du détail des mesures, tests de connexion Internet, seuils des règles.
 - **Notifications Windows** avec boutons « Voir » et « Corriger », icône dans la zone de notification colorée selon l'état du PC, diagnostic complet à la demande.
 - Thème clair ou sombre selon Windows ; l'état n'est jamais donné par la couleur seule.
 

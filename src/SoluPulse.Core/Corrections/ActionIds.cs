@@ -11,6 +11,16 @@ public static class ActionIds
     public const string DisableStartupProgram = "ACT-STARTUP-DISABLE";
     public const string BalancedPowerPlan = "ACT-POWER-BALANCED";
     public const string OptimizeDrive = "ACT-DRIVE-OPTIMIZE";
+    public const string DisableFastStartup = "ACT-POWER-FASTSTARTUP-OFF";
+
+    // Espace disque : actions qui libèrent réellement de la place
+    public const string MoveUserFolder = "ACT-DISK-MOVE-FOLDER";
+    public const string DeleteLargeFiles = "ACT-DISK-LARGE-FILES";
+    public const string CleanDeveloperCaches = "ACT-CLEAN-DEV-CACHES";
+    public const string CleanUpdateLeftovers = "ACT-CLEAN-UPDATE-LEFTOVERS";
+    public const string CleanComponentStore = "ACT-CLEAN-COMPONENTS";
+    public const string DisableHibernation = "ACT-POWER-HIBERNATE-OFF";
+    public const string GuideDocker = "ACT-DISK-GUIDE-DOCKER";
 
     // Réparations système
     public const string SystemFileCheck = "ACT-SYS-SFC";

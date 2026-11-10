@@ -200,7 +200,7 @@ internal static class ComponentCards
         };
         cards.AddRange(Graphics(hardware, metrics));
         cards.AddRange(Disks(snapshots["disques"], metrics));
-        cards.Add(Volumes(snapshots["volumes"]));
+        cards.Add(Volumes(snapshots["volumes"], snapshots["occupation_disque"]));
         cards.Add(Battery(metrics));
         cards.Add(Network(hardware, metrics));
         cards.Add(Peripherals(hardware));
@@ -484,7 +484,7 @@ internal static class ComponentCards
         }
     }
 
-    private static ComponentCard? Volumes(JsonElement volumes)
+    private static ComponentCard? Volumes(JsonElement volumes, JsonElement usage)
     {
         var list = volumes.Items().ToList();
         if (list.Count == 0)
@@ -493,13 +493,30 @@ internal static class ComponentCards
         }
 
         var card = new ComponentCard(Icons.Volumes, "Espace disque", $"{list.Count} volume{(list.Count > 1 ? "s" : "")}");
+        double? systemFreePercent = null;
         foreach (var volume in list)
         {
             var size = volume.Num("tailleGo") ?? 0;
             var free = volume.Num("libreGo") ?? 0;
             var freePercent = size > 0 ? 100 * free / size : 0;
+            if (volume.Bool("systeme") == true)
+            {
+                systemFreePercent = freePercent;
+            }
+
             var label = $"{volume.Str("lettre")?.TrimEnd('\\')} {volume.Str("nom") ?? (volume.Bool("systeme") == true ? "Windows" : "")}".Trim();
             card.Gauges.Add(new GaugeItem(label, $"{Number(free)} Go libres sur {Number(size)}", 100 - freePercent, LowIsBad(freePercent, 20, 10)));
+        }
+
+        // Ce qui occupe le disque système, du plus gros au plus petit, avec ce qu'on peut en faire.
+        foreach (var category in usage.Items().Take(8))
+        {
+            card.Details.Add(new DetailRow(category.Str("categorie") ?? "", $"{Number(category.Num("go") ?? 0)} Go · {category.Str("conseil")}"));
+        }
+
+        if (systemFreePercent < 20 && card.Details.Count > 0)
+        {
+            card.Hint = "Disque système chargé : ouvrez l'alerte « Disque système presque plein » pour libérer de la place avec les actions proposées.";
         }
 
         return card;

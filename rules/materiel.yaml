@@ -10,14 +10,27 @@ regles:
       seuil: 10
       duree_min: 10m
       hysteresis: 2
-    cause_probable: Fichiers temporaires et caches accumulés
+    cause_probable: Dossiers personnels volumineux, applications et caches accumulés
     explication_simple: >
       Votre disque principal est presque plein.
       Windows peut ralentir et les mises à jour peuvent échouer.
+      La page « Mon PC » montre ce qui prend le plus de place.
     explication_technique: >
       Moins de 10 % d'espace libre sur le volume système. Windows Update, la mémoire virtuelle et
       les points de restauration ont besoin d'espace libre pour fonctionner.
-    corrections: [ACT-CLEAN-TEMP, ACT-CLEAN-WU-CACHE, ACT-CLEAN-DO-CACHE, ACT-CLEAN-RECYCLE-BIN]
+    # Du plus efficace au plus léger ; seules les actions utiles sur ce PC sont proposées.
+    corrections:
+      - ACT-DISK-MOVE-FOLDER
+      - ACT-DISK-GUIDE-DOCKER
+      - ACT-DISK-LARGE-FILES
+      - ACT-CLEAN-DEV-CACHES
+      - ACT-CLEAN-UPDATE-LEFTOVERS
+      - ACT-POWER-HIBERNATE-OFF
+      - ACT-CLEAN-COMPONENTS
+      - ACT-CLEAN-WU-CACHE
+      - ACT-CLEAN-RECYCLE-BIN
+      - ACT-CLEAN-TEMP
+      - ACT-CLEAN-DO-CACHE
 
   - id: HW-DISK-002
     domaine: materiel

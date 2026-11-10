@@ -26,6 +26,14 @@
 
         <Border Classes="card">
           <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Corrections" />
+            <ToggleSwitch IsChecked="{Binding AutomaticCorrections}" OnContent="Lancer seul les corrections sans risque" OffContent="Toujours me demander avant de corriger" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Sans risque : supprimer les fichiers temporaires, les installeurs de mises à jour déjà téléchargés et le cache de distribution de Windows, au plus une fois par jour, quand une alerte le justifie. Chaque action est inscrite au journal. Tout le reste demande toujours votre validation." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="12">
             <TextBlock Classes="h2" Text="Données et confidentialité" />
             <StackPanel Orientation="Horizontal" Spacing="12">
               <TextBlock Text="Garder le détail des mesures pendant" VerticalAlignment="Center" />

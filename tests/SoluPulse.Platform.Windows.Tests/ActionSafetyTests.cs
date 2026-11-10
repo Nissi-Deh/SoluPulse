@@ -160,9 +160,36 @@ public sealed class ActionSafetyTests : IDisposable
     [Fact]
     public void RiskyActionsRequireARestorePoint()
     {
-        var risky = WindowsPlatform.Actions().Where(a => a.Descriptor.Risk >= RiskLevel.Moyen).Select(a => a.Descriptor).ToList();
+        var risky = WindowsPlatform.Actions().Where(a => a.Descriptor.Risk >= RiskLevel.Moyen && a.Descriptor.TouchesSystem).Select(a => a.Descriptor).ToList();
 
         Assert.NotEmpty(risky);
-        Assert.All(risky, d => Assert.True(d.RequiresRestorePoint, d.Id));
+        Assert.All(risky, d => Assert.True(d.RestorePointMandatory, d.Id));
+    }
+
+    [Fact]
+    public void EverySystemChangeTriesARestorePointFirst()
+    {
+        var changes = WindowsPlatform.Actions().Select(a => a.Descriptor).Where(d => d.Kind == ActionKind.Systeme && d.TouchesSystem).ToList();
+
+        Assert.All(changes, d => Assert.True(d.RequiresRestorePoint, d.Id));
+    }
+
+    // Une action automatique tourne sans fiche : elle doit être sans risque, sans paramètre et sans
+    // perte de données personnelles.
+    [Fact]
+    public void AutomaticActionsAreHarmless()
+    {
+        var automatic = WindowsPlatform.Actions().Select(a => a.Descriptor).Where(d => d.Automatic).ToList();
+
+        Assert.Equal(
+            new[] { ActionIds.CleanUpdateLeftovers, ActionIds.CleanDeliveryOptimizationCache, ActionIds.CleanTemp }.Order(StringComparer.Ordinal),
+            automatic.Select(d => d.Id).Order(StringComparer.Ordinal));
+        Assert.All(automatic, d =>
+        {
+            Assert.Equal(RiskLevel.Faible, d.Risk);
+            Assert.Equal(ActionKind.Systeme, d.Kind);
+            Assert.Empty(d.ParameterNames ?? []);
+            Assert.True(d.TouchesSystem, d.Id);
+        });
     }
 }

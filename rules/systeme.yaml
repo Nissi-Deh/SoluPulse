@@ -126,11 +126,15 @@ regles:
       metrique: systeme.jours_depuis_demarrage
       operateur: ">"
       seuil: 14
-    cause_probable: Mise en veille au lieu de l'arrêt, démarrage rapide
+    cause_probable: Mise en veille au lieu de l'arrêt, ou démarrage rapide de Windows
     explication_simple: >
-      Votre PC n'a pas redémarré depuis plus de deux semaines. Un redémarrage libère la mémoire
-      et termine les mises à jour.
-    explication_technique: Temps écoulé depuis le dernier démarrage supérieur à 14 jours.
+      Windows n'a pas vraiment redémarré depuis plus de deux semaines. Avec le démarrage rapide,
+      le bouton « Arrêter » ne relance pas complètement Windows : utilisez « Redémarrer » pour
+      libérer la mémoire et terminer les mises à jour.
+    explication_technique: >
+      Temps écoulé depuis le dernier démarrage du noyau supérieur à 14 jours. Un arrêt avec
+      démarrage rapide (HiberbootEnabled) met le noyau en veille prolongée au lieu de l'arrêter.
+    corrections: [ACT-POWER-FASTSTARTUP-OFF]
 
   - id: SYS-STARTUP-001
     domaine: systeme

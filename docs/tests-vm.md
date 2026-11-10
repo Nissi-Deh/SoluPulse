@@ -95,7 +95,16 @@ Pour chaque action : provoquer la condition, appliquer depuis la fiche, vérifie
 | ACT-SEC-FIREWALL-ON | `Set-NetFirewallProfile -Profile Private -Enabled False` | Pare-feu actif sur les trois profils (`Get-NetFirewallProfile`) | Seul le profil privé est de nouveau coupé |
 | ACT-SEC-DEFENDER-UPDATE | — | `Get-MpComputerStatus` : `AntivirusSignatureLastUpdated` à la date du jour | — |
 | ACT-SEC-DEFENDER-SCAN | — | `Get-MpComputerStatus` : `QuickScanEndTime` à l'heure du test | — |
-| Recommandations ACT-HW-GUIDE-* et ACT-SEC-GUIDE-* | — | Aucune modification du système, entrée au journal | — |
+| ACT-POWER-FASTSTARTUP-OFF | Démarrage rapide actif (`HiberbootEnabled` = 1) | Valeur à 0, l'arrêt suivant relance complètement Windows (événement Kernel-Boot 27 de type 0) | Valeur 1 remise |
+| ACT-DISK-MOVE-FOLDER | Second disque NTFS ; 2 Go de fichiers dans Téléchargements, dont un ouvert dans un programme | Fichiers dans `E:\<profil>\Downloads`, droits de l'utilisateur, l'Explorateur ouvre le nouvel emplacement après fermeture de session ; le fichier ouvert reste à l'ancien emplacement, sans doublon | Fichiers et emplacement d'origine remis ; refus clair si C: n'a pas la place |
+| ACT-DISK-MOVE-FOLDER (OneDrive) | Documents synchronisé par OneDrive | Dossier absent des choix, refus si forcé | — |
+| ACT-DISK-LARGE-FILES | Trois fichiers de 200 Mo dans Téléchargements | Seuls les fichiers cochés sont supprimés ; un identifiant inventé est refusé | Non annulable : la fiche l'indique |
+| ACT-CLEAN-DEV-CACHES | Caches pip et npm remplis (`pip download`, `npm cache add`) | Caches vidés, `.nuget\packages` intact | — |
+| ACT-CLEAN-UPDATE-LEFTOVERS | Dossier `%LOCALAPPDATA%\test-updater\pending` avec un fichier | Dossier vidé ; lancé seul en moins de 20 min quand le disque système est presque plein | — |
+| ACT-CLEAN-COMPONENTS | VM ayant reçu des mises à jour cumulatives | DISM termine, espace libéré affiché | — |
+| ACT-POWER-HIBERNATE-OFF | Veille prolongée active | `hiberfil.sys` supprimé, gain affiché | `powercfg /a` : veille prolongée de nouveau disponible |
+| Corrections automatiques | Disque système sous 10 % ; paramètre activé puis désactivé | Activé : temporaires, installeurs et cache de distribution supprimés une seule fois par 24 h, « Lancée automatiquement » au journal. Désactivé : rien ne se lance | — |
+| Recommandations ACT-HW-GUIDE-*, ACT-SEC-GUIDE-* et ACT-DISK-GUIDE-DOCKER | — | Aucune modification du système, entrée au journal ; le guide Docker n'apparaît que si Docker Desktop est installé | — |
 
 ## Robustesse
 

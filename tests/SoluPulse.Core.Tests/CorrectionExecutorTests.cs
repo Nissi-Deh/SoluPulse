@@ -104,7 +104,63 @@ public sealed class CorrectionExecutorTests : IDisposable
         var entry = Assert.Single(_audit.Entries);
         Assert.Equal("ACT-LOW", entry.ActionId);
         Assert.Equal(Alice.UserName, entry.ValidatedBy);
+        await _restorePoints.ReceivedWithAnyArgs(1).CreateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task ALowRiskActionContinuesWhenNoRestorePointCanBeCreated()
+    {
+        _restorePoints.CreateAsync(default!, default).ReturnsForAnyArgs(new RestorePointResult(false, "disque plein"));
+        var card = await _executor.PrepareAsync("ACT-LOW", null, NoParameters, Alice, default);
+
+        var result = await _executor.ExecuteAsync(card.Token, Alice, default);
+
+        Assert.Equal(ExecutionState.Reussie, result.State);
+        Assert.Contains("Point de restauration non créé", result.Message, StringComparison.Ordinal);
+        Assert.Equal(1, _lowRisk.Executions);
+    }
+
+    [Fact]
+    public async Task ActionsOnPersonalFilesSkipTheRestorePoint()
+    {
+        var files = new RecordingAction(RecordingAction.Describe("ACT-FILES", RiskLevel.Moyen) with { TouchesSystem = false });
+        using var executor = new CorrectionExecutor(new ActionCatalog([files]), _journal, _audit, _restorePoints, _verifier, _time);
+        var card = await executor.PrepareAsync("ACT-FILES", null, NoParameters, Alice, default);
+
+        await executor.ExecuteAsync(card.Token, Alice, default);
+
         await _restorePoints.DidNotReceiveWithAnyArgs().CreateAsync(default!, default);
+        Assert.Equal(1, files.Executions);
+    }
+
+    [Fact]
+    public async Task OnlyActionsMarkedAutomaticRunWithoutValidation()
+    {
+        var automatic = new RecordingAction(RecordingAction.Describe("ACT-AUTO") with { Automatic = true });
+        using var executor = new CorrectionExecutor(new ActionCatalog([_lowRisk, _mediumRisk, automatic]), _journal, _audit, _restorePoints, _verifier, _time);
+
+        await Assert.ThrowsAsync<CorrectionRejectedException>(() => executor.ExecuteAutomaticAsync("ACT-LOW", null, default));
+        await Assert.ThrowsAsync<CorrectionRejectedException>(() => executor.ExecuteAutomaticAsync("ACT-MEDIUM", null, default));
+        var result = await executor.ExecuteAutomaticAsync("ACT-AUTO", Guid.NewGuid(), default);
+
+        Assert.Equal(0, _lowRisk.Executions + _mediumRisk.Executions);
+        Assert.Equal(ExecutionState.Reussie, result.State);
+        var record = _journal.Records[result.ExecutionId!.Value];
+        Assert.Equal(ExecutionOrigin.Automatique, record.Origin);
+        Assert.Equal(CallerIdentity.Automatic, record.ValidatedBy);
+        Assert.Equal(nameof(ExecutionOrigin.Automatique), Assert.Single(_audit.Entries).Origin);
+    }
+
+    [Fact]
+    public async Task AnAutomaticFlagNeverOverridesRiskOrParameters()
+    {
+        var risky = new RecordingAction(RecordingAction.Describe("ACT-AUTO-RISKY", RiskLevel.Moyen) with { Automatic = true });
+        var parameterised = new RecordingAction(RecordingAction.Describe("ACT-AUTO-PARAM") with { Automatic = true, ParameterNames = ["cible"] });
+        using var executor = new CorrectionExecutor(new ActionCatalog([risky, parameterised]), _journal, _audit, _restorePoints, _verifier, _time);
+
+        await Assert.ThrowsAsync<CorrectionRejectedException>(() => executor.ExecuteAutomaticAsync("ACT-AUTO-RISKY", null, default));
+        await Assert.ThrowsAsync<CorrectionRejectedException>(() => executor.ExecuteAutomaticAsync("ACT-AUTO-PARAM", null, default));
+        Assert.Equal(0, risky.Executions + parameterised.Executions);
     }
 
     [Fact]

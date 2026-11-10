@@ -112,6 +112,12 @@ internal sealed class AgentGrpcService(
         logger.LogInformation("Validation de correction reçue de {User}.", caller.UserName);
         var result = await GuardAsync(() => executor.ExecuteAsync(request.Token, caller, context.CancellationToken));
         await runner.EvaluateAsync(context.CancellationToken);
+        if (result.State == ExecutionState.Reussie && result.ExecutionId is { } executionId
+            && await journal.GetAsync(executionId, context.CancellationToken) is { } record)
+        {
+            runner.RefreshDiskUsageAfter(record.ActionId, lifetime.ApplicationStopping);
+        }
+
         return Reply(result);
     }
 
@@ -212,6 +218,7 @@ internal sealed class AgentGrpcService(
             request.HasInternetProbes ? request.InternetProbes : null,
             request.ThresholdOverrides,
             request.ResetThresholds,
+            request.HasAutomaticCorrections ? request.AutomaticCorrections : null,
             context.CancellationToken));
         logger.LogInformation("Paramètres modifiés par {User}.", caller.UserName);
         await runner.EvaluateAsync(context.CancellationToken);
@@ -262,6 +269,7 @@ internal sealed class AgentGrpcService(
             DetailRetentionDays = current.DetailRetentionDays,
             InternetProbes = current.InternetProbes,
             Language = current.Language,
+            AutomaticCorrections = current.AutomaticCorrections,
         };
         reply.Thresholds.AddRange(state.Engine.Rules.OrderBy(r => r.Id, StringComparer.Ordinal).Select(r =>
         {

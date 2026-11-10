@@ -82,6 +82,7 @@ builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<DiagnosticRunner>();
 builder.Services.AddSingleton<CallerAuthenticator>();
 builder.Services.AddHostedService<MonitoringService>();
+builder.Services.AddHostedService<AutoCorrectionService>();
 
 var app = builder.Build();
 app.MapGrpcService<AgentGrpcService>();

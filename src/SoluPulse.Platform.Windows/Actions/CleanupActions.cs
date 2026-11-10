@@ -5,6 +5,7 @@ namespace SoluPulse.Platform.Windows.Actions;
 internal static class Family
 {
     public const string Cleanup = "Nettoyage et optimisation";
+    public const string Space = "Espace disque";
     public const string Repair = "Réparations système";
     public const string Network = "Réseau";
     public const string Security = "Sécurité";
@@ -20,7 +21,7 @@ public sealed class CleanTempAction : SystemActionBase
         "Supprimer les fichiers temporaires",
         "Supprime les fichiers temporaires de plus d'un jour laissés par Windows et les programmes. Les fichiers en cours d'utilisation sont ignorés.",
         ["Parcourir les dossiers Temp de Windows et des utilisateurs", "Supprimer les fichiers de plus de 24 heures"],
-        RiskLevel.Faible, Reversible: false, RequiresReboot: false, TimeSpan.FromMinutes(2));
+        RiskLevel.Faible, Reversible: false, RequiresReboot: false, TimeSpan.FromMinutes(2), Automatic: true);
 
     public override Task<ActionEstimate> EstimateAsync(ActionContext context, CancellationToken cancellationToken) => Task.Run(() =>
     {
@@ -81,7 +82,7 @@ public sealed class CleanDeliveryOptimizationCacheAction() : ServiceCacheCleanup
         "Vider le cache d'optimisation de la distribution",
         "Supprime les morceaux de mises à jour gardés pour être partagés avec d'autres PC.",
         ["Arrêter le service d'optimisation de la distribution", "Supprimer son cache", "Relancer le service"],
-        RiskLevel.Faible, Reversible: false, RequiresReboot: false, TimeSpan.FromMinutes(1));
+        RiskLevel.Faible, Reversible: false, RequiresReboot: false, TimeSpan.FromMinutes(1), Automatic: true);
 }
 
 /// <summary>Vide la corbeille de l'utilisateur qui valide, sur tous les disques fixes.</summary>

@@ -21,6 +21,7 @@ public static class WindowsPlatform
         new WindowsUpdateCollector(timeProvider),
         new SecurityCollector(timeProvider),
         new HardwareInventoryCollector(timeProvider),
+        new DiskUsageCollector(timeProvider),
     ];
 
     public static IReadOnlyList<ISystemAction> Actions() =>
@@ -32,6 +33,14 @@ public static class WindowsPlatform
         new DisableStartupProgramAction(),
         new BalancedPowerPlanAction(),
         new OptimizeDriveAction(),
+        new DisableFastStartupAction(),
+        new MoveUserFolderAction(),
+        new DeleteLargeFilesAction(),
+        new CleanDeveloperCachesAction(),
+        new CleanUpdateLeftoversAction(),
+        new ComponentStoreCleanupAction(),
+        new DisableHibernationAction(),
+        new DockerDiskGuide(),
         new SystemFileCheckAction(),
         new DismRestoreHealthAction(),
         new ScheduleChkdskAction(),
