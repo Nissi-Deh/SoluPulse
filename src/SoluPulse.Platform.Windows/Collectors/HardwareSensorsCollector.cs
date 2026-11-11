@@ -1,5 +1,6 @@
 using LibreHardwareMonitor.Hardware;
 using SoluPulse.Core.Collection;
+using SoluPulse.Platform.Windows.Interop;
 
 namespace SoluPulse.Platform.Windows.Collectors;
 
@@ -22,6 +23,7 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
     private readonly object _lock = new();
     private Computer? _computer;
     private int _runs;
+    private string? _manufacturer;
 
     public string Name => "capteurs";
 
@@ -113,7 +115,8 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
 
                 if (fans == 0)
                 {
-                    result.Issue("ventilateurs", "Aucun ventilateur lisible sur ce PC.");
+                    var portable = computer.Hardware.Any(h => h.HardwareType == HardwareType.Battery);
+                    result.Issue("ventilateurs", FanMessage(_manufacturer ??= Manufacturer(), portable, cpuTemperatures.Count > 0));
                 }
             }
         });
@@ -127,6 +130,57 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
         {
             _computer?.Close();
             _computer = null;
+        }
+    }
+
+    /// <summary>
+    /// Explique pourquoi la vitesse du ventilateur manque. Sur la plupart des portables, le ventilateur est
+    /// piloté par la puce de gestion du fabricant (contrôleur embarqué), que Windows ne permet pas de lire.
+    /// </summary>
+    internal static string FanMessage(string manufacturer, bool portable, bool cpuTemperatureReadable)
+    {
+        var brand = manufacturer.Length > 0 ? $" {manufacturer}" : "";
+        var cause = portable
+            ? $"Le ventilateur de ce portable{brand} fonctionne, mais il est piloté par une puce du fabricant qui ne communique pas sa vitesse à Windows. C'est le cas de la plupart des portables."
+            : $"Les ventilateurs de ce PC{brand} sont branchés sur des prises qui ne mesurent pas leur vitesse, ou la carte mère ne la communique pas à Windows.";
+        var fallback = cpuTemperatureReadable
+            ? " SoluPulse surveille la température du processeur à la place : si le ventilateur s'encrasse ou tombe en panne, elle monte, et une alerte vous prévient."
+            : " La température du processeur n'est pas lisible non plus : le pilote PawnIO n'est peut-être pas installé.";
+        return cause + fallback;
+    }
+
+    /// <summary>Nom court du fabricant (« Hewlett-Packard » → « HP »), vide s'il est inconnu ou générique.</summary>
+    internal static string ShortManufacturer(string? raw)
+    {
+        var name = (raw ?? "").Trim();
+        if (name.Length == 0 || name.Contains("O.E.M", StringComparison.OrdinalIgnoreCase) || name.Contains("To be filled", StringComparison.OrdinalIgnoreCase))
+        {
+            return "";
+        }
+
+        return name.ToUpperInvariant() switch
+        {
+            "HEWLETT-PACKARD" or "HP" or "HP INC." => "HP",
+            "DELL INC." or "DELL" => "Dell",
+            "LENOVO" => "Lenovo",
+            "ASUSTEK COMPUTER INC." => "Asus",
+            "ACER" => "Acer",
+            "MICRO-STAR INTERNATIONAL CO., LTD." => "MSI",
+            "MICROSOFT CORPORATION" => "Microsoft",
+            _ => name,
+        };
+    }
+
+    private static string Manufacturer()
+    {
+        try
+        {
+            var system = Wmi.QueryFirst(@"\\.\root\cimv2", "SELECT Manufacturer FROM Win32_ComputerSystem");
+            return ShortManufacturer(system is null ? null : Wmi.Get<string>(system, "Manufacturer"));
+        }
+        catch (Exception e) when (e is System.Management.ManagementException or System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+        {
+            return "";
         }
     }
 

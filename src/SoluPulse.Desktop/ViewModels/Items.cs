@@ -125,13 +125,33 @@ public sealed class AlertItem(AlertInfo info)
         ? $"Détectée {Format.Date(info.OpenedAt)}"
         : $"Résolue {Format.Date(info.ResolvedAt)}";
 
-    public string ValueText { get; } = info.HasTriggerValue ? $"Valeur relevée : {info.TriggerValue.ToString("0.##", Format.French)}" : "";
+    public string ValueText { get; } = info.HasTriggerValue ? $"Valeur relevée : {info.TriggerValue.ToString("0.##", Format.French)}{UnitOf(info.Metric)}" : "";
 
     public bool Active { get; } = info.Active;
 
     public IReadOnlyList<ActionItem> Corrections { get; } = info.Corrections.Select(c => new ActionItem(c)).ToList();
 
-    public bool HasCorrections => Corrections.Count > 0;
+    /// <summary>Les corrections ne sont proposées que tant que le problème est présent.</summary>
+    public bool ShowCorrections => Active && Corrections.Count > 0;
+
+    public bool ShowNoCorrection => Active && Corrections.Count == 0;
+
+    /// <summary>Unité déduite du suffixe de la métrique (« cpu.temperature_c » → « °C »).</summary>
+    public static string UnitOf(string metric)
+    {
+        var last = metric[(metric.LastIndexOf('.') + 1)..];
+        return last switch
+        {
+            "tours_min" => " tr/min",
+            _ when last.EndsWith("_c", StringComparison.Ordinal) => " °C",
+            _ when last.EndsWith("_pct", StringComparison.Ordinal) => " %",
+            _ when last.EndsWith("_ms", StringComparison.Ordinal) => " ms",
+            _ when last.EndsWith("_s", StringComparison.Ordinal) => " s",
+            _ when last.EndsWith("_j", StringComparison.Ordinal) || last.StartsWith("jours", StringComparison.Ordinal) => " jours",
+            _ when last.EndsWith("_go", StringComparison.Ordinal) => " Go",
+            _ => "",
+        };
+    }
 }
 
 public sealed class ExecutionItem(ExecutionInfo info)

@@ -54,10 +54,12 @@
               </StackPanel>
             </Expander>
 
-            <TextBlock Text="Corrections proposées" FontWeight="SemiBold" Margin="0,8,0,0" IsVisible="{Binding HasCorrections}" />
-            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasCorrections}"
+            <TextBlock Text="Corrections proposées" FontWeight="SemiBold" Margin="0,8,0,0" IsVisible="{Binding ShowCorrections}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding ShowNoCorrection}"
                        Text="Aucune correction automatique pour ce problème : suivez l'explication ci-dessus." />
-            <ItemsControl ItemsSource="{Binding Corrections}" IsVisible="{Binding Active}">
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !Active}"
+                       Text="Le problème a disparu : il n'y a rien à faire. SoluPulse vous préviendra s'il revient." />
+            <ItemsControl ItemsSource="{Binding Corrections}" IsVisible="{Binding ShowCorrections}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ActionItem">
                   <Border BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,8">
