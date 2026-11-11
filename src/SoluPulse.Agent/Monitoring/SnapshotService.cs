@@ -72,7 +72,7 @@ public sealed class SnapshotService(
 
         if (RestorePointService.Latest() is { } latest && time.GetUtcNow() - latest.CreatedAt < RestorePointService.ManualGap)
         {
-            return new RestorePointResult(false, "Une capture vient d'être créée : attendez quelques minutes avant d'en créer une autre.");
+            return new RestorePointResult(false, "Une capture vient déjà d'être créée. Attendez 5 minutes avant d'en faire une autre : chaque capture prend de la place sur le disque C:.");
         }
 
         var result = await restorePoints.CreateNowAsync(RestorePointService.ManualDescription, cancellationToken).ConfigureAwait(false);

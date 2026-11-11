@@ -241,7 +241,7 @@ internal sealed class AgentGrpcService(
         return new SnapshotReply
         {
             Success = result.Success,
-            Message = result.Success ? "Capture créée : vous pourrez revenir à cet état du système." : $"Capture impossible : {result.Message}",
+            Message = result.Success ? "Capture créée : vous pourrez revenir à cet état du système." : result.Message,
             List = await SnapshotListAsync(context.CancellationToken),
         };
     }

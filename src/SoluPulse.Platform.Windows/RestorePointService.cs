@@ -86,14 +86,15 @@ public sealed class RestorePointService : IRestorePointService, IDisposable
                     }
                 }
 
+                // Les messages de Create sont des fragments (« code d'erreur 5 ») : on les complète.
                 if (!result.Success)
                 {
-                    return result;
+                    return new RestorePointResult(false, $"Windows n'a pas créé la capture : {result.Message}.");
                 }
 
                 return List().Any(p => p.Sequence > before)
                     ? new RestorePointResult(true, "Capture créée.")
-                    : new RestorePointResult(false, "Windows n'a pas créé la capture : l'espace réservé aux points de restauration est peut-être plein ou nul");
+                    : new RestorePointResult(false, "Windows n'a pas créé la capture : l'espace réservé aux points de restauration est peut-être plein.");
             }, cancellationToken).ConfigureAwait(false);
         }
         finally
