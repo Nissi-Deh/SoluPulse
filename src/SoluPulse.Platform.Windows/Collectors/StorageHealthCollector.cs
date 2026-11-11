@@ -120,6 +120,10 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
             }
         });
 
+        // Pour un disque NVMe, Windows simule des attributs SMART à partir de la page de santé : les
+        // erreurs média y deviennent l'attribut 187. La page NVMe fait foi, sans doublon.
+        var nvmeDisks = disks.Values.Where(d => d.Nvme is not null).Select(d => d.Metric).ToHashSet(StringComparer.Ordinal);
+
         result.Try("smart.attributs", () =>
         {
             foreach (var data in Wmi.Query(WmiScope, "SELECT InstanceName, VendorSpecific FROM MSStorageDriver_FailurePredictData"))
@@ -134,8 +138,16 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
                 AddAttribute(result, attributes, SmartAttributes.ReallocatedSectors, $"disque_physique.{metric}.secteurs_realloues");
                 AddAttribute(result, attributes, SmartAttributes.PendingSectors, $"disque_physique.{metric}.secteurs_en_attente");
                 AddAttribute(result, attributes, SmartAttributes.UncorrectableSectors, $"disque_physique.{metric}.secteurs_irrecuperables");
-                AddAttribute(result, attributes, SmartAttributes.ReportedUncorrectable, $"disque_physique.{metric}.erreurs_non_corrigees");
-                AddAttribute(result, attributes, SmartAttributes.CrcErrors, $"disque_physique.{metric}.erreurs_cable");
+                if (nvmeDisks.Contains(metric))
+                {
+                    // Comptées dans erreurs_media : 0 ici ferme une alerte ouverte par l'attribut simulé.
+                    result.Add($"disque_physique.{metric}.erreurs_non_corrigees", 0, "");
+                }
+                else
+                {
+                    AddAttribute(result, attributes, SmartAttributes.ReportedUncorrectable, $"disque_physique.{metric}.erreurs_non_corrigees");
+                    AddAttribute(result, attributes, SmartAttributes.CrcErrors, $"disque_physique.{metric}.erreurs_cable");
+                }
             }
         });
 

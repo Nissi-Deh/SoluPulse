@@ -497,6 +497,12 @@ internal static class ComponentCards
                 ("erreurs_non_corrigees", "Erreurs non corrigées"), ("erreurs_cable", "Erreurs de câble"), ("erreurs_media", "Erreurs de données"),
             })
             {
+                // Sur un SSD NVMe, les erreurs non corrigées sont déjà comptées dans les erreurs de données.
+                if (metric == "erreurs_non_corrigees" && metrics[$"{prefix}.erreurs_media"] is not null)
+                {
+                    continue;
+                }
+
                 if (metrics[$"{prefix}.{metric}"] is { } count)
                 {
                     var rising = metrics[$"{prefix}.{metric}_hausse_30j"] is >= 1;
