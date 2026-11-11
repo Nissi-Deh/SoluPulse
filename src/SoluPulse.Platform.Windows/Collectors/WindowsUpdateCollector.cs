@@ -58,20 +58,30 @@ public sealed class WindowsUpdateCollector(TimeProvider timeProvider) : ICollect
     private static List<UpdateHistory.Entry> History()
     {
         var type = Type.GetTypeFromProgID("Microsoft.Update.Session") ?? throw new InvalidOperationException("Agent Windows Update absent.");
-        dynamic session = Activator.CreateInstance(type)!;
-        dynamic searcher = session.CreateUpdateSearcher();
-        var count = Math.Min((int)searcher.GetTotalHistoryCount(), 200);
+        var session = Activator.CreateInstance(type) ?? throw new InvalidOperationException("Agent Windows Update absent.");
+        var searcher = Com.Call(session, "CreateUpdateSearcher");
+        var count = Math.Min(Com.Int(Com.Call(searcher, "GetTotalHistoryCount")), 200);
         var entries = new List<UpdateHistory.Entry>();
         if (count == 0)
         {
             return entries;
         }
 
-        dynamic history = searcher.QueryHistory(0, count);
-        for (var i = 0; i < (int)history.Count; i++)
+        var history = Com.Call(searcher, "QueryHistory", 0, count);
+        var total = Com.Int(Com.Get(history, "Count"));
+        for (var i = 0; i < total; i++)
         {
-            dynamic entry = history[i];
-            entries.Add(new UpdateHistory.Entry((string)(entry.Title ?? ""), ((DateTime)entry.Date).ToUniversalTime(), (int)entry.ResultCode, (int)entry.Operation, (int)entry.HResult));
+            if (Com.Get(history, "Item", i) is not { } entry)
+            {
+                continue;
+            }
+
+            entries.Add(new UpdateHistory.Entry(
+                Com.Get(entry, "Title") as string ?? "",
+                Com.Get(entry, "Date") is DateTime date ? date.ToUniversalTime() : DateTime.MinValue,
+                Com.Int(Com.Get(entry, "ResultCode")),
+                Com.Int(Com.Get(entry, "Operation")),
+                Com.Int(Com.Get(entry, "HResult"))));
         }
 
         return entries;
@@ -80,14 +90,16 @@ public sealed class WindowsUpdateCollector(TimeProvider timeProvider) : ICollect
     private static List<string> Search()
     {
         var type = Type.GetTypeFromProgID("Microsoft.Update.Session") ?? throw new InvalidOperationException("Agent Windows Update absent.");
-        dynamic session = Activator.CreateInstance(type)!;
-        dynamic searcher = session.CreateUpdateSearcher();
-        searcher.Online = true;
-        dynamic searchResult = searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Software'");
+        var session = Activator.CreateInstance(type) ?? throw new InvalidOperationException("Agent Windows Update absent.");
+        var searcher = Com.Call(session, "CreateUpdateSearcher");
+        searcher.GetType().InvokeMember("Online", System.Reflection.BindingFlags.SetProperty, null, searcher, [true], System.Globalization.CultureInfo.InvariantCulture);
+        var searchResult = Com.Call(searcher, "Search", "IsInstalled=0 and IsHidden=0 and Type='Software'");
+        var updates = Com.Get(searchResult, "Updates") ?? throw new InvalidOperationException("Windows Update n'a pas renvoyé de liste.");
         var titles = new List<string>();
-        for (var i = 0; i < (int)searchResult.Updates.Count; i++)
+        var count = Com.Int(Com.Get(updates, "Count"));
+        for (var i = 0; i < count; i++)
         {
-            titles.Add((string)searchResult.Updates[i].Title);
+            titles.Add(Com.Get(Com.Get(updates, "Item", i)!, "Title") as string ?? "");
         }
 
         return titles;
@@ -109,8 +121,9 @@ public static partial class UpdateHistory
     public sealed record Summary(DateTime? LastSuccess, int Failures, IReadOnlyList<string> FailedTitles);
 
     // Signatures et plateforme de Defender, outil de suppression des logiciels malveillants : ils
-    // arrivent même quand les mises à jour de Windows elles-mêmes échouent.
-    private static readonly string[] IgnoredUpdates = ["KB2267602", "KB4052623", "KB2311978", "KB915597", "KB5007651", "KB890830"];
+    // arrivent même quand les mises à jour de Windows elles-mêmes échouent. Seul le numéro est cherché :
+    // en français, Windows écrit « 2267602 Ko » au lieu de « KB2267602 ».
+    private static readonly string[] IgnoredUpdates = ["2267602", "4052623", "2311978", "915597", "5007651", "890830"];
 
     public static Summary Summarize(IEnumerable<Entry> entries, DateTime nowUtc)
     {
@@ -138,4 +151,17 @@ public static partial class UpdateHistory
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^[^-]+ - [^-]+ - [\d.]+$")]
     private static partial System.Text.RegularExpressions.Regex DriverTitle();
+}
+
+/// <summary>Appels explicites aux objets COM de Windows Update (IDispatch), sans <c>dynamic</c>.</summary>
+internal static class Com
+{
+    public static object Call(object target, string method, params object?[] arguments) =>
+        target.GetType().InvokeMember(method, System.Reflection.BindingFlags.InvokeMethod, null, target, arguments, System.Globalization.CultureInfo.InvariantCulture)
+        ?? throw new InvalidOperationException($"Windows Update n'a rien renvoyé pour {method}.");
+
+    public static object? Get(object target, string property, params object?[] arguments) =>
+        target.GetType().InvokeMember(property, System.Reflection.BindingFlags.GetProperty, null, target, arguments, System.Globalization.CultureInfo.InvariantCulture);
+
+    public static int Int(object? value) => value is null ? 0 : Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
 }

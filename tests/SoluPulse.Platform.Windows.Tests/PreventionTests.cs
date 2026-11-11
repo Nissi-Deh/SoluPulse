@@ -155,6 +155,7 @@ public sealed class PreventionTests : IDisposable
             new UpdateHistory.Entry("2026-09 Mise à jour cumulative (KB5099999)", now.AddDays(-70), 2, 1, 0),
             new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-3), 4, 1, unchecked((int)0x80073712)),
             new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-2), 4, 1, unchecked((int)0x80073712)),
+            new UpdateHistory.Entry("Mise à jour de la sélection disjointe pour Microsoft Defender Antivirus – 2267602 Ko (version 1.463.243.0)", now.AddHours(-3), 2, 1, 0),
             new UpdateHistory.Entry("9WZDNCRFJBMP-MICROSOFT.WINDOWSSTORE", now.AddDays(-1), 4, 1, unchecked((int)0x80240034)),
             new UpdateHistory.Entry("9PLM9XGG6VKS-OpenAI.Codex", now.AddHours(-2), 2, 1, 0),
             new UpdateHistory.Entry("Intel Ports Driver Update (2543.9.0.0)", now.AddHours(-1), 2, 1, 0),
@@ -298,8 +299,8 @@ public sealed class PreventionTests : IDisposable
     {
         var start = DateTimeOffset.UtcNow;
         const long gb = 1L << 30;
-        var leaking = Enumerable.Range(0, 13).Select(i => (start.AddMinutes(5 * i), gb + (i * gb / 6))).ToList();
-        var stable = Enumerable.Range(0, 13).Select(i => (start.AddMinutes(5 * i), 2 * gb)).ToList();
+        var leaking = Enumerable.Range(0, 13).Select(i => (start.AddMinutes(5.0 * i), gb + (i * gb / 6))).ToList();
+        var stable = Enumerable.Range(0, 13).Select(i => (start.AddMinutes(5.0 * i), 2 * gb)).ToList();
         var sawtooth = leaking.Select((s, i) => i == 6 ? (s.Item1, gb / 2) : s).ToList();
 
         Assert.Equal(2, ProcessActivityCollector.LeakRate(leaking));

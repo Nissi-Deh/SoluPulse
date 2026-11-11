@@ -50,7 +50,7 @@ public static class Trends
             denominator += (xs[i] - meanX) * (xs[i] - meanX);
         }
 
-        return denominator == 0 ? null : numerator / denominator;
+        return Math.Abs(denominator) < 1e-12 ? null : numerator / denominator;
     }
 
     /// <summary>
