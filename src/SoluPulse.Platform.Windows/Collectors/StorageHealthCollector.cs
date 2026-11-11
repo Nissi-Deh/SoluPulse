@@ -1,12 +1,16 @@
+using System.Globalization;
 using SoluPulse.Core.Collection;
+using SoluPulse.Platform.Windows.Actions;
 using SoluPulse.Platform.Windows.Interop;
 
 namespace SoluPulse.Platform.Windows.Collectors;
 
 /// <summary>
 /// Indicateurs de fiabilité des disques SATA et NVMe (EF-COL-03) : état de santé Windows, compteurs de
-/// fiabilité du stockage (usure, heures, erreurs) et attributs SMART des disques ATA (secteurs
-/// réalloués, en attente, irrécupérables). Collecte espacée : ces requêtes WMI sont coûteuses.
+/// fiabilité du stockage (usure, heures, erreurs), attributs SMART des disques ATA (secteurs
+/// réalloués, en attente, irrécupérables, erreurs non corrigées, erreurs de câble), page de santé
+/// NVMe (réserve, avertissement critique, erreurs média) et firmwares connus comme dangereux.
+/// Collecte espacée : ces requêtes WMI sont coûteuses.
 /// </summary>
 public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollector
 {
@@ -25,11 +29,12 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
 
         result.Try("msft_physicaldisk", () =>
         {
-            foreach (var disk in Wmi.Query(StorageScope, "SELECT DeviceId, FriendlyName, HealthStatus, MediaType, BusType, Size, SerialNumber FROM MSFT_PhysicalDisk"))
+            foreach (var disk in Wmi.Query(StorageScope, "SELECT DeviceId, FriendlyName, HealthStatus, MediaType, BusType, Size, FirmwareVersion FROM MSFT_PhysicalDisk"))
             {
                 var id = Wmi.Get<string>(disk, "DeviceId") ?? "";
                 var name = Wmi.Get<string>(disk, "FriendlyName") ?? $"Disque {id}";
-                var info = new DiskInfo(name, Wmi.Get<ushort>(disk, "MediaType"), Wmi.Get<ushort>(disk, "BusType"), Wmi.Get<ulong>(disk, "Size"));
+                var firmware = (Wmi.Get<string>(disk, "FirmwareVersion") ?? "").Trim();
+                var info = new DiskInfo(name, Wmi.Get<ushort>(disk, "MediaType"), Wmi.Get<ushort>(disk, "BusType"), Wmi.Get<ulong>(disk, "Size"), firmware);
                 disks[id] = info;
 
                 // HealthStatus : 0 sain, 1 avertissement, 2 défaillant, 5 inconnu.
@@ -38,6 +43,33 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
                 {
                     result.Add($"disque_physique.{info.Metric}.etat_sante", health, "");
                 }
+
+                if (firmware.Length > 0)
+                {
+                    result.Add($"disque_physique.{info.Metric}.firmware_a_risque", RiskyFirmware.Find(name, firmware) is null ? 0 : 1, "");
+                }
+            }
+        });
+
+        // Page de santé NVMe : plus précise que les compteurs de Windows, et lisible derrière la plupart
+        // des contrôleurs Intel RST. Les disques SATA répondent par une erreur : on passe.
+        result.Try("nvme", () =>
+        {
+            foreach (var (id, disk) in disks)
+            {
+                if (disk.MediaType == 3 || !int.TryParse(id, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+                    || DeviceIo.ReadNvmeHealth(number) is not { } health)
+                {
+                    continue;
+                }
+
+                var prefix = $"disque_physique.{disk.Metric}";
+                disk.Nvme = health;
+                result.Add($"{prefix}.usure_pct", health.PercentageUsed, "%");
+                result.Add($"{prefix}.reserve_pct", health.AvailableSparePercent, "%");
+                result.Add($"{prefix}.avertissement_critique", health.CriticalWarning == 0 ? 0 : 1, "");
+                result.Add($"{prefix}.erreurs_media", health.MediaErrors, "");
+                result.Add($"{prefix}.arrets_non_securises", health.UnsafeShutdowns, "");
             }
         });
 
@@ -50,8 +82,9 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
                     continue;
                 }
 
-                // Wear n'a de sens que pour les SSD (MediaType 4) et le NVMe (BusType 17).
-                if (disk.MediaType == 4 || disk.BusType == 17)
+                // Wear n'a de sens que pour les SSD (MediaType 4) et le NVMe (BusType 17). La page NVMe,
+                // quand elle est lisible, donne déjà l'usure.
+                if ((disk.MediaType == 4 || disk.BusType == 17) && disk.Nvme is null)
                 {
                     result.Add($"disque_physique.{disk.Metric}.usure_pct", Wmi.Get<byte>(counter, "Wear"), "%");
                 }
@@ -101,6 +134,28 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
                 AddAttribute(result, attributes, SmartAttributes.ReallocatedSectors, $"disque_physique.{metric}.secteurs_realloues");
                 AddAttribute(result, attributes, SmartAttributes.PendingSectors, $"disque_physique.{metric}.secteurs_en_attente");
                 AddAttribute(result, attributes, SmartAttributes.UncorrectableSectors, $"disque_physique.{metric}.secteurs_irrecuperables");
+                AddAttribute(result, attributes, SmartAttributes.ReportedUncorrectable, $"disque_physique.{metric}.erreurs_non_corrigees");
+                AddAttribute(result, attributes, SmartAttributes.CrcErrors, $"disque_physique.{metric}.erreurs_cable");
+            }
+        });
+
+        result.Try("disque_systeme", () =>
+        {
+            var letter = Drives.SystemRoot[0];
+
+            // Windows sur un disque dur classique : la première cause de lenteur des PC de plus de 5 ans.
+            var partition = Wmi.QueryFirst(StorageScope, $"SELECT DiskNumber FROM MSFT_Partition WHERE DriveLetter = '{letter}'");
+            if (partition is not null
+                && disks.TryGetValue(Wmi.Get<uint>(partition, "DiskNumber").ToString(CultureInfo.InvariantCulture), out var system)
+                && system.MediaType is 3 or 4)
+            {
+                result.Add("disque.systeme.disque_dur_classique", system.MediaType == 3 ? 1 : 0, "");
+            }
+
+            // Volume « sale » : Windows a noté une incohérence et relancera une vérification au démarrage.
+            if (DeviceIo.IsVolumeDirty(letter) is { } dirty)
+            {
+                result.Add("disque.systeme.verification_en_attente", dirty ? 1 : 0, "");
             }
         });
 
@@ -110,6 +165,11 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
             Type = d.MediaType switch { 3 => "HDD", 4 => "SSD", _ => "Inconnu" },
             Bus = BusName(d.BusType),
             TailleGo = Math.Round(d.Size / 1e9, 0),
+            d.Firmware,
+            FirmwareARisque = RiskyFirmware.Find(d.Name, d.Firmware)?.Advice,
+            ReservePct = d.Nvme?.AvailableSparePercent,
+            ErreursMedia = d.Nvme?.MediaErrors,
+            ArretsNonSecurises = d.Nvme?.UnsafeShutdowns,
         }));
         return Task.FromResult(result.Build());
     }
@@ -133,7 +193,7 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
     {
         if (item[property] is { } value)
         {
-            result.Add(metric, Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture), unit);
+            result.Add(metric, Convert.ToDouble(value, CultureInfo.InvariantCulture), unit);
         }
     }
 
@@ -145,9 +205,11 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
         }
     }
 
-    private sealed record DiskInfo(string Name, ushort MediaType, ushort BusType, ulong Size)
+    private sealed record DiskInfo(string Name, ushort MediaType, ushort BusType, ulong Size, string Firmware)
     {
         public string Metric { get; } = MetricName.Segment(Name);
+
+        public NvmeHealth? Nvme { get; set; }
     }
 }
 
@@ -155,8 +217,12 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
 public static class SmartAttributes
 {
     public const byte ReallocatedSectors = 5;
+    public const byte ReportedUncorrectable = 187;
     public const byte PendingSectors = 197;
     public const byte UncorrectableSectors = 198;
+
+    /// <summary>Erreurs CRC Ultra DMA : presque toujours un câble SATA abîmé ou mal branché.</summary>
+    public const byte CrcErrors = 199;
 
     /// <summary>
     /// Le tableau commence par 2 octets de version, suivis de 30 entrées de 12 octets :
@@ -183,5 +249,46 @@ public static class SmartAttributes
         }
 
         return attributes;
+    }
+}
+
+/// <summary>Un firmware de disque connu pour abîmer ou tuer le disque, et ce qu'il faut faire.</summary>
+public sealed record RiskyFirmware(string Model, string Firmware, string Advice)
+{
+    /// <summary>
+    /// Liste courte : seuls les défauts reconnus par le fabricant y figurent. Le modèle est cherché
+    /// dans le nom du disque, le firmware comparé exactement.
+    /// </summary>
+    public static IReadOnlyList<RiskyFirmware> Known { get; } =
+    [
+        new("Samsung SSD 980 PRO", "3B2QGXA7", "Firmware 3B2QGXA7 : usure accélérée puis passage en lecture seule. Installez le firmware 5B2QGXA7 ou plus récent avec Samsung Magician."),
+        new("Samsung SSD 990 PRO", "0B2QJXD7", "Firmware 0B2QJXD7 : l'état de santé chute rapidement. Installez le firmware 1B2QJXD7 ou plus récent avec Samsung Magician."),
+    ];
+
+    // SSD SAS de HPE : panne définitive à 32 768 heures de fonctionnement sans le firmware HPD8.
+    private static readonly string[] HpeSasModels =
+    [
+        "VO0480JFDGT", "VO0960JFDGU", "VO1920JFDGV", "VO3840JFDHA", "MO0400JFFCF", "MO0800JFFCH", "MO1600JFFCK", "MO3200JFFCL",
+        "VO000480JWDAR", "VO000960JWDAT", "VO001920JWDAU", "VO003840JWDAV", "VO007680JWCNK", "VO015300JWCNL",
+        "VK000960JWSSQ", "VK001920JWSSR", "VK003840JWSST", "VK003840JWSSU", "VK007680JWSSV", "VO015360JWZJR",
+    ];
+
+    public static RiskyFirmware? Find(string diskName, string firmware)
+    {
+        firmware = firmware.Trim();
+        var known = Known.FirstOrDefault(k => diskName.Contains(k.Model, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(k.Firmware, firmware, StringComparison.OrdinalIgnoreCase));
+        if (known is not null)
+        {
+            return known;
+        }
+
+        var hpe = HpeSasModels.Any(m => diskName.Contains(m, StringComparison.OrdinalIgnoreCase))
+            && firmware.Length == 4
+            && firmware.StartsWith("HPD", StringComparison.OrdinalIgnoreCase)
+            && firmware[3] is >= '0' and < '8';
+        return hpe
+            ? new RiskyFirmware(diskName, firmware, "SSD HPE : panne définitive à 32 768 heures de fonctionnement sans le firmware HPD8. Mettez à jour le firmware sans attendre.")
+            : null;
     }
 }

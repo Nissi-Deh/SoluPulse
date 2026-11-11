@@ -5,7 +5,8 @@ namespace SoluPulse.Platform.Windows.Collectors;
 
 /// <summary>
 /// État de la batterie des portables (EF-COL-04) : capacité d'origine, capacité actuelle, cycles.
-/// Un PC fixe n'a pas de batterie : ce n'est pas une erreur, aucune mesure n'est produite.
+/// Sur un PC fixe, une batterie vue par Windows est celle d'un onduleur relié en USB : sa charge,
+/// son autonomie et sa santé sont suivies à part. Un PC fixe sans onduleur n'est pas une erreur.
 /// </summary>
 public sealed class BatteryCollector(TimeProvider timeProvider) : ICollector
 {
@@ -41,6 +42,13 @@ public sealed class BatteryCollector(TimeProvider timeProvider) : ICollector
             full.AddRange(Wmi.Query(WmiScope, "SELECT FullChargedCapacity FROM BatteryFullChargedCapacity").Select(b => (double)Wmi.Get<uint>(b, "FullChargedCapacity")));
         });
 
+        var portable = Chassis.IsPortable();
+        if (portable == false)
+        {
+            CollectUps(result, designed, full);
+            return Task.FromResult(result.Build());
+        }
+
         if (designed.Count == 0 || full.Count == 0 || designed.Sum() <= 0)
         {
             result.Snapshot("batterie", new { Presente = false });
@@ -66,5 +74,46 @@ public sealed class BatteryCollector(TimeProvider timeProvider) : ICollector
 
         result.Snapshot("batterie", new { Presente = true, CapaciteOrigineMwh = designedTotal, CapaciteActuelleMwh = fullTotal, Cycles = cycles });
         return Task.FromResult(result.Build());
+    }
+
+    /// <summary>
+    /// Onduleur relié en USB : Windows le présente comme une batterie. Son autonomie à pleine charge
+    /// révèle une batterie morte avant la prochaine coupure de courant.
+    /// </summary>
+    private static void CollectUps(CollectorResultBuilder result, List<double> designed, List<double> full)
+    {
+        result.Try("onduleur", () =>
+        {
+            var batteries = Wmi.Query(@"\\.\root\cimv2", "SELECT Name, EstimatedChargeRemaining, EstimatedRunTime FROM Win32_Battery");
+            result.Add("onduleur.present", batteries.Count > 0 ? 1 : 0, "");
+            if (batteries.Count == 0)
+            {
+                result.Snapshot("onduleur", new { Present = false });
+                return;
+            }
+
+            var ups = batteries[0];
+            var charge = Wmi.Get<ushort>(ups, "EstimatedChargeRemaining");
+            var runtime = Wmi.Get<uint>(ups, "EstimatedRunTime");
+            if (charge is > 0 and <= 100)
+            {
+                result.Add("onduleur.charge_pct", charge, "%");
+            }
+
+            // 71 582 788 minutes : valeur « inconnue » renvoyée quand l'onduleur est sur secteur sans estimation.
+            if (runtime is > 0 and < 10_000)
+            {
+                result.Add("onduleur.autonomie_min", runtime, "min");
+            }
+
+            double? health = null;
+            if (designed.Sum() > 0 && full.Sum() > 0)
+            {
+                health = Math.Round(Math.Min(100, 100 * full.Sum() / designed.Sum()), 1);
+                result.Add("onduleur.sante_pct", health.Value, "%");
+            }
+
+            result.Snapshot("onduleur", new { Present = true, Nom = Wmi.Get<string>(ups, "Name"), ChargePct = charge, AutonomieMin = runtime is > 0 and < 10_000 ? runtime : (uint?)null, SantePct = health });
+        });
     }
 }

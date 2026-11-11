@@ -173,6 +173,14 @@ public sealed partial class InventoryViewModel(AgentClient client) : PageViewMod
         ["disques"] = "Disques",
         ["volumes"] = "Volumes",
         ["batterie"] = "Batterie",
+        ["onduleur"] = "Onduleur",
+        ["protection"] = "Protection, sauvegardes et fins de support",
+        ["menaces"] = "Points de vigilance de sécurité",
+        ["programmes_actifs"] = "Programmes suspects ou gourmands",
+        ["ecrans_bleus"] = "Écrans bleus des 30 derniers jours",
+        ["echecs_mises_a_jour"] = "Mises à jour en échec",
+        ["cles_usb"] = "Clés USB branchées",
+        ["rancongiciel"] = "Surveillance des rançongiciels",
     };
 
     // Affichés sous forme de fiches sur la page « Mon PC ».

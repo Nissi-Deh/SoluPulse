@@ -471,14 +471,40 @@ internal static class ComponentCards
                 card.Details.Add(new DetailRow("Prédiction SMART", "panne probable", Palette.Critique));
             }
 
+            if (metrics[$"{prefix}.avertissement_critique"] == 1)
+            {
+                card.Details.Add(new DetailRow("Le SSD signale", "un état critique", Palette.Critique));
+            }
+
+            if (metrics[$"{prefix}.reserve_pct"] is { } spare)
+            {
+                card.Details.Add(new DetailRow("Réserve du SSD", $"{Number(spare)} %", spare >= 50 ? Palette.Ok : spare >= 20 ? Palette.Attention : Palette.Critique));
+            }
+
+            if (disk.Str("firmwareARisque") is { } firmwareRisk)
+            {
+                card.Details.Add(new DetailRow("Firmware", firmwareRisk, Palette.Critique));
+            }
+            else
+            {
+                Add(card, "Firmware", disk.Str("firmware"));
+            }
+
             Add(card, "Heures de fonctionnement", metrics[$"{prefix}.heures_fonctionnement"] is { } hours ? $"{Number(hours)} h" : null);
-            foreach (var (metric, label) in new[] { ("secteurs_realloues", "Secteurs réalloués"), ("secteurs_en_attente", "Secteurs en attente"), ("secteurs_irrecuperables", "Secteurs irrécupérables") })
+            foreach (var (metric, label) in new[]
+            {
+                ("secteurs_realloues", "Secteurs réalloués"), ("secteurs_en_attente", "Secteurs en attente"), ("secteurs_irrecuperables", "Secteurs irrécupérables"),
+                ("erreurs_non_corrigees", "Erreurs non corrigées"), ("erreurs_cable", "Erreurs de câble"), ("erreurs_media", "Erreurs de données"),
+            })
             {
                 if (metrics[$"{prefix}.{metric}"] is { } count)
                 {
-                    card.Details.Add(new DetailRow(label, Number(count), count < 1 ? Palette.Ok : Palette.Attention));
+                    var rising = metrics[$"{prefix}.{metric}_hausse_30j"] is >= 1;
+                    card.Details.Add(new DetailRow(label, rising ? $"{Number(count)} (en hausse)" : Number(count), count < 1 ? Palette.Ok : rising ? Palette.Critique : Palette.Attention));
                 }
             }
+
+            Add(card, "Arrêts non sécurisés", metrics[$"{prefix}.arrets_non_securises"] is { } unsafeShutdowns ? Number(unsafeShutdowns) : null);
 
             yield return card;
         }

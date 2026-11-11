@@ -68,6 +68,15 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
                                 result.Add($"carte_mere.{MetricName.Segment(temperature.Name)}.temperature_c", Math.Round(temperature.Value!.Value, 1), "°C");
                             }
 
+                            foreach (var voltage in sensors.Where(s => s.SensorType == SensorType.Voltage))
+                            {
+                                if (PowerRail.Deviation(voltage.Name, voltage.Value!.Value) is { } rail)
+                                {
+                                    result.Add($"alimentation.{rail.Metric}.tension_v", Math.Round(voltage.Value!.Value, 2), "V");
+                                    result.Add($"alimentation.{rail.Metric}.ecart_pct", rail.DeviationPercent, "%");
+                                }
+                            }
+
                             break;
                         case HardwareType.Storage:
                             var diskTemperature = sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature);
@@ -287,5 +296,38 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
         }
 
         return _computer;
+    }
+}
+
+/// <summary>
+/// Rails de l'alimentation d'un PC fixe, tels que la puce de la carte mère les nomme (« +12V »,
+/// « +5V », « +3.3V », « 3VCC »). La norme ATX tolère 5 % d'écart. Une valeur hors de 50 à 150 % de
+/// la tension nominale est une erreur d'échelle du capteur, pas une mesure : elle est ignorée.
+/// </summary>
+public static class PowerRail
+{
+    public sealed record Reading(string Metric, double Nominal, double DeviationPercent);
+
+    public static Reading? Deviation(string sensorName, double value)
+    {
+        var name = sensorName.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
+        if (name.Contains("VSB", StringComparison.Ordinal) || name.Contains("STANDBY", StringComparison.Ordinal) || name.Contains("BAT", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        (string Metric, double Nominal)? rail = name switch
+        {
+            _ when name.Contains("12V", StringComparison.Ordinal) => ("rail_12v", 12),
+            _ when name.Contains("+5V", StringComparison.Ordinal) || name == "5V" || name == "5VCC" => ("rail_5v", 5),
+            _ when name.Contains("3.3V", StringComparison.Ordinal) || name.Contains("3VCC", StringComparison.Ordinal) => ("rail_3v3", 3.3),
+            _ => null,
+        };
+        if (rail is not { } r || value < r.Nominal * 0.5 || value > r.Nominal * 1.5)
+        {
+            return null;
+        }
+
+        return new Reading(r.Metric, r.Nominal, Math.Round(Math.Abs(value - r.Nominal) / r.Nominal * 100, 1));
     }
 }

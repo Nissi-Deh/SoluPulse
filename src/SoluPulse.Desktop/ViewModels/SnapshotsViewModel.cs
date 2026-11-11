@@ -98,6 +98,26 @@ public sealed partial class SnapshotsViewModel(AgentClient client, MainViewModel
     /// Ouvre l'outil de restauration de Windows. Il ne permet pas de présélectionner un point : la page
     /// indique la ligne à choisir.
     /// </summary>
+    /// <summary>L'assistant « Créer un lecteur de récupération » de Windows ; il demande l'accord d'un administrateur.</summary>
+    [RelayCommand]
+    private void CreateRecoveryDrive()
+    {
+        Error = null;
+        try
+        {
+            Process.Start(new ProcessStartInfo("RecoveryDrive.exe") { UseShellExecute = true })?.Dispose();
+            Message = "Suivez l'assistant de Windows. La clé USB sera entièrement effacée.";
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            Message = "Création annulée : Windows demande l'accord d'un administrateur.";
+        }
+        catch (Win32Exception ex)
+        {
+            Error = $"Impossible d'ouvrir l'assistant de récupération de Windows : {ex.Message}";
+        }
+    }
+
     [RelayCommand]
     private void Restore(SnapshotItem item)
     {

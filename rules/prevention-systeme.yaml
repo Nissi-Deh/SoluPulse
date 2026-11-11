@@ -1,0 +1,212 @@
+# Règles de prévention du domaine système : écrans bleus récurrents, système de fichiers, mises à
+# jour, fin de support, moyens de se relever d'une panne. Format : voir docs/regles.md.
+regles:
+  - id: SYS-BSOD-002
+    domaine: systeme
+    titre: Le même écran bleu revient
+    gravite: attention
+    condition:
+      metrique: ecrans_bleus.meme_code_30j
+      operateur: ">="
+      seuil: 3
+    cause_probable: Un même pilote ou un même composant en cause
+    explication_simple: >
+      Le PC a planté plusieurs fois ce mois-ci avec le même écran bleu. Le code d'erreur est
+      visible dans l'inventaire de SoluPulse : il désigne le pilote ou le composant à vérifier.
+    explication_technique: Au moins 3 BugCheck de même code (événement 1001) en 30 jours.
+    corrections: [ACT-SYS-SFC, ACT-SYS-DISM]
+
+  - id: SYS-BSOD-003
+    domaine: systeme
+    titre: Écran bleu lié au disque
+    gravite: critique
+    condition:
+      metrique: ecrans_bleus.stockage_30j
+      operateur: ">="
+      seuil: 1
+    cause_probable: Disque défaillant ou système de fichiers abîmé
+    explication_simple: >
+      Un écran bleu de ce mois-ci vient de la lecture du disque. Sauvegardez vos fichiers, puis
+      laissez SoluPulse planifier une vérification du disque.
+    explication_technique: BugCheck 0x7A, 0x77, 0x7B, 0xF4 ou 0x24 en 30 jours.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-SYS-CHKDSK, ACT-HW-GUIDE-DISK]
+
+  - id: SYS-CHKDSK-001
+    domaine: systeme
+    titre: Le système de fichiers s'abîme
+    gravite: attention
+    conditions:
+      au_moins_un:
+        - { metrique: evenements.verifications_disque_demarrage_30j, operateur: ">=", seuil: 3 }
+        - { metrique: disque.systeme.verification_en_attente, operateur: ">=", seuil: 1 }
+    cause_probable: Arrêts brutaux répétés ou disque fatigué
+    explication_simple: >
+      Windows a dû vérifier le disque au démarrage plusieurs fois, ou a noté une incohérence à
+      corriger. Si cela continue, Windows risque de ne plus démarrer.
+    explication_technique: Au moins 3 vérifications au démarrage (Wininit 1001) en 30 jours, ou volume système marqué « sale » (FSCTL_IS_VOLUME_DIRTY).
+    corrections: [ACT-SYS-CHKDSK, ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-UPS]
+
+  - id: SYS-UPD-002
+    domaine: systeme
+    titre: Aucune mise à jour de Windows depuis deux mois
+    gravite: attention
+    condition:
+      metrique: systeme.jours_depuis_derniere_maj
+      operateur: ">"
+      seuil: 60
+    cause_probable: Mises à jour bloquées, en échec ou suspendues
+    explication_simple: >
+      Windows n'a installé aucune mise à jour depuis plus de deux mois. Les failles découvertes
+      depuis restent ouvertes.
+    explication_technique: Dernière installation réussie de l'historique Windows Update (hors Defender et outil de suppression des logiciels malveillants) de plus de 60 jours.
+    corrections: [ACT-SYS-WU-RESET, ACT-CLEAN-WU-CACHE, ACT-SYS-DISM]
+
+  - id: SYS-UPD-003
+    domaine: systeme
+    titre: Des mises à jour échouent
+    gravite: attention
+    condition:
+      metrique: systeme.mises_a_jour_echouees_30j
+      operateur: ">="
+      seuil: 3
+    cause_probable: Cache de Windows Update abîmé, manque d'espace ou fichiers système abîmés
+    explication_simple: >
+      Plusieurs mises à jour de Windows ont échoué ce mois-ci. Le nom et le code d'erreur sont
+      dans l'inventaire de SoluPulse.
+    explication_technique: Au moins 3 installations en échec ou abandonnées dans l'historique Windows Update sur 30 jours.
+    corrections: [ACT-SYS-WU-RESET, ACT-CLEAN-WU-CACHE, ACT-SYS-DISM, ACT-SYS-SFC]
+
+  - id: SYS-EOS-001
+    domaine: systeme
+    titre: Windows ne reçoit plus de correctifs de sécurité
+    gravite: critique
+    conditions:
+      tous:
+        - { metrique: systeme.jours_avant_fin_support, operateur: "<", seuil: 0 }
+        - { metrique: systeme.jours_depuis_derniere_maj, operateur: ">", seuil: 45 }
+    cause_probable: Version de Windows arrivée en fin de support
+    explication_simple: >
+      Cette version de Windows n'est plus prise en charge par Microsoft : aucune faille découverte
+      depuis n'est corrigée. Passez à une version prise en charge.
+    explication_technique: Date de fin de service du calendrier Microsoft dépassée et aucune mise à jour réussie depuis 45 jours.
+    corrections: [ACT-SYS-GUIDE-END-OF-SUPPORT]
+
+  - id: SYS-EOS-002
+    domaine: systeme
+    titre: Fin des correctifs de Windows dans moins de deux mois
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: systeme.jours_avant_fin_support, operateur: ">=", seuil: 0 }
+        - { metrique: systeme.jours_avant_fin_support, operateur: "<", seuil: 60 }
+    cause_probable: Version de Windows bientôt en fin de support
+    explication_simple: >
+      Cette version de Windows ne recevra bientôt plus de correctifs de sécurité. Installez la
+      version suivante dès qu'elle est proposée dans Windows Update.
+    explication_technique: Moins de 60 jours avant la date de fin de service du calendrier Microsoft.
+    corrections: [ACT-SYS-GUIDE-END-OF-SUPPORT]
+
+  - id: SYS-DISM-001
+    domaine: systeme
+    titre: Fichiers de Windows abîmés
+    gravite: attention
+    condition:
+      metrique: systeme.magasin_composants_etat
+      operateur: ">="
+      seuil: 1
+    cause_probable: Arrêts brutaux, disque fatigué ou mise à jour interrompue
+    explication_simple: >
+      Une partie des fichiers qui servent à réparer et mettre à jour Windows est abîmée. Les
+      mises à jour peuvent échouer. SoluPulse peut les réparer.
+    explication_technique: DismCheckImageHealth renvoie « réparable » (1) ou « irréparable » (2).
+    corrections: [ACT-SYS-DISM, ACT-SYS-SFC]
+
+  - id: SYS-RESTORE-001
+    domaine: systeme
+    titre: Points de restauration désactivés
+    gravite: attention
+    condition:
+      metrique: systeme.protection_systeme
+      operateur: "=="
+      seuil: 1
+    cause_probable: Protection du système désactivée
+    explication_simple: >
+      Windows ne peut pas créer de points de restauration : si une mise à jour ou un pilote casse
+      quelque chose, il n'y aura pas de retour en arrière possible.
+    explication_technique: Disque système absent de la liste des volumes protégés (SPP\Clients).
+    corrections: [ACT-SYS-RESTORE-ON]
+
+  - id: SYS-WINRE-001
+    domaine: systeme
+    titre: Outil de secours de Windows désactivé
+    gravite: attention
+    condition:
+      metrique: systeme.environnement_recuperation_actif
+      operateur: "=="
+      seuil: 0
+    cause_probable: Environnement de récupération désactivé après une mise à jour ou un clonage de disque
+    explication_simple: >
+      Si Windows ne démarre plus, son outil de secours ne pourra pas s'ouvrir : impossible alors de
+      réparer le démarrage ou de revenir à une capture sans clé USB de récupération.
+    explication_technique: InstallState à 0 dans ReAgent.xml (reagentc /info).
+    corrections: [ACT-SYS-WINRE-ON, ACT-SYS-GUIDE-RECOVERY-DRIVE]
+
+  - id: SYS-MEM-002
+    domaine: systeme
+    titre: Un programme consomme de plus en plus de mémoire
+    gravite: attention
+    condition:
+      metrique: memoire.fuite_processus_go_h
+      operateur: ">="
+      seuil: 1
+    cause_probable: Fuite de mémoire d'un programme
+    explication_simple: >
+      Un programme grossit sans arrêt en mémoire depuis une heure. Il finira par ralentir tout le
+      PC. Son nom est visible dans l'inventaire de SoluPulse.
+    explication_technique: Mémoire privée d'un processus en hausse continue de plus de 1 Go par heure, au-delà de 1,5 Go.
+    corrections: [ACT-SYS-GUIDE-MEMORY-LEAK]
+
+  - id: SYS-MEM-003
+    domaine: systeme
+    titre: Windows a manqué de mémoire
+    gravite: attention
+    condition:
+      metrique: evenements.memoire_virtuelle_faible_7j
+      operateur: ">="
+      seuil: 1
+    cause_probable: Programme qui consomme trop de mémoire, ou mémoire vive insuffisante
+    explication_simple: >
+      Cette semaine, Windows a manqué de mémoire et a dû fermer ou bloquer des programmes. Un
+      programme gourmand en est souvent la cause.
+    explication_technique: Événement 2004 (Resource-Exhaustion-Detector) en 7 jours.
+    corrections: [ACT-SYS-GUIDE-MEMORY-LEAK, ACT-STARTUP-DISABLE]
+
+  - id: SYS-BACKUP-001
+    domaine: systeme
+    titre: Aucune sauvegarde de vos fichiers
+    gravite: attention
+    condition:
+      metrique: donnees.sauvegarde_detectee
+      operateur: "=="
+      seuil: 0
+    cause_probable: Aucune sauvegarde configurée
+    explication_simple: >
+      SoluPulse ne trouve aucune sauvegarde de vos fichiers : ni Historique des fichiers, ni
+      OneDrive, ni logiciel de sauvegarde. Si le disque tombe en panne, vos fichiers seront perdus.
+    explication_technique: Ni configuration de l'Historique des fichiers, ni dossier Documents dans OneDrive, ni logiciel de sauvegarde connu dans les programmes installés.
+    corrections: [ACT-HW-GUIDE-BACKUP]
+
+  - id: SYS-BACKUP-002
+    domaine: systeme
+    titre: La sauvegarde ne tourne plus
+    gravite: attention
+    condition:
+      metrique: donnees.historique_fichiers_jours
+      operateur: ">"
+      seuil: 30
+    cause_probable: Disque de sauvegarde débranché ou sauvegarde en échec
+    explication_simple: >
+      L'Historique des fichiers n'a rien sauvegardé depuis plus d'un mois. Rebranchez le disque de
+      sauvegarde, ou vérifiez ses réglages.
+    explication_technique: Dernière écriture du catalogue de l'Historique des fichiers de plus de 30 jours.
+    corrections: [ACT-HW-GUIDE-BACKUP]

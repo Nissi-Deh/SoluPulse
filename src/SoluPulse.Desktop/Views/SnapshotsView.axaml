@@ -35,6 +35,20 @@
         </StackPanel>
       </Border>
 
+      <Expander Header="Si Windows ne démarre plus" HorizontalAlignment="Stretch">
+        <StackPanel Spacing="8">
+          <TextBlock TextWrapping="Wrap" Text="Vos captures restent utilisables même quand Windows ne démarre plus : son outil de secours sait y revenir sans démarrer Windows. SoluPulse, lui, ne peut pas vous aider à ce moment-là." />
+          <TextBlock TextWrapping="Wrap" Text="1. Après 3 démarrages ratés, Windows ouvre seul « Réparation automatique ». Si l'écran de connexion s'affiche encore, maintenez Maj et cliquez sur Marche/Arrêt puis Redémarrer." />
+          <TextBlock TextWrapping="Wrap" Text="2. Choisissez Options avancées, Dépannage, Options avancées, puis Restauration du système." />
+          <TextBlock TextWrapping="Wrap" Text="3. Sélectionnez la capture voulue : c'est la même liste que ci-dessous." />
+          <TextBlock TextWrapping="Wrap" Classes="muted" Text="Si le disque est chiffré par BitLocker, l'outil de secours demande la clé de récupération de 48 chiffres : vérifiez dès maintenant qu'elle est dans votre compte Microsoft (aka.ms/myrecoverykey). Une capture ne sauvegarde pas vos documents, et disparaît si le disque tombe en panne." />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Content="Créer une clé USB de récupération…" Command="{Binding CreateRecoveryDriveCommand}" />
+            <TextBlock Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" Text="Elle permet de réparer le PC même si l'outil de secours est abîmé. Clé de 16 Go, effacée." />
+          </StackPanel>
+        </StackPanel>
+      </Expander>
+
       <TextBlock Text="{Binding Message}" TextWrapping="Wrap" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <Border Classes="card" IsVisible="{Binding RestoreHelp, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <StackPanel Spacing="6">

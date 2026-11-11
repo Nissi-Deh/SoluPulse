@@ -69,7 +69,11 @@ builder.Services.AddSingleton<IExecutionJournal>(sp => sp.GetRequiredService<Exe
 builder.Services.AddSingleton<SqliteAuditLog>();
 builder.Services.AddSingleton<IAuditLog>(sp => sp.GetRequiredService<SqliteAuditLog>());
 
-builder.Services.AddSingleton<IEnumerable<ICollector>>(sp => WindowsPlatform.Collectors(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<NetworkProbeOptions>()));
+builder.Services.AddSingleton<IEnumerable<ICollector>>(sp =>
+[
+    .. WindowsPlatform.Collectors(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<NetworkProbeOptions>()),
+    new TrendCollector(sp.GetRequiredService<MeasurementStore>(), sp.GetRequiredService<TimeProvider>()),
+]);
 builder.Services.AddSingleton(_ => new ActionCatalog(WindowsPlatform.Actions()));
 builder.Services.AddSingleton<RestorePointService>();
 builder.Services.AddSingleton<IRestorePointService>(sp => sp.GetRequiredService<RestorePointService>());

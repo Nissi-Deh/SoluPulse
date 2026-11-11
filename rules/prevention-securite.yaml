@@ -1,0 +1,213 @@
+# Règles de prévention du domaine sécurité : signes de compromission et portes ouvertes.
+# Format : voir docs/regles.md.
+regles:
+  - id: SEC-RANSOM-001
+    domaine: securite
+    titre: Un rançongiciel chiffre peut-être vos fichiers
+    gravite: critique
+    condition:
+      metrique: securite.rancongiciel_suspect
+      operateur: ">="
+      seuil: 1
+    cause_probable: Rançongiciel en train de chiffrer les fichiers personnels
+    explication_simple: >
+      Des dizaines de fichiers viennent d'être renommés avec une nouvelle extension, ou des notes
+      de rançon sont apparues. Débranchez Internet et éteignez le PC tout de suite.
+    explication_technique: Au moins 50 renommages avec changement d'extension en une minute, ou des notes de rançon créées dans 3 dossiers en 5 minutes, dans les dossiers personnels.
+    corrections: [ACT-SEC-GUIDE-RANSOMWARE]
+
+  - id: SEC-RANSOM-002
+    domaine: securite
+    titre: Les points de restauration ont été effacés
+    gravite: critique
+    condition:
+      metrique: systeme.points_restauration_effaces
+      operateur: ">="
+      seuil: 2
+    cause_probable: Suppression volontaire, souvent par un rançongiciel avant le chiffrement
+    explication_simple: >
+      Tous les points de restauration ont disparu d'un coup. Les rançongiciels font cela avant
+      de chiffrer les fichiers. Si ce n'est pas vous, lancez une analyse antivirus complète.
+    explication_technique: Il y avait au moins 2 points de restauration dans les 3 derniers jours, il n'y en a plus aucun.
+    corrections: [ACT-SEC-DEFENDER-SCAN, ACT-SEC-GUIDE-RANSOMWARE]
+
+  - id: SEC-EXCL-001
+    domaine: securite
+    titre: Defender a reçu l'ordre d'ignorer des fichiers dangereux
+    gravite: critique
+    condition:
+      metrique: securite.defender.exclusions_dangereuses
+      operateur: ">="
+      seuil: 1
+    cause_probable: Logiciel malveillant qui se cache, ou réglage trop large
+    explication_simple: >
+      Microsoft Defender ne surveille plus une grande partie du disque ou certains types de
+      programmes. Un logiciel malveillant fait souvent cela pour se cacher.
+    explication_technique: Exclusion d'un disque entier, d'un dossier système ou utilisateur, d'une extension exécutable ou d'un interpréteur (MSFT_MpPreference).
+    corrections: [ACT-SEC-GUIDE-EXCLUSIONS, ACT-SEC-DEFENDER-SCAN]
+
+  - id: SEC-MINER-001
+    domaine: securite
+    titre: Un programme inconnu travaille pendant votre absence
+    gravite: attention
+    condition:
+      metrique: securite.processeur_occupe_inactif_pct
+      operateur: ">="
+      seuil: 40
+      duree_min: 15m
+    cause_probable: Mineur de cryptomonnaie ou logiciel malveillant caché
+    explication_simple: >
+      Pendant que le PC est verrouillé, un programme non signé occupe fortement le processeur.
+      C'est le comportement des mineurs de cryptomonnaie cachés. Son nom est dans l'inventaire.
+    explication_technique: Processus hors de Windows, non signé ou lancé depuis un dossier modifiable par l'utilisateur, au-dessus de 40 % du processeur pendant 15 minutes, session verrouillée.
+    corrections: [ACT-SEC-GUIDE-SUSPICIOUS, ACT-SEC-DEFENDER-SCAN]
+
+  - id: SEC-USB-001
+    domaine: securite
+    titre: Clé USB infectée
+    gravite: critique
+    condition:
+      metrique: securite.usb.fichiers_suspects
+      operateur: ">="
+      seuil: 1
+    cause_probable: Virus « raccourci », courant dans les cybercafés
+    explication_simple: >
+      La clé USB branchée contient des raccourcis piégés ou des scripts cachés. N'ouvrez pas les
+      raccourcis : SoluPulse peut nettoyer la clé et rendre vos dossiers visibles.
+    explication_technique: Raccourcis lançant un interpréteur ou un script, scripts cachés ou autorun.inf actif à la racine d'un lecteur amovible.
+    corrections: [ACT-SEC-USB-CLEAN, ACT-SEC-DEFENDER-SCAN]
+
+  - id: SEC-STARTUP-001
+    domaine: securite
+    titre: Programme suspect au démarrage
+    gravite: attention
+    condition:
+      metrique: securite.demarrage_suspects
+      operateur: ">="
+      seuil: 1
+    cause_probable: Logiciel malveillant installé avec un logiciel piraté ou une pièce jointe
+    explication_simple: >
+      Un programme non signé, rangé dans un dossier où n'importe quel programme peut écrire, se
+      lance avec Windows. Si vous ne le connaissez pas, faites analyser le PC.
+    explication_technique: Entrée de démarrage pointant vers un exécutable sans signature Authenticode valide sous AppData, Temp, Public, Downloads ou ProgramData.
+    corrections: [ACT-SEC-GUIDE-SUSPICIOUS, ACT-STARTUP-DISABLE, ACT-SEC-DEFENDER-SCAN]
+
+  - id: SEC-TASK-001
+    domaine: securite
+    titre: Tâche planifiée suspecte
+    gravite: attention
+    condition:
+      metrique: securite.taches_suspectes
+      operateur: ">="
+      seuil: 1
+    cause_probable: Logiciel malveillant qui se relance tout seul
+    explication_simple: >
+      Une tâche planifiée lance un script caché, un téléchargement ou un programme non signé.
+      C'est ainsi que les logiciels malveillants reviennent après une suppression.
+    explication_technique: Tâche hors du dossier Microsoft lançant PowerShell, mshta, wscript, rundll32… avec un contenu encodé ou téléchargé, ou un exécutable non signé d'un dossier utilisateur.
+    corrections: [ACT-SEC-GUIDE-SUSPICIOUS, ACT-SEC-DEFENDER-SCAN]
+
+  - id: SEC-VULN-001
+    domaine: securite
+    titre: Logiciel installé avec une faille connue
+    gravite: attention
+    condition:
+      metrique: securite.logiciels_vulnerables
+      operateur: ">="
+      seuil: 1
+    cause_probable: Ancienne version d'un logiciel courant
+    explication_simple: >
+      Une ancienne version d'un logiciel installé a une faille exploitée par des fichiers piégés.
+      Le logiciel et la version à installer sont dans l'inventaire de SoluPulse.
+    explication_technique: Version installée inférieure à la version corrigée (WinRAR 7.13, 7-Zip 25.00, VLC 3.0.21).
+    corrections: [ACT-SEC-GUIDE-UPDATE-SOFTWARE]
+
+  - id: SEC-BROWSER-001
+    domaine: securite
+    titre: Beaucoup de sites peuvent envoyer des notifications
+    gravite: information
+    condition:
+      metrique: navigateur.sites_notifications
+      operateur: ">="
+      seuil: 10
+    cause_probable: Autorisations de notifications accordées sans le vouloir
+    explication_simple: >
+      Une dizaine de sites peuvent afficher des notifications sur votre bureau. C'est la source
+      habituelle des fausses alertes « virus détecté ». Retirez ceux que vous ne connaissez pas.
+    explication_technique: Au moins 10 sites autorisés dans profile.content_settings.exceptions.notifications des navigateurs Chromium.
+    corrections: [ACT-SEC-GUIDE-BROWSER]
+
+  - id: SEC-BROWSER-002
+    domaine: securite
+    titre: Extension de navigateur installée hors boutique
+    gravite: attention
+    condition:
+      metrique: navigateur.extensions_suspectes
+      operateur: ">="
+      seuil: 1
+    cause_probable: Extension ajoutée par un programme ou chargée manuellement
+    explication_simple: >
+      Une extension du navigateur n'a pas été installée depuis la boutique officielle. Ces
+      extensions affichent souvent des publicités ou espionnent la navigation.
+    explication_technique: Extension Chromium décompressée, passée en ligne de commande, ou installée par un programme sans provenir de la boutique.
+    corrections: [ACT-SEC-GUIDE-BROWSER]
+
+  - id: SEC-RDP-001
+    domaine: securite
+    titre: Bureau à distance activé
+    gravite: information
+    condition:
+      metrique: securite.bureau_a_distance_actif
+      operateur: "=="
+      seuil: 1
+    cause_probable: Bureau à distance activé pour un dépannage ou par un programme
+    explication_simple: >
+      Le PC accepte les prises de contrôle à distance. Si vous ne vous en servez pas, coupez-le :
+      des pirates essaient en permanence de deviner les mots de passe.
+    explication_technique: fDenyTSConnections à 0 dans HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server.
+    corrections: [ACT-SEC-RDP-OFF]
+
+  - id: SEC-RDP-002
+    domaine: securite
+    titre: Quelqu'un essaie de deviner votre mot de passe
+    gravite: critique
+    conditions:
+      tous:
+        - { metrique: securite.echecs_connexion_24h, operateur: ">=", seuil: 20 }
+        - { metrique: securite.bureau_a_distance_actif, operateur: "==", seuil: 1 }
+    cause_probable: Attaque par force brute sur le Bureau à distance
+    explication_simple: >
+      Des dizaines de connexions avec un mauvais mot de passe ont eu lieu aujourd'hui alors que le
+      Bureau à distance est ouvert. Coupez-le, et choisissez un mot de passe long.
+    explication_technique: Au moins 20 événements 4625 (échec d'ouverture de session) en 24 heures avec le Bureau à distance activé.
+    corrections: [ACT-SEC-RDP-OFF]
+
+  - id: SEC-BITLOCKER-001
+    domaine: securite
+    titre: Disque chiffré sans clé de récupération
+    gravite: critique
+    condition:
+      metrique: securite.bitlocker.cle_recuperation
+      operateur: "=="
+      seuil: 0
+    cause_probable: BitLocker activé sans mot de passe de récupération
+    explication_simple: >
+      Le disque est chiffré par BitLocker, mais aucune clé de récupération n'existe. Après une
+      mise à jour du BIOS ou un changement de pièce, vos fichiers deviendraient illisibles pour toujours.
+    explication_technique: Aucun protecteur de type 3 (mot de passe numérique) sur le volume système (Win32_EncryptableVolume.GetKeyProtectors).
+    corrections: [ACT-SEC-GUIDE-BITLOCKER-KEY]
+
+  - id: SEC-SB2023-001
+    domaine: securite
+    titre: Certificats Secure Boot 2023 absents
+    gravite: attention
+    condition:
+      metrique: securite.secure_boot_certificats_2023
+      operateur: "=="
+      seuil: 0
+    cause_probable: Mises à jour de Windows ou du BIOS manquantes
+    explication_simple: >
+      Les certificats Secure Boot de 2011 ont expiré en 2026 et ce PC n'a pas reçu les nouveaux.
+      Il démarre normalement, mais ne reçoit plus les protections du démarrage.
+    explication_technique: UEFICA2023Status différent de « Updated » (HKLM\SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing) avec Secure Boot actif.
+    corrections: [ACT-SEC-GUIDE-SECUREBOOT-2023]

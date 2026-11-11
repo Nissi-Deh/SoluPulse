@@ -1,0 +1,77 @@
+# Règles de prévention du domaine réseau : connexions détournées, Wi-Fi instable ou ouvert.
+# Format : voir docs/regles.md.
+regles:
+  - id: NET-HOSTS-001
+    domaine: reseau
+    titre: Fichier hosts modifié
+    gravite: critique
+    condition:
+      metrique: reseau.hosts_entrees_suspectes
+      operateur: ">="
+      seuil: 1
+    cause_probable: Logiciel malveillant qui détourne des sites ou bloque les antivirus
+    explication_simple: >
+      Le fichier qui associe les noms de sites à leurs adresses a été modifié pour un site connu ou
+      un éditeur d'antivirus. Vous pourriez être envoyé vers un faux site.
+    explication_technique: Entrée du fichier hosts pour un domaine surveillé (Google, Microsoft, Facebook, banques, éditeurs d'antivirus…).
+    corrections: [ACT-SEC-GUIDE-HIJACK, ACT-SEC-DEFENDER-SCAN, ACT-NET-FLUSH-DNS]
+
+  - id: NET-PROXY-001
+    domaine: reseau
+    titre: Un proxy est configuré
+    gravite: information
+    condition:
+      metrique: reseau.proxy_configure
+      operateur: ">="
+      seuil: 1
+    cause_probable: Proxy de l'entreprise, ou détournement par un logiciel malveillant
+    explication_simple: >
+      Vos connexions Internet passent par un proxy. Si votre entreprise ne l'a pas configuré,
+      un logiciel malveillant peut s'en servir pour lire ou modifier ce que vous consultez.
+    explication_technique: ProxyEnable à 1 avec ProxyServer, ou AutoConfigURL, dans Internet Settings d'un utilisateur.
+    corrections: [ACT-SEC-GUIDE-HIJACK]
+
+  - id: NET-DNS-002
+    domaine: reseau
+    titre: Serveurs DNS inconnus saisis à la main
+    gravite: attention
+    condition:
+      metrique: reseau.dns_inconnus
+      operateur: ">="
+      seuil: 1
+    cause_probable: Réglage manuel ou détournement par un logiciel malveillant
+    explication_simple: >
+      La carte réseau utilise des serveurs DNS saisis à la main, inconnus de SoluPulse. Un faux
+      serveur DNS peut vous envoyer vers de faux sites. Remettez des serveurs fiables.
+    explication_technique: NameServer statique d'une interface (Tcpip\Parameters\Interfaces) hors des résolveurs publics connus et des adresses locales.
+    corrections: [ACT-NET-SET-DNS, ACT-SEC-GUIDE-HIJACK]
+
+  - id: NET-WIFI-002
+    domaine: reseau
+    titre: Le Wi-Fi se coupe souvent
+    gravite: attention
+    condition:
+      metrique: evenements.deconnexions_wifi_24h
+      operateur: ">="
+      seuil: 15
+    cause_probable: Pilote ou carte Wi-Fi défaillant, gestion d'énergie trop agressive
+    explication_simple: >
+      Le Wi-Fi s'est coupé tout seul de nombreuses fois aujourd'hui. Le pilote de la carte Wi-Fi
+      est souvent en cause.
+    explication_technique: Au moins 15 événements WLAN-AutoConfig 8003 en 24 heures, hors changements de réseau voulus par l'utilisateur.
+    corrections: [ACT-NET-RESTART-ADAPTER, ACT-HW-GUIDE-WIFI-DRIVER]
+
+  - id: NET-WIFI-003
+    domaine: reseau
+    titre: Connexion automatique à des Wi-Fi ouverts
+    gravite: information
+    condition:
+      metrique: reseau.wifi_ouverts_enregistres
+      operateur: ">="
+      seuil: 1
+    cause_probable: Réseaux publics enregistrés
+    explication_simple: >
+      Le PC se connecte tout seul à des Wi-Fi sans mot de passe. N'importe qui peut créer un faux
+      réseau du même nom. La liste est dans l'inventaire de SoluPulse.
+    explication_technique: Profils WLAN en authentification « open », chiffrement « none » et connexion automatique.
+    corrections: [ACT-SEC-GUIDE-OPEN-WIFI]

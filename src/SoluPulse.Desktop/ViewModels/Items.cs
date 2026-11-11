@@ -147,8 +147,11 @@ public sealed class AlertItem(AlertInfo info)
             _ when last.EndsWith("_pct", StringComparison.Ordinal) => " %",
             _ when last.EndsWith("_ms", StringComparison.Ordinal) => " ms",
             _ when last.EndsWith("_s", StringComparison.Ordinal) => " s",
-            _ when last.EndsWith("_j", StringComparison.Ordinal) || last.StartsWith("jours", StringComparison.Ordinal) => " jours",
+            _ when last.EndsWith("_j", StringComparison.Ordinal) || last.StartsWith("jours", StringComparison.Ordinal) || last.EndsWith("_jours", StringComparison.Ordinal) => " jours",
             _ when last.EndsWith("_go", StringComparison.Ordinal) => " Go",
+            _ when last.EndsWith("_go_h", StringComparison.Ordinal) => " Go/h",
+            _ when last.EndsWith("_min", StringComparison.Ordinal) => " min",
+            _ when last.EndsWith("_v", StringComparison.Ordinal) => " V",
             _ => "",
         };
     }

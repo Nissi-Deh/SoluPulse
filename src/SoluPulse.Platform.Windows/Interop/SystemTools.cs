@@ -18,7 +18,7 @@ public static class SystemTools
 {
     private static readonly HashSet<string> AllowedTools = new(StringComparer.OrdinalIgnoreCase)
     {
-        "sfc.exe", "dism.exe", "defrag.exe", "fsutil.exe", "ipconfig.exe", "netsh.exe", "powercfg.exe",
+        "sfc.exe", "dism.exe", "defrag.exe", "fsutil.exe", "ipconfig.exe", "netsh.exe", "powercfg.exe", "reagentc.exe",
     };
 
     static SystemTools()
