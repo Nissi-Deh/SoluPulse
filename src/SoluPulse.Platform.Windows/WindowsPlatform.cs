@@ -41,6 +41,7 @@ public static class WindowsPlatform
         new ComponentStoreCleanupAction(),
         new DisableHibernationAction(),
         new DockerDiskGuide(),
+        new EnableSystemProtectionAction(),
         new SystemFileCheckAction(),
         new DismRestoreHealthAction(),
         new ScheduleChkdskAction(),

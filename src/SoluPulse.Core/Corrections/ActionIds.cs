@@ -28,6 +28,7 @@ public static class ActionIds
     public const string ScheduleChkdsk = "ACT-SYS-CHKDSK";
     public const string StartService = "ACT-SYS-SERVICE-START";
     public const string ResetWindowsUpdate = "ACT-SYS-WU-RESET";
+    public const string EnableSystemProtection = "ACT-SYS-RESTORE-ON";
 
     // Réseau
     public const string FlushDns = "ACT-NET-FLUSH-DNS";

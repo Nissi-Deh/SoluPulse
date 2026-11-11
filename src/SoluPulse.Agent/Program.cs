@@ -71,7 +71,8 @@ builder.Services.AddSingleton<IAuditLog>(sp => sp.GetRequiredService<SqliteAudit
 
 builder.Services.AddSingleton<IEnumerable<ICollector>>(sp => WindowsPlatform.Collectors(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<NetworkProbeOptions>()));
 builder.Services.AddSingleton(_ => new ActionCatalog(WindowsPlatform.Actions()));
-builder.Services.AddSingleton<IRestorePointService, RestorePointService>();
+builder.Services.AddSingleton<RestorePointService>();
+builder.Services.AddSingleton<IRestorePointService>(sp => sp.GetRequiredService<RestorePointService>());
 builder.Services.AddSingleton<IAlertVerifier, AlertVerifier>();
 builder.Services.AddSingleton<CorrectionExecutor>();
 
@@ -83,6 +84,8 @@ builder.Services.AddSingleton<DiagnosticRunner>();
 builder.Services.AddSingleton<CallerAuthenticator>();
 builder.Services.AddHostedService<MonitoringService>();
 builder.Services.AddHostedService<AutoCorrectionService>();
+builder.Services.AddSingleton<SnapshotService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SnapshotService>());
 
 var app = builder.Build();
 app.MapGrpcService<AgentGrpcService>();

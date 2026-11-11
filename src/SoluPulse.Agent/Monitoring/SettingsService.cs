@@ -12,7 +12,8 @@ public sealed record AgentSettings(
     bool InternetProbes,
     string Language,
     IReadOnlyDictionary<string, double> ThresholdOverrides,
-    bool AutomaticCorrections = true);
+    bool AutomaticCorrections = true,
+    bool WeeklySnapshots = true);
 
 /// <summary>Paramètres modifiables depuis l'application (EF-IHM-06), avec valeurs par défaut et bornes.</summary>
 public sealed class SettingsService(SettingsStore store, NetworkProbeOptions networkOptions)
@@ -21,6 +22,7 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
     public const int MaxRetentionDays = 365;
     private const string ThresholdPrefix = "seuil.";
     private const string AutomaticKey = "corrections.automatiques";
+    private const string WeeklySnapshotsKey = "captures.hebdomadaires";
 
     public async Task<AgentSettings> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -38,7 +40,8 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
             Bool(values, "reseau.sondes_internet", true),
             values.GetValueOrDefault("langue") ?? "fr",
             overrides,
-            Bool(values, AutomaticKey, true));
+            Bool(values, AutomaticKey, true),
+            Bool(values, WeeklySnapshotsKey, true));
         networkOptions.InternetProbes = settings.InternetProbes;
         return settings;
     }
@@ -51,12 +54,18 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
         IReadOnlyDictionary<string, double> thresholds,
         IEnumerable<string> resetThresholds,
         bool? automaticCorrections = null,
+        bool? weeklySnapshots = null,
         CancellationToken cancellationToken = default)
     {
         var changes = new Dictionary<string, string?>(StringComparer.Ordinal);
         if (automaticCorrections is { } automatic)
         {
             changes[AutomaticKey] = automatic ? "true" : "false";
+        }
+
+        if (weeklySnapshots is { } weekly)
+        {
+            changes[WeeklySnapshotsKey] = weekly ? "true" : "false";
         }
 
         if (notificationsEnabled is { } enabled)

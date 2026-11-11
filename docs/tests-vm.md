@@ -104,6 +104,8 @@ Pour chaque action : provoquer la condition, appliquer depuis la fiche, vérifie
 | ACT-CLEAN-COMPONENTS | VM ayant reçu des mises à jour cumulatives | DISM termine, espace libéré affiché | — |
 | ACT-POWER-HIBERNATE-OFF | Veille prolongée active | `hiberfil.sys` supprimé, gain affiché | `powercfg /a` : veille prolongée de nouveau disponible |
 | Corrections automatiques | Disque système sous 10 % ; paramètre activé puis désactivé | Activé : temporaires, installeurs et cache de distribution supprimés une seule fois par 24 h, « Lancée automatiquement » au journal. Désactivé : rien ne se lance | — |
+| ACT-SYS-RESTORE-ON | Protection du système coupée sur C: | Page « Captures » : protection active, bouton « Capturer maintenant » visible | — (non annulable : la couper effacerait les captures) |
+| Captures du système | Protection active ; un point créé il y a moins de 24 h | « Capturer maintenant » ajoute bien un point (limite de 24 h levée puis remise) ; un second clic dans les 5 min est refusé ; « Revenir à cet état » ouvre `rstrui` ; capture hebdomadaire créée 10 min après le démarrage si le dernier point a plus de 7 jours ; entrées « Capture » dans l'audit | Restaurer via `rstrui` : le logiciel installé après la capture a disparu |
 | Recommandations ACT-HW-GUIDE-*, ACT-SEC-GUIDE-* et ACT-DISK-GUIDE-DOCKER | — | Aucune modification du système, entrée au journal ; le guide Docker n'apparaît que si Docker Desktop est installé | — |
 
 ## Robustesse

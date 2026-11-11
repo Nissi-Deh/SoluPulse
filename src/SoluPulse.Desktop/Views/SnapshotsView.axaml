@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.SnapshotsView"
+             x:DataType="vm:SnapshotsViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,16">
+      <TextBlock Classes="h1" Text="Captures du système" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Une capture enregistre l'état de Windows : pilotes, logiciels, réglages et registre. Si un problème apparaît après une installation ou une mise à jour, vous pouvez revenir à une capture précédente. Vos documents, photos et fichiers personnels ne sont jamais touchés." />
+
+      <Border Classes="card" IsVisible="{Binding ProtectionOff}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="La protection du système est désactivée" />
+          <TextBlock TextWrapping="Wrap" Text="Sans elle, Windows ne peut créer aucune capture. Activez-la pour pouvoir revenir en arrière en cas de problème." />
+          <Button Classes="primary" Content="Activer la protection du système…" Command="{Binding EnableProtectionCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding ProtectionBlocked}">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="h2" Text="Captures bloquées par votre entreprise" />
+          <TextBlock TextWrapping="Wrap" Text="Une stratégie de groupe interdit les points de restauration sur ce PC. Demandez à votre service informatique." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding ProtectionActive}">
+        <StackPanel Spacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="primary" Content="Capturer maintenant" Command="{Binding CaptureCommand}" />
+            <TextBlock Text="Conseillé avant d'installer un logiciel, un pilote ou une grosse mise à jour." Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
+          </StackPanel>
+          <ToggleSwitch IsChecked="{Binding WeeklyEnabled}" OnContent="Créer une capture chaque semaine" OffContent="Pas de capture automatique" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="Windows garde les captures dans une petite part réservée du disque C: et supprime les plus anciennes quand elle est pleine." />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <Border Classes="card" IsVisible="{Binding RestoreHelp, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="h2" Text="Revenir à une capture" />
+          <TextBlock Text="{Binding RestoreHelp}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <TextBlock Classes="error" Text="{Binding Error}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Classes="muted" Text="Aucune capture pour le moment." IsVisible="{Binding IsEmpty}" />
+    </StackPanel>
+
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Items}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:SnapshotItem">
+            <Border Classes="card" Margin="0,0,0,10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Date}" />
+                  <TextBlock Text="{Binding Origin}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Revenir à cet état…" VerticalAlignment="Center" Margin="12,0,0,0"
+                        Command="{Binding $parent[UserControl].((vm:SnapshotsViewModel)DataContext).RestoreCommand}" CommandParameter="{Binding}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

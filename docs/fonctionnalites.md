@@ -31,7 +31,7 @@ Chaque règle produit une alerte expliquée (ce qui se passe, cause probable, ex
 
 Les seuils des règles sont modifiables dans les paramètres.
 
-## 3. Corrections : 28 corrections et 9 guides
+## 3. Corrections : 29 corrections et 9 guides
 
 La fiche de correction indique ce qui va être fait, le gain estimé sur ce PC, le risque, la durée, et si l'action est annulable. Une alerte ne propose que les actions utiles sur ce PC (par exemple, le guide Docker seulement si Docker est installé). Un point de restauration Windows est tenté avant chaque correction qui modifie Windows ; à partir du risque moyen, la correction n'est pas appliquée sans lui.
 
@@ -39,7 +39,7 @@ La fiche de correction indique ce qui va être fait, le gain estimé sur ce PC, 
 
 - **Espace disque** : déplacer un dossier personnel (Documents, Téléchargements, Bureau, Images, Vidéos, Musique) vers un autre disque avec la méthode de Windows (annulable) ; supprimer de gros fichiers cochés dans une liste ; vider les caches des outils de développement (pip, npm, Yarn, NuGet, Gradle…) ; supprimer les installeurs de mises à jour d'applications ; supprimer les anciennes versions laissées par Windows Update ; désactiver la veille prolongée (annulable) ; guide pour réduire ou déplacer le disque de Docker.
 - **Nettoyage** : fichiers temporaires, cache de Windows Update, cache d'optimisation de la distribution, corbeille.
-- **Système** : désactiver un programme au démarrage (annulable), repasser en mode d'alimentation normal (annulable), désactiver le démarrage rapide (annulable), optimiser le disque système, réparer les fichiers de Windows (SFC), réparer l'image de Windows (DISM), vérifier le disque au prochain démarrage, redémarrer un service Windows (annulable), réinitialiser Windows Update (annulable).
+- **Système** : désactiver un programme au démarrage (annulable), repasser en mode d'alimentation normal (annulable), désactiver le démarrage rapide (annulable), optimiser le disque système, réparer les fichiers de Windows (SFC), réparer l'image de Windows (DISM), vérifier le disque au prochain démarrage, redémarrer un service Windows (annulable), réinitialiser Windows Update (annulable), activer la protection du système.
 - **Réseau** : vider le cache DNS, réinitialiser Winsock, réinitialiser TCP/IP, renouveler l'adresse IP, redémarrer la carte réseau, changer de serveur DNS (annulable).
 - **Sécurité** : réactiver le pare-feu (annulable), mettre à jour l'antivirus, lancer une analyse antivirus rapide.
 - **Guides pas à pas** pour ce que l'utilisateur fait lui-même : refroidissement, remplacement de disque, batterie, sauvegarde, antivirus, contrôle de compte, démarrage sécurisé, chiffrement, disque de Docker.
@@ -54,6 +54,7 @@ Après une correction, SoluPulse vérifie que le problème a bien disparu.
 - **Historique** : graphique de chaque mesure sur 24 heures, 7 jours, 30 jours, 90 jours ou un an.
 - **Journal des corrections** : qui a validé quoi et quand (ou « lancée automatiquement »), bouton « Annuler » pour les corrections annulables, vérification de l'intégrité du journal.
 - **Inventaire système** : programmes au démarrage, services en panne, programmes gourmands, mises à jour en attente, événements récents.
+- **Captures du système** : liste des points de restauration Windows (créés par vous, chaque semaine par SoluPulse, avant une correction ou par Windows), bouton « Capturer maintenant », capture hebdomadaire désactivable, et « Revenir à cet état » qui ouvre la restauration de Windows en indiquant la ligne à choisir. Si la protection du système est coupée, la page propose de l'activer.
 - **Paramètres** : corrections automatiques sans risque, notifications et niveau minimum, durée de conservation du détail des mesures, tests de connexion Internet, seuils des règles.
 - **Notifications Windows** avec boutons « Voir » et « Corriger », icône dans la zone de notification colorée selon l'état du PC, diagnostic complet à la demande.
 - Thème clair ou sombre selon Windows ; l'état n'est jamais donné par la couleur seule.

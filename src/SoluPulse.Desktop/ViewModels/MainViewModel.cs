@@ -58,6 +58,7 @@ public sealed partial class MainViewModel : ObservableObject
         History = new HistoryViewModel(client);
         Journal = new JournalViewModel(client);
         Inventory = new InventoryViewModel(client);
+        Snapshots = new SnapshotsViewModel(client, this);
         Settings = new SettingsViewModel(client, this);
         Navigation =
         [
@@ -67,6 +68,7 @@ public sealed partial class MainViewModel : ObservableObject
             new("Historique", Icons.History, History),
             new("Journal des corrections", Icons.Journal, Journal),
             new("Inventaire système", Icons.Inventory, Inventory),
+            new("Captures du système", Icons.Snapshot, Snapshots),
             new("Paramètres", Icons.Settings, Settings),
         ];
         _selectedNavigation = Navigation[0];
@@ -97,6 +99,8 @@ public sealed partial class MainViewModel : ObservableObject
     public JournalViewModel Journal { get; }
 
     public InventoryViewModel Inventory { get; }
+
+    public SnapshotsViewModel Snapshots { get; }
 
     public SettingsViewModel Settings { get; }
 

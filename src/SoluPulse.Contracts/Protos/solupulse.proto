@@ -38,6 +38,10 @@ service AgentService {
   rpc GetSettings (google.protobuf.Empty) returns (SettingsReply);
   rpc UpdateSettings (SettingsUpdate) returns (SettingsReply);
 
+  // Captures du système : points de restauration Windows.
+  rpc ListSnapshots (google.protobuf.Empty) returns (SnapshotList);
+  rpc CreateSnapshot (google.protobuf.Empty) returns (SnapshotReply);
+
   // Intégrité du journal d'audit (ENF-SEC-06).
   rpc VerifyAudit (google.protobuf.Empty) returns (AuditReply);
 
@@ -256,6 +260,7 @@ message SettingsReply {
   string language = 5;
   repeated RuleThreshold thresholds = 6;
   bool automatic_corrections = 7;
+  bool weekly_snapshots = 8;
 }
 
 message SettingsUpdate {
@@ -266,6 +271,26 @@ message SettingsUpdate {
   map<string, double> threshold_overrides = 5;
   repeated string reset_thresholds = 6;
   optional bool automatic_corrections = 7;
+  optional bool weekly_snapshots = 8;
+}
+
+message SnapshotInfo {
+  uint32 sequence = 1;
+  string description = 2;
+  google.protobuf.Timestamp created_at = 3;
+  string origin = 4;          // manuelle, hebdomadaire, correction, windows
+}
+
+message SnapshotList {
+  string protection = 1;      // active, desactivee, bloquee
+  repeated SnapshotInfo snapshots = 2;
+  bool weekly_enabled = 3;
+}
+
+message SnapshotReply {
+  bool success = 1;
+  string message = 2;
+  SnapshotList list = 3;
 }
 
 message AuditReply {

@@ -4,6 +4,7 @@ using SoluPulse.Agent.Monitoring;
 using SoluPulse.Agent.Security;
 using SoluPulse.Contracts;
 using SoluPulse.Core.Corrections;
+using SoluPulse.Platform.Windows;
 using SoluPulse.Storage;
 
 namespace SoluPulse.Agent.Grpc;
@@ -24,6 +25,7 @@ internal sealed class AgentGrpcService(
     ExecutionJournal journal,
     SqliteAuditLog audit,
     SettingsService settings,
+    SnapshotService snapshots,
     EventHub events,
     AlertMapper mapper,
     IHostApplicationLifetime lifetime,
@@ -219,10 +221,53 @@ internal sealed class AgentGrpcService(
             request.ThresholdOverrides,
             request.ResetThresholds,
             request.HasAutomaticCorrections ? request.AutomaticCorrections : null,
+            request.HasWeeklySnapshots ? request.WeeklySnapshots : null,
             context.CancellationToken));
         logger.LogInformation("Paramètres modifiés par {User}.", caller.UserName);
         await runner.EvaluateAsync(context.CancellationToken);
         return await SettingsReplyAsync(context.CancellationToken);
+    }
+
+    public override async Task<SnapshotList> ListSnapshots(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        return await SnapshotListAsync(context.CancellationToken);
+    }
+
+    public override async Task<SnapshotReply> CreateSnapshot(Empty request, ServerCallContext context)
+    {
+        var caller = authenticator.Authenticate(context);
+        var result = await snapshots.CreateManualAsync(caller, context.CancellationToken);
+        return new SnapshotReply
+        {
+            Success = result.Success,
+            Message = result.Success ? "Capture créée : vous pourrez revenir à cet état du système." : $"Capture impossible : {result.Message}",
+            List = await SnapshotListAsync(context.CancellationToken),
+        };
+    }
+
+    private async Task<SnapshotList> SnapshotListAsync(CancellationToken cancellationToken)
+    {
+        var current = await settings.GetAsync(cancellationToken);
+        var points = await Task.Run(RestorePointService.List, cancellationToken);
+        var reply = new SnapshotList
+        {
+            Protection = RestorePointService.Protection() switch
+            {
+                SystemProtection.Active => "active",
+                SystemProtection.BloqueeParStrategie => "bloquee",
+                _ => "desactivee",
+            },
+            WeeklyEnabled = current.WeeklySnapshots,
+        };
+        reply.Snapshots.AddRange(points.Select(p => new SnapshotInfo
+        {
+            Sequence = p.Sequence,
+            Description = p.Description,
+            CreatedAt = AlertMapper.Time(p.CreatedAt),
+            Origin = RestorePointService.Origin(p.Description),
+        }));
+        return reply;
     }
 
     public override async Task<AuditReply> VerifyAudit(Empty request, ServerCallContext context)
@@ -270,6 +315,7 @@ internal sealed class AgentGrpcService(
             InternetProbes = current.InternetProbes,
             Language = current.Language,
             AutomaticCorrections = current.AutomaticCorrections,
+            WeeklySnapshots = current.WeeklySnapshots,
         };
         reply.Thresholds.AddRange(state.Engine.Rules.OrderBy(r => r.Id, StringComparer.Ordinal).Select(r =>
         {
