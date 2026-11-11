@@ -155,6 +155,10 @@ public sealed class PreventionTests : IDisposable
             new UpdateHistory.Entry("2026-09 Mise à jour cumulative (KB5099999)", now.AddDays(-70), 2, 1, 0),
             new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-3), 4, 1, unchecked((int)0x80073712)),
             new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-2), 4, 1, unchecked((int)0x80073712)),
+            new UpdateHistory.Entry("9WZDNCRFJBMP-MICROSOFT.WINDOWSSTORE", now.AddDays(-1), 4, 1, unchecked((int)0x80240034)),
+            new UpdateHistory.Entry("9PLM9XGG6VKS-OpenAI.Codex", now.AddHours(-2), 2, 1, 0),
+            new UpdateHistory.Entry("Intel Ports Driver Update (2543.9.0.0)", now.AddHours(-1), 2, 1, 0),
+            new UpdateHistory.Entry("Realtek Semiconductor Corp. - Extension - 10.0.26100.1", now.AddHours(-1), 2, 1, 0),
         };
 
         var summary = UpdateHistory.Summarize(history, now);

@@ -94,8 +94,13 @@ public sealed class WindowsUpdateCollector(TimeProvider timeProvider) : ICollect
     }
 }
 
-/// <summary>Historique de Windows Update : dernière mise à jour de Windows réussie, échecs récents.</summary>
-public static class UpdateHistory
+/// <summary>
+/// Historique de Windows Update : dernière mise à jour de Windows réussie, échecs récents. Les
+/// applications du Microsoft Store passent aussi par cet historique (titre « 9WZDNCRFJBMP-… ») :
+/// elles sont écartées. Un pilote installé ne prouve pas que Windows reçoit ses correctifs : il ne
+/// compte pas comme dernière mise à jour réussie.
+/// </summary>
+public static partial class UpdateHistory
 {
     /// <param name="ResultCode">2 réussie, 3 réussie avec erreurs, 4 échouée, 5 abandonnée.</param>
     /// <param name="Operation">1 installation, 2 désinstallation.</param>
@@ -110,13 +115,27 @@ public static class UpdateHistory
     public static Summary Summarize(IEnumerable<Entry> entries, DateTime nowUtc)
     {
         var installs = entries
-            .Where(e => e.Operation == 1 && !IgnoredUpdates.Any(k => e.Title.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            .Where(e => e.Operation == 1 && !IsStoreApp(e.Title) && !IgnoredUpdates.Any(k => e.Title.Contains(k, StringComparison.OrdinalIgnoreCase)))
             .ToList();
-        var last = installs.Where(e => e.ResultCode is 2 or 3).Select(e => (DateTime?)e.DateUtc).Max();
+        var last = installs.Where(e => e.ResultCode is 2 or 3 && !IsDriver(e.Title)).Select(e => (DateTime?)e.DateUtc).Max();
         var failed = installs.Where(e => e.ResultCode is 4 or 5 && nowUtc - e.DateUtc <= TimeSpan.FromDays(30)).ToList();
         return new Summary(
             last,
             failed.Count,
             failed.GroupBy(e => e.Title).Select(g => $"{g.Key} (code 0x{g.First().HResult:X8}, {g.Count()} échec(s))").Take(10).ToList());
     }
+
+    internal static bool IsStoreApp(string title) => StoreApp().IsMatch(title);
+
+    /// <summary>Pilotes : « Intel Ports Driver Update (…) », ou le format « Fabricant - Classe - Version ».</summary>
+    internal static bool IsDriver(string title) =>
+        title.Contains("Driver", StringComparison.OrdinalIgnoreCase)
+        || title.Contains("pilote", StringComparison.OrdinalIgnoreCase)
+        || DriverTitle().IsMatch(title);
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[0-9A-Z]{12}-")]
+    private static partial System.Text.RegularExpressions.Regex StoreApp();
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[^-]+ - [^-]+ - [\d.]+$")]
+    private static partial System.Text.RegularExpressions.Regex DriverTitle();
 }
