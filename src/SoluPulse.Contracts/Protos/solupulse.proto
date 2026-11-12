@@ -49,6 +49,11 @@ service AgentService {
   // Relit les applications installées et leur dernière utilisation (après une désinstallation).
   rpc RefreshApplications (google.protobuf.Empty) returns (google.protobuf.Empty);
 
+  // Nouvelle version de SoluPulse et listes de détection ; installation seulement si l'installeur est signé.
+  rpc GetUpdateInfo (google.protobuf.Empty) returns (UpdateInfo);
+  rpc CheckUpdates (google.protobuf.Empty) returns (UpdateInfo);
+  rpc InstallUpdate (google.protobuf.Empty) returns (UpdateInfo);
+
   // Captures du système : points de restauration Windows.
   rpc ListSnapshots (google.protobuf.Empty) returns (SnapshotList);
   rpc CreateSnapshot (google.protobuf.Empty) returns (SnapshotReply);
@@ -290,6 +295,17 @@ message SettingsUpdate {
   optional bool weekly_snapshots = 8;
   // Exigé en mode simplifié pour tout autre réglage que les notifications et les captures.
   string technician_code = 9;
+}
+
+message UpdateInfo {
+  bool available = 1;
+  string version = 2;
+  string page_url = 3;
+  // Un installeur MSI est publié : SoluPulse tentera de l'installer s'il est signé par l'éditeur attendu.
+  bool can_install = 4;
+  string message = 5;
+  string lists = 6;
+  string current_version = 7;
 }
 
 message SpeedTestResult {

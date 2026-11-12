@@ -30,6 +30,7 @@ internal sealed class AgentGrpcService(
     AlertMapper mapper,
     TechnicianLock technician,
     WeeklySummaryService summaries,
+    UpdateService updates,
     IHostApplicationLifetime lifetime,
     ILogger<AgentGrpcService> logger) : AgentService.AgentServiceBase
 {
@@ -280,6 +281,41 @@ internal sealed class AgentGrpcService(
         return await summaries.LatestAsync(context.CancellationToken) is { } summary
             ? new WeeklySummaryReply { Available = true, CreatedAt = AlertMapper.Time(summary.CreatedAt), Title = summary.Title, Text = summary.Text }
             : new WeeklySummaryReply { Available = false };
+    }
+
+    public override Task<UpdateInfo> GetUpdateInfo(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        return Task.FromResult(UpdateReply(null));
+    }
+
+    public override async Task<UpdateInfo> CheckUpdates(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        await updates.CheckAsync(context.CancellationToken);
+        return UpdateReply(null);
+    }
+
+    public override async Task<UpdateInfo> InstallUpdate(Empty request, ServerCallContext context)
+    {
+        var caller = authenticator.Authenticate(context);
+        var (_, message) = await GuardAsync(() => updates.InstallAsync(caller, context.CancellationToken));
+        return UpdateReply(message);
+    }
+
+    private UpdateInfo UpdateReply(string? message)
+    {
+        var state = updates.State;
+        return new UpdateInfo
+        {
+            Available = state.Available is not null,
+            Version = state.Available?.Version.ToString(3) ?? "",
+            PageUrl = state.Available?.PageUrl ?? "",
+            CanInstall = state.Available?.MsiUrl is not null,
+            Message = message ?? state.LastError ?? "",
+            Lists = state.ListsDescription,
+            CurrentVersion = UpdateService.Current.ToString(3),
+        };
     }
 
     public override async Task<Empty> RefreshApplications(Empty request, ServerCallContext context)

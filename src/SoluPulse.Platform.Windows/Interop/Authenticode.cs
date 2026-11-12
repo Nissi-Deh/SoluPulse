@@ -67,6 +67,24 @@ public static partial class Authenticode
         }
     }
 
+    /// <summary>Le titulaire du certificat qui a signé le fichier (« CN=…, O=… »), ou <c>null</c>.</summary>
+    public static string? Publisher(string path)
+    {
+        try
+        {
+            // X509CertificateLoader ne sait pas lire le signataire Authenticode d'un fichier : cette méthode
+            // reste la seule disponible, et la validité de la signature est vérifiée à part (Check).
+#pragma warning disable SYSLIB0057
+            using var certificate = System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromSignedFile(path);
+#pragma warning restore SYSLIB0057
+            return certificate.Subject;
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            return null;
+        }
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     private struct FileInfoData
     {

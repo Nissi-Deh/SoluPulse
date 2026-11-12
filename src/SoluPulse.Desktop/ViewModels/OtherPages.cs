@@ -412,7 +412,60 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         ? "Mode simplifié actif : les explications techniques sont masquées, et les corrections à risque comme les réglages avancés demandent le code du technicien."
         : "Pour le PC d'un proche peu à l'aise avec l'informatique : SoluPulse continue de surveiller et de prévenir, mais seules les corrections sans risque restent accessibles. Le technicien choisit un code de 4 à 12 chiffres.";
 
-    public override Task RefreshAsync() => RunAsync(async () => Apply(await client.Api.GetSettingsAsync(AgentClient.Empty)));
+    [ObservableProperty]
+    private string _updateText = "";
+
+    [ObservableProperty]
+    private string _listsText = "";
+
+    [ObservableProperty]
+    private bool _updateAvailable;
+
+    [ObservableProperty]
+    private bool _canInstallUpdate;
+
+    private string _updatePage = "";
+
+    public override Task RefreshAsync() => RunAsync(async () =>
+    {
+        Apply(await client.Api.GetSettingsAsync(AgentClient.Empty));
+        ApplyUpdate(await client.Api.GetUpdateInfoAsync(AgentClient.Empty));
+    });
+
+    [RelayCommand]
+    private Task CheckUpdatesAsync() => RunAsync(async () =>
+    {
+        UpdateText = "Vérification…";
+        ApplyUpdate(await client.Api.CheckUpdatesAsync(AgentClient.Empty, deadline: DateTime.UtcNow.AddMinutes(2)));
+    });
+
+    [RelayCommand]
+    private Task InstallUpdateAsync() => RunAsync(async () =>
+    {
+        UpdateText = "Téléchargement et vérification de la signature…";
+        ApplyUpdate(await client.Api.InstallUpdateAsync(AgentClient.Empty, deadline: DateTime.UtcNow.AddMinutes(15)));
+    });
+
+    [RelayCommand]
+    private void OpenUpdatePage()
+    {
+        if (_updatePage.StartsWith("https://github.com/", StringComparison.Ordinal))
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_updatePage) { UseShellExecute = true })?.Dispose();
+        }
+    }
+
+    private void ApplyUpdate(UpdateInfo info)
+    {
+        UpdateAvailable = info.Available;
+        CanInstallUpdate = info.Available && info.CanInstall;
+        _updatePage = info.PageUrl;
+        ListsText = info.Lists;
+        UpdateText = (info.Available
+            ? $"Version {info.Version} disponible (installée : {info.CurrentVersion})."
+            : $"SoluPulse {info.CurrentVersion} est à jour.")
+            + (info.Message.Length > 0 ? $" {info.Message}" : "");
+    }
 
     [RelayCommand]
     private Task ToggleSimpleModeAsync() => RunAsync(async () =>

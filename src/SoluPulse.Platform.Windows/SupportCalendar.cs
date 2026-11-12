@@ -14,15 +14,6 @@ public static partial class SupportCalendar
         "Enterprise", "EnterpriseN", "EnterpriseG", "EnterpriseGN", "Education", "EducationN", "IoTEnterprise", "IoTEnterpriseK",
     };
 
-    private static readonly Dictionary<int, (DateOnly HomePro, DateOnly Enterprise)> Windows11 = new()
-    {
-        [22000] = (new(2023, 10, 10), new(2024, 10, 8)),
-        [22621] = (new(2024, 10, 8), new(2025, 10, 14)),
-        [22631] = (new(2025, 11, 11), new(2026, 11, 10)),
-        [26100] = (new(2026, 10, 13), new(2027, 10, 12)),
-        [26200] = (new(2027, 10, 12), new(2028, 10, 10)),
-    };
-
     /// <summary>Windows 10 22H2 : fin le 14 octobre 2025, prolongée jusqu'au 12 octobre 2027 pour les PC inscrits au programme ESU.</summary>
     public static readonly DateOnly Windows10End = new(2025, 10, 14);
     public static readonly DateOnly Windows10ConsumerEsuEnd = new(2027, 10, 12);
@@ -47,7 +38,8 @@ public static partial class SupportCalendar
 
         if (build >= 22000)
         {
-            return Windows11.TryGetValue(build, out var dates)
+            // Dates des versions de Windows 11 : liste en service (intégrée, ou téléchargée et signée).
+            return ThreatLists.Current.Windows11.FirstOrDefault(w => w.Build == build) is { } dates
                 ? (LongServicingEditions.Contains(edition) ? dates.Enterprise : dates.HomePro)
                 : null;
         }

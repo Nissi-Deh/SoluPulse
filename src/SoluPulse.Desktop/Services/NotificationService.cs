@@ -73,20 +73,9 @@ public sealed class NotificationService
         }
 
         var stamp = summary.CreatedAt.ToDateTimeOffset().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var marker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SoluPulse", "resume-affiche.txt");
-        try
+        if (!Once("resume-affiche.txt", stamp))
         {
-            if (File.Exists(marker) && File.ReadAllText(marker).Trim() == stamp)
-            {
-                return;
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
-            File.WriteAllText(marker, stamp);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Sans fichier de suivi, le résumé peut réapparaître : ce n'est pas grave.
+            return;
         }
 
         new ToastContentBuilder()
@@ -94,6 +83,43 @@ public sealed class NotificationService
             .AddText(summary.Title)
             .AddText(summary.Text)
             .Show();
+    }
+
+    /// <summary>Nouvelle version de SoluPulse : une seule notification par version.</summary>
+    public static void ShowUpdate(UpdateInfo update)
+    {
+        if (!update.Available || !Once("version-annoncee.txt", update.Version))
+        {
+            return;
+        }
+
+        new ToastContentBuilder()
+            .AddArgument("action", ViewAction)
+            .AddText($"SoluPulse {update.Version} est disponible")
+            .AddText("Ouvrez les paramètres de SoluPulse pour l'installer.")
+            .Show();
+    }
+
+    /// <summary>Vrai la première fois qu'une valeur est vue, d'une session à l'autre (fichier dans le profil).</summary>
+    private static bool Once(string file, string value)
+    {
+        var marker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SoluPulse", file);
+        try
+        {
+            if (File.Exists(marker) && File.ReadAllText(marker).Trim() == value)
+            {
+                return false;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
+            File.WriteAllText(marker, value);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Sans fichier de suivi, la notification peut revenir : ce n'est pas grave.
+        }
+
+        return true;
     }
 
     public static void Uninstall() => ToastNotificationManagerCompat.Uninstall();

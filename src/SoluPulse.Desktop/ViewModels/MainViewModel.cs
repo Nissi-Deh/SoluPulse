@@ -267,6 +267,10 @@ public sealed partial class MainViewModel : ObservableObject
         {
             _settings = await _client.Api.GetSettingsAsync(AgentClient.Empty);
             await ShowWeeklySummaryAsync();
+            if (_settings.NotificationsEnabled)
+            {
+                NotificationService.ShowUpdate(await _client.Api.GetUpdateInfoAsync(AgentClient.Empty));
+            }
         }
         catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
         {

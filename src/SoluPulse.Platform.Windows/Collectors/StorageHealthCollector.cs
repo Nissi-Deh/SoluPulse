@@ -279,11 +279,8 @@ public sealed record RiskyFirmware(string Model, string Firmware, string Advice)
     /// Liste courte : seuls les défauts reconnus par le fabricant y figurent. Le modèle est cherché
     /// dans le nom du disque, le firmware comparé exactement.
     /// </summary>
-    public static IReadOnlyList<RiskyFirmware> Known { get; } =
-    [
-        new("Samsung SSD 980 PRO", "3B2QGXA7", "Firmware 3B2QGXA7 : usure accélérée puis passage en lecture seule. Installez le firmware 5B2QGXA7 ou plus récent avec Samsung Magician."),
-        new("Samsung SSD 990 PRO", "0B2QJXD7", "Firmware 0B2QJXD7 : l'état de santé chute rapidement. Installez le firmware 1B2QJXD7 ou plus récent avec Samsung Magician."),
-    ];
+    /// <summary>La liste en service (intégrée, ou téléchargée et signée : voir <see cref="ThreatLists"/>).</summary>
+    public static IEnumerable<RiskyFirmware> Known => ThreatLists.Current.Firmwares.Select(f => new RiskyFirmware(f.Model, f.Firmware, f.Advice));
 
     // SSD SAS de HPE : panne définitive à 32 768 heures de fonctionnement sans le firmware HPD8.
     private static readonly string[] HpeSasModels =

@@ -62,6 +62,20 @@
         </Border>
 
         <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Mises à jour de SoluPulse" />
+            <TextBlock Text="{Binding UpdateText}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ListsText}" Classes="muted" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Vérifier maintenant" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding !Busy}" />
+              <Button Classes="primary" Content="Installer la mise à jour" Command="{Binding InstallUpdateCommand}" IsVisible="{Binding CanInstallUpdate}" IsEnabled="{Binding !Busy}" />
+              <Button Content="Ouvrir la page de la version" Command="{Binding OpenUpdatePageCommand}" IsVisible="{Binding UpdateAvailable}" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="SoluPulse vérifie une fois par jour s'il existe une nouvelle version et de nouvelles listes de détection (firmwares dangereux, logiciels à faille connue, fins de support). Aucune donnée n'est envoyée. Une nouvelle version n'est installée seule que si son installeur est signé par l'éditeur ; les listes ne sont acceptées que signées par Solutech." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
           <!-- Mentions légales appropriées (GPL-3.0, article 0). -->
           <StackPanel Spacing="8">
             <TextBlock Classes="h2" Text="À propos de SoluPulse" />

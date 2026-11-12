@@ -389,12 +389,9 @@ public static class ScheduledTasks
 /// </summary>
 public static class VulnerableSoftware
 {
-    private static readonly (string Name, Version Fixed, string Flaw)[] Rules =
-    [
-        ("WinRAR", new Version(7, 13), "faille exploitée par des pièces jointes piégées (CVE-2025-8088)"),
-        ("7-Zip", new Version(25, 0), "faille exploitée par des archives piégées (CVE-2025-11001)"),
-        ("VLC media player", new Version(3, 0, 21), "faille exploitée par des vidéos piégées (CVE-2024-46461)"),
-    ];
+    /// <summary>La liste en service (intégrée, ou téléchargée et signée : voir <see cref="ThreatLists"/>).</summary>
+    private static IEnumerable<(string Name, Version Fixed, string Flaw)> Rules =>
+        ThreatLists.Current.Software.Select(s => (s.Name, Version.Parse(s.FixedVersion), s.Flaw));
 
     public static IReadOnlyList<string> Find(IEnumerable<InstalledPrograms.Program> programs)
     {
