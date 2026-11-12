@@ -26,6 +26,22 @@
 
         <Border Classes="card">
           <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Mode simplifié (PC d'un proche)" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding SimpleModeText}" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBox Text="{Binding TechnicianCode}" PasswordChar="•" Watermark="Code du technicien" Width="200" />
+              <TextBox Text="{Binding TechnicianCodeConfirm}" PasswordChar="•" Watermark="Répéter le code" Width="200" IsVisible="{Binding !SimpleMode}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Activer le mode simplifié" Command="{Binding ToggleSimpleModeCommand}" IsVisible="{Binding !SimpleMode}" />
+              <Button Content="Désactiver le mode simplifié" Command="{Binding ToggleSimpleModeCommand}" IsVisible="{Binding SimpleMode}" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding SimpleMode}" Text="Pour modifier les réglages ci-dessous, saisissez le code du technicien avant de cliquer sur « Enregistrer »." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="12">
             <TextBlock Classes="h2" Text="Corrections" />
             <ToggleSwitch IsChecked="{Binding AutomaticCorrections}" OnContent="Lancer seul les corrections sans risque" OffContent="Toujours me demander avant de corriger" />
             <TextBlock Classes="muted" TextWrapping="Wrap" Text="Sans risque : supprimer les fichiers temporaires, les installeurs de mises à jour déjà téléchargés et le cache de distribution de Windows, au plus une fois par jour, quand une alerte le justifie. Chaque action est inscrite au journal. Tout le reste demande toujours votre validation." />

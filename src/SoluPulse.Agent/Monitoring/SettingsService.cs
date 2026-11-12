@@ -1,5 +1,6 @@
 using System.Globalization;
 using SoluPulse.Core;
+using SoluPulse.Core.Corrections;
 using SoluPulse.Platform.Windows.Collectors;
 using SoluPulse.Storage;
 
@@ -13,16 +14,20 @@ public sealed record AgentSettings(
     string Language,
     IReadOnlyDictionary<string, double> ThresholdOverrides,
     bool AutomaticCorrections = true,
-    bool WeeklySnapshots = true);
+    bool WeeklySnapshots = true,
+    bool SimpleMode = false,
+    string? TechnicianCodeHash = null);
 
 /// <summary>Paramètres modifiables depuis l'application (EF-IHM-06), avec valeurs par défaut et bornes.</summary>
-public sealed class SettingsService(SettingsStore store, NetworkProbeOptions networkOptions)
+public sealed class SettingsService(SettingsStore store, NetworkProbeOptions networkOptions, TechnicianLock technician)
 {
     public const int MinRetentionDays = 7;
     public const int MaxRetentionDays = 365;
     private const string ThresholdPrefix = "seuil.";
     private const string AutomaticKey = "corrections.automatiques";
     private const string WeeklySnapshotsKey = "captures.hebdomadaires";
+    private const string SimpleModeKey = "mode.simplifie";
+    private const string TechnicianCodeKey = "mode.code_technicien";
 
     public async Task<AgentSettings> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -41,9 +46,23 @@ public sealed class SettingsService(SettingsStore store, NetworkProbeOptions net
             values.GetValueOrDefault("langue") ?? "fr",
             overrides,
             Bool(values, AutomaticKey, true),
-            Bool(values, WeeklySnapshotsKey, true));
+            Bool(values, WeeklySnapshotsKey, true),
+            Bool(values, SimpleModeKey, false) && values.ContainsKey(TechnicianCodeKey),
+            values.GetValueOrDefault(TechnicianCodeKey));
         networkOptions.InternetProbes = settings.InternetProbes;
+        technician.SimpleMode = settings.SimpleMode;
         return settings;
+    }
+
+    /// <summary>Active le mode simplifié avec un nouveau code (haché), ou le désactive et efface le code.</summary>
+    public async Task SetSimpleModeAsync(bool enabled, string? technicianCodeHash, CancellationToken cancellationToken = default)
+    {
+        await store.SetAsync(new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            [SimpleModeKey] = enabled ? "true" : "false",
+            [TechnicianCodeKey] = enabled ? technicianCodeHash : null,
+        }, cancellationToken).ConfigureAwait(false);
+        await GetAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(

@@ -37,6 +37,11 @@ service AgentService {
   // Paramètres (EF-IHM-06).
   rpc GetSettings (google.protobuf.Empty) returns (SettingsReply);
   rpc UpdateSettings (SettingsUpdate) returns (SettingsReply);
+  // Mode simplifié : les corrections à risque et les réglages avancés demandent le code du technicien.
+  rpc SetSimpleMode (SimpleModeRequest) returns (SettingsReply);
+
+  // Résumé « votre PC cette semaine » ; l'application l'affiche une fois en notification.
+  rpc GetWeeklySummary (google.protobuf.Empty) returns (WeeklySummaryReply);
 
   // Captures du système : points de restauration Windows.
   rpc ListSnapshots (google.protobuf.Empty) returns (SnapshotList);
@@ -95,6 +100,8 @@ message ActionInfo {
   repeated string multi_choice_parameters = 14;
   // Le point de restauration doit réussir pour que l'action soit appliquée.
   bool restore_point_mandatory = 15;
+  // Mode simplifié : seul un technicien, avec son code, peut lancer cette correction.
+  bool technician_only = 16;
 }
 
 message AlertInfo {
@@ -151,6 +158,8 @@ message PrepareRequest {
   string action_id = 1;
   string alert_id = 2;
   map<string, string> parameters = 3;
+  // Exigé en mode simplifié pour les corrections à risque moyen ou élevé.
+  string technician_code = 4;
 }
 
 // La fiche affichée avant validation (EF-COR-02). Le jeton n'est valable qu'une fois,
@@ -261,6 +270,7 @@ message SettingsReply {
   repeated RuleThreshold thresholds = 6;
   bool automatic_corrections = 7;
   bool weekly_snapshots = 8;
+  bool simple_mode = 9;
 }
 
 message SettingsUpdate {
@@ -272,6 +282,21 @@ message SettingsUpdate {
   repeated string reset_thresholds = 6;
   optional bool automatic_corrections = 7;
   optional bool weekly_snapshots = 8;
+  // Exigé en mode simplifié pour tout autre réglage que les notifications et les captures.
+  string technician_code = 9;
+}
+
+message WeeklySummaryReply {
+  bool available = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string title = 3;
+  string text = 4;
+}
+
+message SimpleModeRequest {
+  bool enabled = 1;
+  // Le nouveau code pour activer le mode, le code actuel pour le désactiver.
+  string technician_code = 2;
 }
 
 message SnapshotInfo {
@@ -300,7 +325,7 @@ message AuditReply {
 }
 
 message AgentEvent {
-  string kind = 1;      // alerte_ouverte, alerte_resolue, etat
+  string kind = 1;      // alerte_ouverte, alerte_resolue, etat, resume
   AlertInfo alert = 2;
   StatusReply status = 3;
 }

@@ -117,7 +117,10 @@ public sealed class AlertItem(AlertInfo info)
 
     public string Technical { get; } = info.TechnicalExplanation;
 
-    public bool HasTechnical => Technical.Length > 0;
+    public bool HasTechnical => Technical.Length > 0 && !SimpleMode;
+
+    /// <summary>Mode simplifié : l'explication technique est réservée au technicien.</summary>
+    public bool SimpleMode { get; init; }
 
     public string Cause { get; } = info.ProbableCause;
 

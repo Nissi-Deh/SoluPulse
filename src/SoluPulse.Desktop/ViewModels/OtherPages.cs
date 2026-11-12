@@ -397,7 +397,37 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
     [ObservableProperty]
     private string _message = "";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SimpleModeText))]
+    private bool _simpleMode;
+
+    /// <summary>Code saisi : nouveau code pour activer, code actuel pour désactiver ou pour les réglages avancés.</summary>
+    [ObservableProperty]
+    private string _technicianCode = "";
+
+    [ObservableProperty]
+    private string _technicianCodeConfirm = "";
+
+    public string SimpleModeText => SimpleMode
+        ? "Mode simplifié actif : les explications techniques sont masquées, et les corrections à risque comme les réglages avancés demandent le code du technicien."
+        : "Pour le PC d'un proche peu à l'aise avec l'informatique : SoluPulse continue de surveiller et de prévenir, mais seules les corrections sans risque restent accessibles. Le technicien choisit un code de 4 à 12 chiffres.";
+
     public override Task RefreshAsync() => RunAsync(async () => Apply(await client.Api.GetSettingsAsync(AgentClient.Empty)));
+
+    [RelayCommand]
+    private Task ToggleSimpleModeAsync() => RunAsync(async () =>
+    {
+        var code = TechnicianCode.Trim();
+        if (!SimpleMode && code != TechnicianCodeConfirm.Trim())
+        {
+            throw new FormatException("Les deux codes ne sont pas identiques.");
+        }
+
+        Apply(await client.Api.SetSimpleModeAsync(new SimpleModeRequest { Enabled = !SimpleMode, TechnicianCode = code }));
+        TechnicianCode = "";
+        TechnicianCodeConfirm = "";
+        Message = SimpleMode ? "Mode simplifié activé. Notez le code du technicien en lieu sûr." : "Mode simplifié désactivé.";
+    });
 
     [RelayCommand]
     private Task SaveAsync() => RunAsync(async () =>
@@ -406,10 +436,20 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         {
             NotificationsEnabled = NotificationsEnabled,
             NotificationMinSeverity = MinSeverity,
-            DetailRetentionDays = (int)RetentionDays,
-            InternetProbes = InternetProbes,
-            AutomaticCorrections = AutomaticCorrections,
+            TechnicianCode = TechnicianCode.Trim(),
         };
+
+        // En mode simplifié, sans le code du technicien, seuls les notifications sont enregistrées.
+        if (SimpleMode && update.TechnicianCode.Length == 0)
+        {
+            Apply(await client.Api.UpdateSettingsAsync(update));
+            Message = "Notifications enregistrées. Les autres réglages demandent le code du technicien.";
+            return;
+        }
+
+        update.DetailRetentionDays = (int)RetentionDays;
+        update.InternetProbes = InternetProbes;
+        update.AutomaticCorrections = AutomaticCorrections;
         foreach (var threshold in Thresholds)
         {
             var text = threshold.OverrideText.Trim().Replace(',', '.');
@@ -439,6 +479,7 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         RetentionDays = settings.DetailRetentionDays;
         InternetProbes = settings.InternetProbes;
         AutomaticCorrections = settings.AutomaticCorrections;
+        SimpleMode = settings.SimpleMode;
         Thresholds.Clear();
         foreach (var threshold in settings.Thresholds)
         {

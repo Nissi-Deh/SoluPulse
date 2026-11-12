@@ -10,7 +10,7 @@ using Alert = SoluPulse.Core.Alert;
 namespace SoluPulse.Agent.Monitoring;
 
 /// <summary>Conversion du modèle métier vers les messages du contrat gRPC.</summary>
-public sealed class AlertMapper(ActionCatalog catalog)
+public sealed class AlertMapper(ActionCatalog catalog, TechnicianLock technician)
 {
     public static string DomainKey(HealthDomain domain) => domain switch
     {
@@ -69,6 +69,7 @@ public sealed class AlertMapper(ActionCatalog catalog)
             RestorePoint = descriptor.RequiresRestorePoint,
             RestorePointMandatory = descriptor.RestorePointMandatory,
             Automatic = descriptor.Automatic,
+            TechnicianOnly = technician.IsTechnicianOnly(descriptor),
         };
         info.Steps.AddRange(descriptor.Steps);
         info.ParameterNames.AddRange(descriptor.ParameterNames ?? []);

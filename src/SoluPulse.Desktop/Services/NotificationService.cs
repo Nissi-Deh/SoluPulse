@@ -61,6 +61,41 @@ public sealed class NotificationService
         builder.Show();
     }
 
+    /// <summary>
+    /// Résumé hebdomadaire : affiché une seule fois, même si l'application redémarre. La date du dernier
+    /// résumé montré est gardée dans le profil de l'utilisateur.
+    /// </summary>
+    public static void ShowSummary(WeeklySummaryReply summary)
+    {
+        if (!summary.Available)
+        {
+            return;
+        }
+
+        var stamp = summary.CreatedAt.ToDateTimeOffset().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var marker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SoluPulse", "resume-affiche.txt");
+        try
+        {
+            if (File.Exists(marker) && File.ReadAllText(marker).Trim() == stamp)
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
+            File.WriteAllText(marker, stamp);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Sans fichier de suivi, le résumé peut réapparaître : ce n'est pas grave.
+        }
+
+        new ToastContentBuilder()
+            .AddArgument("action", ViewAction)
+            .AddText(summary.Title)
+            .AddText(summary.Text)
+            .Show();
+    }
+
     public static void Uninstall() => ToastNotificationManagerCompat.Uninstall();
 
     private static string Prefix(string severity) => severity switch

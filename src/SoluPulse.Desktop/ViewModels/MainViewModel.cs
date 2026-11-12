@@ -177,6 +177,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void ApplySettings(SettingsReply settings) => _settings = settings;
 
+    /// <summary>Mode simplifié (« PC d'un proche ») : explications techniques masquées, corrections à risque réservées au technicien.</summary>
+    public bool SimpleMode => _settings?.SimpleMode == true;
+
     private void OnConnectionChanged(bool connected)
     {
         Connected = connected;
@@ -214,6 +217,9 @@ public sealed partial class MainViewModel : ObservableObject
                 _ = Dashboard.RefreshAsync();
                 _ = Alerts.RefreshAsync();
                 break;
+            case "resume":
+                _ = ShowWeeklySummaryAsync();
+                break;
         }
     }
 
@@ -228,11 +234,27 @@ public sealed partial class MainViewModel : ObservableObject
         return Rank(alert.Severity) >= Rank(_settings?.NotificationMinSeverity ?? "attention");
     }
 
+    private async Task ShowWeeklySummaryAsync()
+    {
+        try
+        {
+            if (_settings is not { NotificationsEnabled: false })
+            {
+                NotificationService.ShowSummary(await _client.Api.GetWeeklySummaryAsync(AgentClient.Empty));
+            }
+        }
+        catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
+        {
+            // Le résumé sera proposé à la prochaine connexion.
+        }
+    }
+
     private async Task LoadSettingsAsync()
     {
         try
         {
             _settings = await _client.Api.GetSettingsAsync(AgentClient.Empty);
+            await ShowWeeklySummaryAsync();
         }
         catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
         {

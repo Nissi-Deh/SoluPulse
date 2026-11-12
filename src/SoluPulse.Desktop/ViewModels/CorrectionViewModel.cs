@@ -33,6 +33,7 @@ public sealed partial class CorrectionViewModel : ObservableObject
             : action.RestorePointMandatory ? "Un point de restauration Windows sera créé avant ; sans lui, rien ne sera modifié."
             : "Un point de restauration Windows sera créé avant, si la protection du système est active.";
         ConfirmLabel = action.Guide ? "J'ai compris" : "Valider la correction";
+        NeedsTechnician = action.TechnicianOnly;
         Parameters = new ObservableCollection<ParameterItem>(action.ParameterNames.Select(n => new ParameterItem(n, action.MultiChoiceParameters.Contains(n))));
         foreach (var parameter in Parameters)
         {
@@ -84,6 +85,31 @@ public sealed partial class CorrectionViewModel : ObservableObject
 
     public ObservableCollection<ParameterItem> Parameters { get; }
 
+    /// <summary>Mode simplifié : la correction est réservée au technicien, qui saisit son code.</summary>
+    public bool NeedsTechnician { get; }
+
+    [ObservableProperty]
+    private string _technicianCode = "";
+
+    [ObservableProperty]
+    private bool _unlocked;
+
+    public bool Locked => NeedsTechnician && !Unlocked;
+
+    partial void OnUnlockedChanged(bool value) => OnPropertyChanged(nameof(Locked));
+
+    /// <summary>Le technicien a saisi son code : le service le vérifie en préparant la fiche.</summary>
+    [RelayCommand]
+    private async Task UnlockAsync()
+    {
+        Unlocked = true;
+        await PrepareAsync();
+        if (!Ready)
+        {
+            Unlocked = false;
+        }
+    }
+
     public bool HasParameters => Parameters.Count > 0;
 
     public bool Completed { get; private set; }
@@ -133,7 +159,7 @@ public sealed partial class CorrectionViewModel : ObservableObject
             return;
         }
 
-        if (!HasParameters)
+        if (!HasParameters && !NeedsTechnician)
         {
             await PrepareAsync();
         }
@@ -144,7 +170,7 @@ public sealed partial class CorrectionViewModel : ObservableObject
         var version = ++_prepareVersion;
         Ready = false;
         await ReleaseTokenAsync();
-        if (Parameters.Any(p => p.Value is null))
+        if (Parameters.Any(p => p.Value is null) || Locked)
         {
             Estimate = "";
             return;
@@ -153,7 +179,7 @@ public sealed partial class CorrectionViewModel : ObservableObject
         Estimate = "Estimation en cours…";
         try
         {
-            var request = new PrepareRequest { ActionId = Action.Id, AlertId = _alertId ?? "" };
+            var request = new PrepareRequest { ActionId = Action.Id, AlertId = _alertId ?? "", TechnicianCode = TechnicianCode.Trim() };
             foreach (var parameter in Parameters)
             {
                 request.Parameters[parameter.Name] = parameter.Value!;
