@@ -135,6 +135,13 @@ public sealed class ResilienceCollector(TimeProvider timeProvider) : ICollector
                 snapshot["FinSupport"] = end.ToString("d MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"));
             }
 
+            // InstallDate change à chaque grosse mise à jour (25H2, 26H2…), qui efface les points de restauration.
+            if (key?.GetValue("InstallDate") is int seconds && seconds > 0)
+            {
+                var installed = DateTimeOffset.FromUnixTimeSeconds((uint)seconds);
+                result.Add("systeme.jours_depuis_installation_windows", Math.Floor((now - installed).TotalDays), "jours");
+            }
+
             snapshot["Build"] = build;
             snapshot["Edition"] = edition;
             if (build == 19045)

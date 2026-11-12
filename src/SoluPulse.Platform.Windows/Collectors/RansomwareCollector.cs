@@ -82,17 +82,31 @@ public sealed partial class RansomwareCollector(TimeProvider timeProvider) : ICo
         return best;
     }
 
-    /// <summary>Un renommage qui change l'extension d'un fichier qui en avait une : « rapport.docx » → « rapport.docx.lockbit ».</summary>
+    // Ce que chiffre un rançongiciel : documents, images, vidéos, archives. Les noms temporaires
+    // (OneDrive « .849C9593-… », Git « .lock », navigateurs « .crdownload ») n'en font pas partie.
+    private static readonly HashSet<string> DocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".doc", ".docx", ".docm", ".dot", ".dotx", ".odt", ".rtf", ".txt", ".pdf", ".xls", ".xlsx", ".xlsm", ".xlsb", ".ods", ".csv",
+        ".ppt", ".pptx", ".pptm", ".odp", ".pub", ".vsdx", ".one", ".accdb", ".mdb", ".sql", ".db", ".sqlite",
+        ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".heic", ".webp", ".raw", ".cr2", ".nef", ".psd", ".ai", ".svg",
+        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".3gp", ".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg",
+        ".zip", ".rar", ".7z", ".tar", ".gz", ".iso", ".pst", ".ost", ".eml", ".msg", ".dwg", ".dxf", ".indd", ".epub",
+    };
+
+    /// <summary>
+    /// Un document dont l'extension change, sans redevenir un document : « rapport.docx » →
+    /// « rapport.docx.lockbit ». Un fichier temporaire renommé en document (synchronisation, téléchargement)
+    /// ne compte pas, ni une conversion d'un document vers un autre.
+    /// </summary>
     internal static bool IsEncryptionRename(string oldPath, string newPath)
     {
         var before = Path.GetExtension(oldPath);
         var after = Path.GetExtension(newPath);
-        return before.Length > 1
+        return DocumentExtensions.Contains(before)
             && !string.Equals(before, after, StringComparison.OrdinalIgnoreCase)
+            && !DocumentExtensions.Contains(after)
             && !after.Equals(".tmp", StringComparison.OrdinalIgnoreCase)
-            && !before.Equals(".tmp", StringComparison.OrdinalIgnoreCase)
-            && !before.Equals(".crdownload", StringComparison.OrdinalIgnoreCase)
-            && !before.Equals(".part", StringComparison.OrdinalIgnoreCase);
+            && !after.Equals(".bak", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static bool IsRansomNote(string path) => RansomNote().IsMatch(Path.GetFileName(path));

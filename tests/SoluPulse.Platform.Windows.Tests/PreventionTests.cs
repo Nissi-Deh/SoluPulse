@@ -348,6 +348,10 @@ public sealed class PreventionTests : IDisposable
         Assert.True(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\Documents\rapport.docx", @"C:\Users\A\Documents\rapport.docx.lockbit"));
         Assert.False(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\Documents\rapport.docx", @"C:\Users\A\Documents\rapport final.docx"));
         Assert.False(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\Downloads\film.mp4.crdownload", @"C:\Users\A\Downloads\film.mp4"));
+        Assert.False(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\OneDrive\budget.849C9593-D756-4E56-8D6E-42412F2A707B", @"C:\Users\A\OneDrive\budget.xlsx"));
+        Assert.False(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\Documents\projet\.git\refs\heads\main.lock", @"C:\Users\A\Documents\projet\.git\refs\heads\main"));
+        Assert.False(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\Pictures\photo.png", @"C:\Users\A\Pictures\photo.jpg"));
+        Assert.True(RansomwareCollector.IsEncryptionRename(@"C:\Users\A\Pictures\photo.jpg", @"C:\Users\A\Pictures\photo.jpg.encrypted"));
         Assert.True(RansomwareCollector.IsRansomNote(@"C:\Users\A\Documents\HOW_TO_DECRYPT_FILES.txt"));
         Assert.False(RansomwareCollector.IsRansomNote(@"C:\Users\A\Documents\liste des courses.txt"));
     }

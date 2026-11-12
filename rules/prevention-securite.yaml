@@ -20,15 +20,17 @@ regles:
     domaine: securite
     titre: Les points de restauration ont été effacés
     gravite: critique
-    condition:
-      metrique: systeme.points_restauration_effaces
-      operateur: ">="
-      seuil: 2
+    conditions:
+      tous:
+        - { metrique: systeme.points_restauration_effaces, operateur: ">=", seuil: 2 }
+        # Une grosse mise à jour de Windows efface elle-même tous les points : ce n'est pas une attaque.
+        - { metrique: systeme.jours_depuis_installation_windows, operateur: ">", seuil: 3 }
     cause_probable: Suppression volontaire, souvent par un rançongiciel avant le chiffrement
     explication_simple: >
       Tous les points de restauration ont disparu d'un coup. Les rançongiciels font cela avant
-      de chiffrer les fichiers. Si ce n'est pas vous, lancez une analyse antivirus complète.
-    explication_technique: Il y avait au moins 2 points de restauration dans les 3 derniers jours, il n'y en a plus aucun.
+      de chiffrer les fichiers. Si vous ne les avez pas supprimés vous-même, lancez une analyse
+      antivirus complète.
+    explication_technique: Il y avait au moins 2 points de restauration dans les 3 derniers jours, il n'y en a plus aucun, sans installation d'une nouvelle version de Windows depuis 3 jours.
     corrections: [ACT-SEC-DEFENDER-SCAN, ACT-SEC-GUIDE-RANSOMWARE]
 
   - id: SEC-EXCL-001
