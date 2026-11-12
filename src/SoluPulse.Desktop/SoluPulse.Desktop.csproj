@@ -29,7 +29,8 @@
     <ProjectReference Include="..\SoluPulse.Contracts\SoluPulse.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="Assets\**" Exclude="Assets\en.json" />
+    <EmbeddedResource Include="Assets\en.json" LogicalName="SoluPulse.Desktop.Assets.en.json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="SoluPulse.Desktop.Tests" />

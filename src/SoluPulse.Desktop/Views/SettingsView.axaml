@@ -57,7 +57,11 @@
               <TextBlock Text="jours (ensuite, moyennes par heure)" VerticalAlignment="Center" Classes="muted" />
             </StackPanel>
             <ToggleSwitch IsChecked="{Binding InternetProbes}" OnContent="Tester la connexion Internet (quelques pings, aucune donnée envoyée)" OffContent="Tests de connexion Internet désactivés" />
-            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Langue : français. L'anglais arrivera dans une prochaine version." />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="Langue / Language" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" MinWidth="160" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding LanguageMessage}" IsVisible="{Binding LanguageMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
         </Border>
 

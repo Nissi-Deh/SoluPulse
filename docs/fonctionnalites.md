@@ -27,7 +27,7 @@ Un service Windows tourne en arrière-plan, même quand l'application est fermé
 | Clés USB | Virus « raccourci » à la racine des clés et cartes mémoire branchées | 1 min |
 | Rançongiciels | Fichiers renommés en masse avec une nouvelle extension, notes de rançon, dans les dossiers personnels (seuls les noms sont observés) | en continu |
 
-## 2. Détection des problèmes : 100 règles
+## 2. Détection des problèmes : 103 règles
 
 Chaque règle produit une alerte expliquée (ce qui se passe, cause probable, explication technique) avec un niveau : information, attention ou critique.
 
@@ -40,7 +40,7 @@ Les règles de tendance surveillent la vitesse à laquelle un compteur augmente,
 
 Les seuils des règles sont modifiables dans les paramètres.
 
-## 3. Corrections : 32 corrections et 34 guides
+## 3. Corrections : 34 corrections et 35 guides
 
 La fiche de correction indique ce qui va être fait, le gain estimé sur ce PC, le risque, la durée, et si l'action est annulable. Une alerte ne propose que les actions utiles sur ce PC (par exemple, le guide Docker seulement si Docker est installé). Un point de restauration Windows est tenté avant chaque correction qui modifie Windows ; à partir du risque moyen, la correction n'est pas appliquée sans lui.
 
@@ -48,10 +48,10 @@ La fiche de correction indique ce qui va être fait, le gain estimé sur ce PC, 
 
 - **Espace disque** : déplacer un dossier personnel (Documents, Téléchargements, Bureau, Images, Vidéos, Musique) vers un autre disque avec la méthode de Windows (annulable) ; supprimer de gros fichiers cochés dans une liste ; vider les caches des outils de développement (pip, npm, Yarn, NuGet, Gradle…) ; supprimer les installeurs de mises à jour d'applications ; supprimer les anciennes versions laissées par Windows Update ; désactiver la veille prolongée (annulable) ; guide pour réduire ou déplacer le disque de Docker.
 - **Nettoyage** : fichiers temporaires, cache de Windows Update, cache d'optimisation de la distribution, corbeille.
-- **Système** : désactiver un programme au démarrage (annulable), repasser en mode d'alimentation normal (annulable), désactiver le démarrage rapide (annulable), optimiser le disque système, réparer les fichiers de Windows (SFC), réparer l'image de Windows (DISM), vérifier le disque au prochain démarrage, redémarrer un service Windows (annulable), réinitialiser Windows Update (annulable), activer la protection du système, réactiver l'environnement de récupération (annulable).
+- **Système** : désactiver un programme au démarrage (annulable), repasser en mode d'alimentation normal (annulable), désactiver le démarrage rapide (annulable), optimiser le disque système, réparer les fichiers de Windows (SFC), réparer l'image de Windows (DISM), vérifier le disque au prochain démarrage, redémarrer un service Windows (annulable), réinitialiser Windows Update (annulable), activer la protection du système, réactiver l'environnement de récupération (annulable), relancer la détection du matériel, installer le pilote que Windows Update propose pour un périphérique en erreur (point de restauration obligatoire).
 - **Réseau** : vider le cache DNS, réinitialiser Winsock, réinitialiser TCP/IP, renouveler l'adresse IP, redémarrer la carte réseau, changer de serveur DNS (annulable).
 - **Sécurité** : réactiver le pare-feu (annulable), mettre à jour l'antivirus, lancer une analyse antivirus rapide, couper le Bureau à distance (annulable), nettoyer une clé USB infectée par le virus « raccourci » (fichiers piégés en quarantaine, dossiers rendus visibles, annulable).
-- **Guides pas à pas** pour ce que l'utilisateur fait lui-même : refroidissement, remplacement de disque, batterie, sauvegarde, antivirus, contrôle de compte, démarrage sécurisé, chiffrement, disque de Docker ; onduleur et batterie d'onduleur, alimentation, chargeur, pile de la carte mère, limite de charge, test de la mémoire, passage à un SSD, câble du disque, firmware du disque, mise à jour du BIOS, pilotes graphique et Wi-Fi ; exclusions de Defender, rançongiciel, programme suspect, logiciels à mettre à jour, nettoyage du navigateur, clé de récupération BitLocker, certificats Secure Boot 2023, proxy, DNS et hosts, Wi-Fi ouverts ; fin de support de Windows, clé USB de récupération, programme qui consomme la mémoire.
+- **Guides pas à pas** pour ce que l'utilisateur fait lui-même : refroidissement, remplacement de disque, batterie, sauvegarde, antivirus, contrôle de compte, démarrage sécurisé, chiffrement, disque de Docker ; onduleur et batterie d'onduleur, alimentation, chargeur, pile de la carte mère, limite de charge, test de la mémoire, passage à un SSD, câble du disque, firmware du disque, mise à jour du BIOS, pilotes graphique et Wi-Fi ; exclusions de Defender, rançongiciel, programme suspect, logiciels à mettre à jour, nettoyage du navigateur, clé de récupération BitLocker, certificats Secure Boot 2023, proxy, DNS et hosts, Wi-Fi ouverts ; fin de support de Windows, clé USB de récupération, programme qui consomme la mémoire, trouver le bon pilote.
 
 Après une correction, SoluPulse vérifie que le problème a bien disparu.
 
@@ -64,8 +64,11 @@ Après une correction, SoluPulse vérifie que le problème a bien disparu.
 - **Journal des corrections** : qui a validé quoi et quand (ou « lancée automatiquement »), bouton « Annuler » pour les corrections annulables, vérification de l'intégrité du journal.
 - **Inventaire système** : programmes au démarrage, services en panne, programmes gourmands, mises à jour en attente et en échec, événements récents, codes des écrans bleus, onduleur, protection et fins de support, points de vigilance de sécurité, programmes suspects, clés USB branchées.
 - **Captures du système** : liste des points de restauration Windows (créés par vous, chaque semaine par SoluPulse, avant une correction ou par Windows), bouton « Capturer maintenant », capture hebdomadaire désactivable, et « Revenir à cet état » qui ouvre la restauration de Windows en indiquant la ligne à choisir. Si la protection du système est coupée, la page propose de l'activer. L'encadré « Si Windows ne démarre plus » explique comment revenir à une capture depuis l'outil de secours de Windows et ouvre l'assistant de création d'une clé USB de récupération.
-- **Paramètres** : corrections automatiques sans risque, notifications et niveau minimum, durée de conservation du détail des mesures, tests de connexion Internet, seuils des règles.
-- **Notifications Windows** avec boutons « Voir » et « Corriger », icône dans la zone de notification colorée selon l'état du PC, diagnostic complet à la demande.
+- **Réseau** : test de débit Internet (réception, envoi, temps de réponse) avec l'historique des derniers tests ; réseaux Wi-Fi alentour par canal et canal le moins encombré ; appareils connectés au réseau local, avec ceux jamais vus mis en avant (reconnus par une empreinte, jamais par leur adresse matérielle).
+- **Applications** : applications qui n'ont pas servi depuis six mois (date de dernier lancement connue de Windows), désinstallées par leur propre désinstalleur ; mises à jour des logiciels proposées par winget.
+- **Tests du matériel** : écran (pixels morts), clavier, haut-parleurs gauche et droite, niveau du micro, caméra, vitesse du disque comparée à ce qu'on attend de son type.
+- **Paramètres** : mode simplifié (PC d'un proche : corrections à risque et réglages avancés protégés par un code de technicien), langue (français ou anglais), mises à jour de SoluPulse, corrections automatiques sans risque, notifications et niveau minimum, durée de conservation du détail des mesures, tests de connexion Internet, seuils des règles.
+- **Notifications Windows** avec boutons « Voir » et « Corriger », résumé « votre PC cette semaine » une fois par semaine, annonce d'une nouvelle version, icône dans la zone de notification colorée selon l'état du PC, diagnostic complet à la demande.
 - Thème clair ou sombre selon Windows ; l'état n'est jamais donné par la couleur seule.
 
 ## 5. Sécurité et confidentialité
@@ -76,6 +79,8 @@ Après une correction, SoluPulse vérifie que le problème a bien disparu.
 - Journal d'audit chaîné : toute modification après coup est détectée.
 - Aucune donnée ne quitte le PC ; ni numéros de série, ni adresses MAC, ni contenu des fichiers ne sont relevés. La surveillance des rançongiciels n'observe que les noms des fichiers renommés, sans les enregistrer.
 - Historique conservé en détail 90 jours par défaut, puis en moyennes horaires jusqu'à deux ans.
+- Une fois par jour, SoluPulse lit sur GitHub la liste des versions publiées et les listes de détection signées : rien n'est envoyé. Les listes ne sont acceptées que signées par Solutech, et une nouvelle version n'est installée seule que si son installeur est signé (voir [listes-detection.md](listes-detection.md)).
+- Le test de débit, lancé par l'utilisateur, utilise les serveurs de Cloudflare.
 
 ## 6. Installation
 

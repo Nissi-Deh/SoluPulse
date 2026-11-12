@@ -10,10 +10,11 @@ namespace SoluPulse.Desktop.ViewModels;
 
 internal static class Format
 {
-    public static readonly CultureInfo French = CultureInfo.GetCultureInfo("fr-FR");
+    /// <summary>Culture d'affichage : français, ou anglais si l'utilisateur l'a choisi.</summary>
+    public static CultureInfo French => Services.Loc.Culture;
 
     public static string Date(Google.Protobuf.WellKnownTypes.Timestamp? timestamp) =>
-        timestamp is null ? "" : timestamp.ToDateTimeOffset().ToLocalTime().ToString("dddd d MMMM à HH:mm", French);
+        timestamp is null ? "" : timestamp.ToDateTimeOffset().ToLocalTime().ToString(Services.Loc.English ? "dddd d MMMM 'at' HH:mm" : "dddd d MMMM à HH:mm", French);
 
     public static string Ago(Google.Protobuf.WellKnownTypes.Timestamp? timestamp)
     {

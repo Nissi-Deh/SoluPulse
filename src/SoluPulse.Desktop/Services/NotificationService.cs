@@ -44,8 +44,8 @@ public sealed class NotificationService
         var builder = new ToastContentBuilder()
             .AddArgument("action", ViewAction)
             .AddArgument("alerte", alert.Id)
-            .AddText(Prefix(alert.Severity) + alert.Title)
-            .AddText(FirstSentence(alert.SimpleExplanation))
+            .AddText(Loc.T(Prefix(alert.Severity)) + Loc.T(alert.Title))
+            .AddText(FirstSentence(Loc.T(alert.SimpleExplanation)))
             .AddButton(new ToastButton().SetContent("Voir").AddArgument("action", ViewAction).AddArgument("alerte", alert.Id));
 
         if (alert.Corrections.Count > 0)
@@ -80,8 +80,8 @@ public sealed class NotificationService
 
         new ToastContentBuilder()
             .AddArgument("action", ViewAction)
-            .AddText(summary.Title)
-            .AddText(summary.Text)
+            .AddText(Loc.T(summary.Title))
+            .AddText(Loc.T(summary.Text))
             .Show();
     }
 
@@ -95,8 +95,8 @@ public sealed class NotificationService
 
         new ToastContentBuilder()
             .AddArgument("action", ViewAction)
-            .AddText($"SoluPulse {update.Version} est disponible")
-            .AddText("Ouvrez les paramètres de SoluPulse pour l'installer.")
+            .AddText(Loc.T($"SoluPulse {update.Version} est disponible"))
+            .AddText(Loc.T("Ouvrez les paramètres de SoluPulse pour l'installer."))
             .Show();
     }
 

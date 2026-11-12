@@ -412,6 +412,21 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         ? "Mode simplifié actif : les explications techniques sont masquées, et les corrections à risque comme les réglages avancés demandent le code du technicien."
         : "Pour le PC d'un proche peu à l'aise avec l'informatique : SoluPulse continue de surveiller et de prévenir, mais seules les corrections sans risque restent accessibles. Le technicien choisit un code de 4 à 12 chiffres.";
 
+    public IReadOnlyList<string> Languages { get; } = ["Français", "English"];
+
+    [ObservableProperty]
+    private string _language = Services.Loc.English ? "English" : "Français";
+
+    [ObservableProperty]
+    private string _languageMessage = "";
+
+    partial void OnLanguageChanged(string value)
+    {
+        var code = value == "English" ? "en" : "fr";
+        Services.Loc.Save(code);
+        LanguageMessage = code == Services.Loc.Language ? "" : "Redémarrez SoluPulse pour changer de langue. / Restart SoluPulse to change the language.";
+    }
+
     [ObservableProperty]
     private string _updateText = "";
 
