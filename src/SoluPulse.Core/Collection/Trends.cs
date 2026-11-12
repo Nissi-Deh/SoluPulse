@@ -73,6 +73,26 @@ public static class Trends
         return Math.Round(Math.Min(cap, current / -slope), 0);
     }
 
+    /// <summary>
+    /// Jours avant qu'une valeur qui baisse atteigne <paramref name="target"/>, plafonnés à
+    /// <paramref name="cap"/>. Déjà atteinte : 0 ; stable ou en hausse : le plafond.
+    /// </summary>
+    public static double? DaysUntil(IReadOnlyList<TrendPoint> points, double target, TimeSpan minSpan, double cap)
+    {
+        if (SlopePerDay(points, minSpan) is not { } slope)
+        {
+            return null;
+        }
+
+        var remaining = points[^1].Value - target;
+        if (remaining <= 0)
+        {
+            return 0;
+        }
+
+        return slope >= 0 ? cap : Math.Round(Math.Min(cap, remaining / -slope), 0);
+    }
+
     /// <summary>Part du temps (en %) où la valeur atteint au moins <paramref name="threshold"/>.</summary>
     public static double? ShareAtLeast(IReadOnlyList<TrendPoint> points, double threshold, int minPoints) =>
         points.Count < minPoints ? null : Math.Round(100.0 * points.Count(p => p.Value >= threshold) / points.Count, 0);

@@ -38,6 +38,18 @@ public sealed class TrendsTests
     }
 
     [Fact]
+    public void DaysUntilProjectsWhenATargetIsReached()
+    {
+        // La santé de la batterie perd 0,1 point par jour : de 70,1 à 60 en 101 jours.
+        var health = Enumerable.Range(0, 60).Select(i => new TrendPoint(Start.AddDays(i), 76 - (i * 0.1))).ToList();
+
+        Assert.Equal(101, Trends.DaysUntil(health, 60, TimeSpan.FromDays(30), cap: 1825));
+        Assert.Equal(0, Trends.DaysUntil(Series(59, 58, 57, 56), 60, TimeSpan.FromDays(3), cap: 1825));
+        Assert.Equal(1825, Trends.DaysUntil(Series(80, 80, 81, 80), 60, TimeSpan.FromDays(3), cap: 1825));
+        Assert.Null(Trends.DaysUntil(Series(80, 79), 60, TimeSpan.FromDays(30), cap: 1825));
+    }
+
+    [Fact]
     public void ShareAtLeastCountsTheTimeSpentFull()
     {
         var points = Series([.. Enumerable.Repeat(100.0, 80), .. Enumerable.Repeat(60.0, 20)]);

@@ -15,6 +15,7 @@ public static class Icons
     public static readonly Geometry Journal = Parse("M9 3.5 H15 V6.5 H9 Z M7 5 H5.5 V20.5 H18.5 V5 H17 M9 13.5 L11 15.5 L15 11");
     public static readonly Geometry Inventory = Parse("M9 6.5 H20 M9 12 H20 M9 17.5 H20 M4.5 6.5 H5 M4.5 12 H5 M4.5 17.5 H5");
     public static readonly Geometry Snapshot = Parse("M4.5 12 A7.5 7.5 0 1 0 6.7 6.7 M4 3.5 V7.5 H8 M12 8 V12 L15 14");
+    public static readonly Geometry Tests = Parse("M9 3 V9 L4 19 A1.5 1.5 0 0 0 5.3 21 H18.7 A1.5 1.5 0 0 0 20 19 L15 9 V3 M8 3 H16 M7 15 H17");
     public static readonly Geometry Settings = Parse("M4 7 H13 M17 7 H20 M4 17 H7 M11 17 H20 M13 7 A2 2 0 1 0 17 7 A2 2 0 1 0 13 7 M7 17 A2 2 0 1 0 11 17 A2 2 0 1 0 7 17");
     public static readonly Geometry Search = Parse("M4 10.5 A6.5 6.5 0 1 0 17 10.5 A6.5 6.5 0 1 0 4 10.5 M15.5 15.5 L20 20");
     public static readonly Geometry Refresh = Parse("M19.5 12 A7.5 7.5 0 1 1 17.3 6.7 M19.5 4 V8 H15.5");

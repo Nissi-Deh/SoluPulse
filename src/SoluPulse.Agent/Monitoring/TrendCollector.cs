@@ -70,6 +70,27 @@ public sealed class TrendCollector(MeasurementStore measurements, TimeProvider t
             }
         }).ConfigureAwait(false);
 
+        await result.TryAsync("previsions", async () =>
+        {
+            // Date de remplacement prévisible : la batterie passe sous 60 % de sa capacité d'origine,
+            // un SSD atteint 100 % d'usure. Six mois d'historique, un mois au moins.
+            var health = await PointsAsync("batterie.sante_pct", now.AddDays(-180), now, cancellationToken).ConfigureAwait(false);
+            if (Trends.DaysUntil(health, target: 60, TimeSpan.FromDays(30), cap: 1825) is { } batteryDays)
+            {
+                result.Add("batterie.jours_avant_remplacement", batteryDays, "jours");
+            }
+
+            foreach (var metric in metrics.Select(m => m.Metric).Where(m => m.StartsWith("disque_physique.", StringComparison.Ordinal) && m.EndsWith(".usure_pct", StringComparison.Ordinal)))
+            {
+                var wear = await PointsAsync(metric, now.AddDays(-180), now, cancellationToken).ConfigureAwait(false);
+                var inverted = wear.Select(p => p with { Value = 100 - p.Value }).ToList();
+                if (Trends.DaysUntil(inverted, target: 0, TimeSpan.FromDays(30), cap: 3650) is { } days)
+                {
+                    result.Add(metric.Replace(".usure_pct", ".jours_avant_usure_totale", StringComparison.Ordinal), days, "jours");
+                }
+            }
+        }).ConfigureAwait(false);
+
         await result.TryAsync("points_restauration", async () =>
         {
             var points = await PointsAsync("systeme.points_restauration", now.AddDays(-3), now, cancellationToken).ConfigureAwait(false);

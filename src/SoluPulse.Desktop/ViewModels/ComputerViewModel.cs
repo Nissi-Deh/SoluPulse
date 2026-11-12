@@ -511,6 +511,7 @@ internal static class ComponentCards
             }
 
             Add(card, "Arrêts non sécurisés", metrics[$"{prefix}.arrets_non_securises"] is { } unsafeShutdowns ? Number(unsafeShutdowns) : null);
+            Add(card, "Usure totale prévisible", Forecast(metrics[$"{prefix}.jours_avant_usure_totale"], 3650));
 
             yield return card;
         }
@@ -570,8 +571,20 @@ internal static class ComponentCards
 
         Add(card, "Capacité d'origine", metrics["batterie.capacite_origine_mwh"] is { } designed ? $"{Number(designed / 1000)} Wh" : null);
         Add(card, "Capacité actuelle", metrics["batterie.capacite_actuelle_mwh"] is { } full ? $"{Number(full / 1000)} Wh" : null);
+        Add(card, "Puissance de charge", metrics["batterie.puissance_charge_w"] is { } chargeWatts ? $"{Number(chargeWatts)} W" : null);
+        Add(card, "Consommation sur batterie", metrics["batterie.puissance_decharge_w"] is { } drainWatts ? $"{Number(drainWatts)} W" : null);
+        Add(card, "Remplacement prévisible", Forecast(metrics["batterie.jours_avant_remplacement"], 1825));
         return card;
     }
+
+    /// <summary>« vers mars 2028 », d'après la vitesse d'usure ; rien si l'usure est trop lente pour le dire.</summary>
+    internal static string? Forecast(double? days, double cap) => days switch
+    {
+        null => null,
+        <= 0 => "dès maintenant",
+        { } d when d >= cap => null,
+        { } d => $"vers {DateTime.Today.AddDays(d).ToString("MMMM yyyy", Format.French)}",
+    };
 
     private static ComponentCard Network(JsonElement hardware, MetricValues metrics)
     {

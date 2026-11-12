@@ -72,7 +72,24 @@ public sealed class BatteryCollector(TimeProvider timeProvider) : ICollector
             }
         });
 
-        result.Snapshot("batterie", new { Presente = true, CapaciteOrigineMwh = designedTotal, CapaciteActuelleMwh = fullTotal, Cycles = cycles });
+        // Puissance de charge et de décharge : un chargeur trop faible charge lentement, même PC éteint.
+        double? chargeWatts = null;
+        result.Try("batterie.puissance", () =>
+        {
+            foreach (var status in Wmi.Query(WmiScope, "SELECT Charging, Discharging, ChargeRate, DischargeRate FROM BatteryStatus"))
+            {
+                var charging = Wmi.Get<bool>(status, "Charging");
+                var rate = charging ? Wmi.Get<int>(status, "ChargeRate") : Wmi.Get<int>(status, "DischargeRate");
+                if (rate is > 0 and < 500_000)
+                {
+                    var watts = Math.Round(rate / 1000.0, 1);
+                    result.Add(charging ? "batterie.puissance_charge_w" : "batterie.puissance_decharge_w", watts, "W");
+                    chargeWatts = charging ? watts : chargeWatts;
+                }
+            }
+        });
+
+        result.Snapshot("batterie", new { Presente = true, CapaciteOrigineMwh = designedTotal, CapaciteActuelleMwh = fullTotal, Cycles = cycles, PuissanceChargeW = chargeWatts });
         return Task.FromResult(result.Build());
     }
 

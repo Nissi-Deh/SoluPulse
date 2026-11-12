@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.DeviceTestsView"
+             x:DataType="vm:DeviceTestsViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="16">
+      <TextBlock Classes="h1" Text="Tests du matériel" />
+      <TextBlock Classes="muted" TextWrapping="Wrap" Text="De petits tests pour vérifier l'écran, le clavier, le son, le micro, la caméra et le disque, par exemple avant d'acheter un PC d'occasion ou après une réparation." />
+      <TextBlock Classes="error" Text="{Binding Error}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Écran" />
+          <TextBlock TextWrapping="Wrap" Text="L'écran passe en plein écran par couleurs unies : noir, blanc, rouge, vert, bleu, gris. Cherchez les points qui restent allumés, éteints ou d'une autre couleur. Cliquez ou appuyez sur Espace pour passer à la couleur suivante, Échap pour quitter." />
+          <Button Content="Tester l'écran" Command="{Binding TestScreenCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Clavier" />
+          <TextBlock TextWrapping="Wrap" Text="Appuyez sur chaque touche : celles qui fonctionnent s'affichent. Une touche qui ne s'affiche pas est en panne, ou bloquée par la poussière." />
+          <Button Content="Tester le clavier" Command="{Binding TestKeyboardCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Haut-parleurs" />
+          <Button Content="Jouer le son de test" Command="{Binding TestSpeakersCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Left" />
+          <TextBlock Text="{Binding SpeakerResult}" TextWrapping="Wrap" IsVisible="{Binding SpeakerResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Micro" />
+          <Button Content="Tester le micro (3 secondes)" Command="{Binding TestMicrophoneCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Left" />
+          <ProgressBar Value="{Binding MicrophoneLevel}" Maximum="100" Height="8" Width="300" HorizontalAlignment="Left" />
+          <TextBlock Text="{Binding MicrophoneResult}" TextWrapping="Wrap" IsVisible="{Binding MicrophoneResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="muted" Text="Le son n'est ni enregistré ni envoyé : seul son niveau est mesuré." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Caméra" />
+          <Button Content="Ouvrir la caméra" Command="{Binding TestCameraCommand}" HorizontalAlignment="Left" />
+          <TextBlock Text="{Binding CameraResult}" TextWrapping="Wrap" IsVisible="{Binding CameraResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Vitesse du disque" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Content="Mesurer la vitesse" Command="{Binding TestDiskCommand}" IsEnabled="{Binding !Busy}" />
+            <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding Busy}" />
+          </StackPanel>
+          <TextBlock Text="{Binding DiskResult}" FontWeight="SemiBold" IsVisible="{Binding DiskResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Text="{Binding DiskStatus}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

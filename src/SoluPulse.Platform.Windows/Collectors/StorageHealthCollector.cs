@@ -167,6 +167,9 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
                 && system.MediaType is 3 or 4)
             {
                 result.Add("disque.systeme.disque_dur_classique", system.MediaType == 3 ? 1 : 0, "");
+
+                // 1 disque dur, 2 SSD SATA, 3 SSD NVMe : la vitesse attendue au test du disque en dépend.
+                result.Add("disque.systeme.type", system.MediaType == 3 ? 1 : system.Nvme is not null || system.BusType == 17 ? 3 : 2, "");
             }
 
             // Volume « sale » : Windows a noté une incohérence et relancera une vérification au démarrage.

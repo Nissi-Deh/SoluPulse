@@ -403,3 +403,36 @@ regles:
       peuvent abîmer le matériel. Vérifiez sur le site du fabricant s'il existe une version récente.
     explication_technique: Date de publication du BIOS (Win32_BIOS.ReleaseDate) de plus de 1460 jours.
     corrections: [ACT-HW-GUIDE-BIOS]
+
+  # --- Prévisions ----------------------------------------------------------------------------
+  - id: HW-BAT-004
+    domaine: materiel
+    titre: La batterie sera à remplacer d'ici trois mois
+    gravite: information
+    condition:
+      metrique: batterie.jours_avant_remplacement
+      operateur: "<"
+      seuil: 90
+      hysteresis: 30
+    cause_probable: Usure normale de la batterie
+    explication_simple: >
+      Au rythme où elle s'use, la batterie passera sous 60 % de sa capacité d'origine dans moins
+      de trois mois. Prévoyez son remplacement, surtout si vous travaillez souvent sans chargeur.
+    explication_technique: Projection linéaire de batterie.sante_pct sur 6 mois d'historique (au moins un mois mesuré).
+    corrections: [ACT-HW-GUIDE-BATTERY]
+
+  - id: HW-SSD-002
+    domaine: materiel
+    titre: Le SSD sera usé d'ici six mois
+    gravite: information
+    condition:
+      metrique: disque_physique.*.jours_avant_usure_totale
+      operateur: "<"
+      seuil: 180
+      hysteresis: 30
+    cause_probable: Écritures intensives sur le SSD
+    explication_simple: >
+      Au rythme actuel, le SSD atteindra la fin de sa durée de vie prévue dans moins de six mois.
+      Sauvegardez vos fichiers et prévoyez son remplacement.
+    explication_technique: Projection linéaire de l'usure (Percentage Used) sur 6 mois d'historique (au moins un mois mesuré).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
