@@ -43,6 +43,9 @@ service AgentService {
   // Résumé « votre PC cette semaine » ; l'application l'affiche une fois en notification.
   rpc GetWeeklySummary (google.protobuf.Empty) returns (WeeklySummaryReply);
 
+  // Résultat d'un test de débit lancé depuis l'application, gardé dans l'historique.
+  rpc RecordSpeedTest (SpeedTestResult) returns (google.protobuf.Empty);
+
   // Captures du système : points de restauration Windows.
   rpc ListSnapshots (google.protobuf.Empty) returns (SnapshotList);
   rpc CreateSnapshot (google.protobuf.Empty) returns (SnapshotReply);
@@ -284,6 +287,12 @@ message SettingsUpdate {
   optional bool weekly_snapshots = 8;
   // Exigé en mode simplifié pour tout autre réglage que les notifications et les captures.
   string technician_code = 9;
+}
+
+message SpeedTestResult {
+  double download_mbps = 1;
+  double upload_mbps = 2;
+  double latency_ms = 3;
 }
 
 message WeeklySummaryReply {

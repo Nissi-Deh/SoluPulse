@@ -282,6 +282,27 @@ internal sealed class AgentGrpcService(
             : new WeeklySummaryReply { Available = false };
     }
 
+    /// <summary>Les valeurs sont bornées : l'historique ne garde que des mesures plausibles.</summary>
+    public override async Task<Empty> RecordSpeedTest(SpeedTestResult request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        if (!Plausible(request.DownloadMbps, 100_000) || !Plausible(request.UploadMbps, 100_000) || !Plausible(request.LatencyMs, 60_000))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Résultat de test de débit invalide."));
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        await measurements.InsertAsync(
+        [
+            new Core.Measurement(now, "reseau.test_debit.descendant_mbps", request.DownloadMbps, "Mbit/s", "test_debit"),
+            new Core.Measurement(now, "reseau.test_debit.montant_mbps", request.UploadMbps, "Mbit/s", "test_debit"),
+            new Core.Measurement(now, "reseau.test_debit.latence_ms", request.LatencyMs, "ms", "test_debit"),
+        ], context.CancellationToken);
+        return new Empty();
+
+        static bool Plausible(double value, double max) => double.IsFinite(value) && value >= 0 && value <= max;
+    }
+
     /// <summary>Refuse l'appel sans le bon code du technicien ; chaque refus est journalisé.</summary>
     private void RequireTechnician(string? code, AgentSettings current, Core.Corrections.CallerIdentity caller, string what)
     {
