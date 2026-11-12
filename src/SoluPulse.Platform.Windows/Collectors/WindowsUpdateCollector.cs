@@ -118,6 +118,7 @@ public static partial class UpdateHistory
     /// <param name="Operation">1 installation, 2 désinstallation.</param>
     public sealed record Entry(string Title, DateTime DateUtc, int ResultCode, int Operation, int HResult);
 
+    /// <param name="Failures">Nombre de mises à jour bloquées : leur dernier essai a échoué, après au moins un autre échec.</param>
     public sealed record Summary(DateTime? LastSuccess, int Failures, IReadOnlyList<string> FailedTitles);
 
     // Signatures et plateforme de Defender, outil de suppression des logiciels malveillants : ils
@@ -131,11 +132,17 @@ public static partial class UpdateHistory
             .Where(e => e.Operation == 1 && !IsStoreApp(e.Title) && !IgnoredUpdates.Any(k => e.Title.Contains(k, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         var last = installs.Where(e => e.ResultCode is 2 or 3 && !IsDriver(e.Title)).Select(e => (DateTime?)e.DateUtc).Max();
-        var failed = installs.Where(e => e.ResultCode is 4 or 5 && nowUtc - e.DateUtc <= TimeSpan.FromDays(30)).ToList();
+        // Une mise à jour « bloquée » : son dernier essai a échoué, et elle a déjà échoué au moins deux
+        // fois en 30 jours. Un échec suivi d'une réussite, ou un pilote facultatif, ne comptent pas.
+        var stuck = installs
+            .Where(e => !IsDriver(e.Title) && nowUtc - e.DateUtc <= TimeSpan.FromDays(30))
+            .GroupBy(e => e.Title)
+            .Where(g => g.MaxBy(e => e.DateUtc)!.ResultCode is 4 or 5 && g.Count(e => e.ResultCode is 4 or 5) >= 2)
+            .ToList();
         return new Summary(
             last,
-            failed.Count,
-            failed.GroupBy(e => e.Title).Select(g => $"{g.Key} (code 0x{g.First().HResult:X8}, {g.Count()} échec(s))").Take(10).ToList());
+            stuck.Count,
+            stuck.Select(g => $"{g.Key} (code 0x{g.MaxBy(e => e.DateUtc)!.HResult:X8}, {g.Count(e => e.ResultCode is 4 or 5)} échec(s))").Take(10).ToList());
     }
 
     internal static bool IsStoreApp(string title) => StoreApp().IsMatch(title);

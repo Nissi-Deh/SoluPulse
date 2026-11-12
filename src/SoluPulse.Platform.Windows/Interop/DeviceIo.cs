@@ -18,6 +18,13 @@ public sealed record NvmeHealth(
     public const int LogLength = 512;
 
     /// <summary>
+    /// Bits de l'avertissement critique : 0 réserve épuisée, 1 température, 2 fiabilité dégradée,
+    /// 3 lecture seule, 4 sauvegarde de la mémoire volatile en échec. Le bit de température s'allume un
+    /// instant sous forte charge sans danger pour le disque : la chaleur a sa propre règle.
+    /// </summary>
+    public static bool IsCritical(byte criticalWarning) => (criticalWarning & 0b1_1101) != 0;
+
+    /// <summary>
     /// Octet 0 : avertissement critique ; 1-2 : température en kelvins ; 3 : réserve ; 4 : seuil de
     /// réserve ; 5 : usure ; 128 : heures ; 144 : arrêts non sécurisés ; 160 : erreurs média. Les
     /// compteurs font 16 octets : les 8 premiers suffisent largement.

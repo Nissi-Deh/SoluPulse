@@ -23,6 +23,9 @@ public sealed class ResilienceCollector(TimeProvider timeProvider) : ICollector
     [
         "Google Drive", "Dropbox", "Macrium Reflect", "Acronis", "Veeam Agent", "AOMEI Backupper", "EaseUS Todo Backup",
         "Backblaze", "IDrive", "Cobian", "Duplicati", "pCloud", "MEGAsync", "Paragon Backup",
+        "Nextcloud", "Synology Drive", "Synology Active Backup", "Carbonite", "SyncBack", "FreeFileSync", "Bvckup", "Arq",
+        "Kopia", "Restic", "Seagate Toolkit", "WD Backup", "Iperius", "Uranium Backup", "Areca", "Bacula", "Box Drive", "Tresorit",
+        "Sync.com", "Cyberduck", "Mountain Duck", "Rclone", "Altaro", "NovaBACKUP", "Genie Backup", "R-Drive Image", "Active Backup",
     ];
 
     public string Name => "protection";
@@ -87,19 +90,26 @@ public sealed class ResilienceCollector(TimeProvider timeProvider) : ICollector
                 if (Directory.Exists(config) && Directory.EnumerateFiles(config, "Config*.xml").Any())
                 {
                     found.Add("Historique des fichiers");
-                    var catalogs = Directory.EnumerateFiles(config, "Catalog*.edb").Select(File.GetLastWriteTimeUtc).ToList();
-                    if (catalogs.Count > 0)
+
+                    // Date de la dernière sauvegarde tenue par Windows ; seulement si la sauvegarde est
+                    // active : une configuration laissée après l'avoir désactivée ne compte pas.
+                    using var history = profile.OpenKey(@"Software\Microsoft\Windows\CurrentVersion\FileHistory");
+                    if (history?.GetValue("ProtectedUpToTime") is long fileTime && fileTime > 0)
                     {
-                        var days = Math.Floor((now.UtcDateTime - catalogs.Max()).TotalDays);
+                        var days = Math.Floor((now.UtcDateTime - DateTime.FromFileTimeUtc(fileTime)).TotalDays);
                         fileHistoryDays = fileHistoryDays is { } d ? Math.Min(d, days) : days;
                     }
                 }
 
+                // OneDrive qui sauvegarde un dossier personnel (Documents, Bureau ou Images).
                 using var shell = profile.OpenKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders");
-                if (shell?.GetValue("Personal", null, RegistryValueOptions.DoNotExpandEnvironmentNames) is string documents
-                    && documents.Contains("OneDrive", StringComparison.OrdinalIgnoreCase))
+                foreach (var (value, label) in new[] { ("Personal", "Documents"), ("Desktop", "Bureau"), ("My Pictures", "Images") })
                 {
-                    found.Add("OneDrive (dossier Documents)");
+                    if (shell?.GetValue(value, null, RegistryValueOptions.DoNotExpandEnvironmentNames) is string folder
+                        && folder.Contains("OneDrive", StringComparison.OrdinalIgnoreCase))
+                    {
+                        found.Add($"OneDrive (dossier {label})");
+                    }
                 }
             }
 

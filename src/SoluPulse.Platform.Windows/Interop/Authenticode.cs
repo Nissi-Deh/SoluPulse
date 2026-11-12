@@ -98,38 +98,3 @@ public static partial class Authenticode
     private static partial int WinVerifyTrust(nint window, in Guid action, ref TrustData data);
 }
 
-/// <summary>Lecture prudente des lignes de commande et des emplacements de programmes.</summary>
-public static class ProgramPaths
-{
-    private static readonly string[] UserWritableMarkers = [@"\AppData\", @"\Temp\", @"\Users\Public\", @"\Downloads\", @"\ProgramData\", @"\$Recycle.Bin\"];
-
-    /// <summary>Le programme lancé par une commande : entre guillemets, ou jusqu'à « .exe ».</summary>
-    public static string? Executable(string command)
-    {
-        var text = Environment.ExpandEnvironmentVariables(command.Trim());
-        if (text.Length == 0)
-        {
-            return null;
-        }
-
-        if (text[0] == '"')
-        {
-            var end = text.IndexOf('"', 1);
-            return end > 1 ? text[1..end] : null;
-        }
-
-        var exe = text.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
-        return exe > 0 ? text[..(exe + 4)] : text.Split(' ')[0];
-    }
-
-    /// <summary>Dossier où n'importe quel programme lancé par l'utilisateur peut écrire : là où se cachent les logiciels malveillants.</summary>
-    public static bool IsUserWritable(string path) =>
-        UserWritableMarkers.Any(m => path.Contains(m, StringComparison.OrdinalIgnoreCase))
-        && !path.Contains(@"\ProgramData\Microsoft\", StringComparison.OrdinalIgnoreCase)
-
-        // Alias des applications du Microsoft Store : des liens vers des paquets signés, pas des programmes.
-        && !path.Contains(@"\Microsoft\WindowsApps\", StringComparison.OrdinalIgnoreCase);
-
-    public static bool IsWindows(string path) =>
-        path.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.Windows) + @"\", StringComparison.OrdinalIgnoreCase);
-}

@@ -5,7 +5,7 @@ namespace SoluPulse.Agent.Monitoring;
 
 /// <summary>
 /// Transforme l'historique en mesures de tendance : hausse des compteurs d'erreurs des disques sur
-/// 30 jours, réchauffement du processeur d'un mois sur l'autre, jours avant que le disque de Windows
+/// 30 jours, réchauffement du processeur au repos d'un mois sur l'autre, jours avant que le disque de Windows
 /// soit plein, temps passé batterie pleine sur secteur, points de restauration effacés d'un coup.
 /// </summary>
 public sealed class TrendCollector(MeasurementStore measurements, TimeProvider time) : ICollector
@@ -41,18 +41,20 @@ public sealed class TrendCollector(MeasurementStore measurements, TimeProvider t
 
         await result.TryAsync("temperature", async () =>
         {
-            var recent = await PointsAsync("cpu.temperature_c", now.AddDays(-7), now, cancellationToken).ConfigureAwait(false);
-            var baseline = await PointsAsync("cpu.temperature_c", now.AddDays(-90), now.AddDays(-30), cancellationToken).ConfigureAwait(false);
+            // Température au repos seulement : un usage plus intensif ne passe pas pour de la poussière.
+            var recent = await PointsAsync("cpu.temperature_repos_c", now.AddDays(-7), now, cancellationToken).ConfigureAwait(false);
+            var baseline = await PointsAsync("cpu.temperature_repos_c", now.AddDays(-90), now.AddDays(-30), cancellationToken).ConfigureAwait(false);
             if (Trends.MeanShift(recent, baseline, minPoints: 50) is { } shift)
             {
-                result.Add("cpu.temperature_hausse_c", shift, "°C");
+                result.Add("cpu.temperature_repos_hausse_c", shift, "°C");
             }
         }).ConfigureAwait(false);
 
         await result.TryAsync("remplissage", async () =>
         {
             var free = await PointsAsync("disque.systeme.espace_libre_pct", now.AddDays(-14), now, cancellationToken).ConfigureAwait(false);
-            if (Trends.DaysUntilZero(free, TimeSpan.FromDays(3), cap: 365) is { } days)
+            // Une semaine d'historique au moins : un gros téléchargement isolé ne fait pas une tendance.
+            if (Trends.DaysUntilZero(free, TimeSpan.FromDays(7), cap: 365) is { } days)
             {
                 result.Add("disque.systeme.jours_avant_plein", days, "jours");
             }

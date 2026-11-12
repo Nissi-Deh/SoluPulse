@@ -48,11 +48,10 @@ public sealed class EventLogCollector(TimeProvider timeProvider) : ICollector
         Count(result, recent, "evenements.verifications_disque_demarrage_30j", "Application",
             $"*[System[Provider[@Name='Microsoft-Windows-Wininit'] and EventID=1001 and TimeCreated[timediff(@SystemTime) <= {30 * Day}]]]",
             "Vérification du disque au démarrage");
-        Count(result, recent, "evenements.processeur_bride_7j", "System",
-            $"*[System[Provider[@Name='Microsoft-Windows-Kernel-Processor-Power'] and EventID=37 and TimeCreated[timediff(@SystemTime) <= {7 * Day}]]]",
-            "Processeur bridé par le firmware");
+        // 17 (erreur PCI Express corrigée) est écarté : beaucoup de portables en écrivent sans cesse,
+        // sans conséquence. Restent les erreurs fatales (1, 18), processeur (19) et mémoire (47).
         Count(result, recent, "evenements.erreurs_materiel_30j", "System",
-            $"*[System[Provider[@Name='Microsoft-Windows-WHEA-Logger'] and (EventID=1 or EventID=17 or EventID=18 or EventID=19 or EventID=47) and TimeCreated[timediff(@SystemTime) <= {30 * Day}]]]",
+            $"*[System[Provider[@Name='Microsoft-Windows-WHEA-Logger'] and (EventID=1 or EventID=18 or EventID=19 or EventID=47) and TimeCreated[timediff(@SystemTime) <= {30 * Day}]]]",
             "Erreur matérielle (WHEA)");
         Count(result, recent, "evenements.pilote_graphique_7j", "System",
             $"*[System[Provider[@Name='Display'] and EventID=4101 and TimeCreated[timediff(@SystemTime) <= {7 * Day}]]]",
@@ -63,23 +62,52 @@ public sealed class EventLogCollector(TimeProvider timeProvider) : ICollector
         Count(result, recent, "evenements.changements_alimentation_24h", "System",
             $"*[System[Provider[@Name='Microsoft-Windows-Kernel-Power'] and EventID=105 and TimeCreated[timediff(@SystemTime) <= {Day}]]]",
             null);
-        Count(result, recent, "evenements.deconnexions_wifi_24h", "Microsoft-Windows-WLAN-AutoConfig/Operational",
-            // La raison 3 est un changement de réseau voulu par l'utilisateur : ce n'est pas une coupure.
-            $"*[System[EventID=8003 and TimeCreated[timediff(@SystemTime) <= {Day}]] and EventData[Data[@Name='ReasonCode']!='3']]",
-            null);
-
-        // Le journal Sécurité n'est lisible que par le service (compte système).
+        // Connexions réseau ratées (type 3) ou Bureau à distance (type 10) : pas les fautes de frappe
+        // au clavier du PC. Le journal Sécurité n'est lisible que par le service (compte système).
         Count(result, recent, "securite.echecs_connexion_24h", "Security",
-            $"*[System[EventID=4625 and TimeCreated[timediff(@SystemTime) <= {Day}]]]",
+            $"*[System[EventID=4625 and TimeCreated[timediff(@SystemTime) <= {Day}]] and EventData[Data[@Name='LogonType']='3' or Data[@Name='LogonType']='10']]",
             null);
 
-        result.Try("evenements.arrets_brutaux_30j", () =>
+        result.Try("evenements.processeur_bride_minutes_7j", () =>
         {
-            // 41 (Kernel-Power) et 6008 (EventLog) décrivent souvent le même arrêt : on les fusionne.
-            var times = Read("System",
-                $"*[System[((Provider[@Name='Microsoft-Windows-Kernel-Power'] and EventID=41) or (Provider[@Name='EventLog'] and EventID=6008)) and TimeCreated[timediff(@SystemTime) <= {30 * Day}]]]",
-                r => r.TimeCreated);
-            result.Add("evenements.arrets_brutaux_30j", DistinctIncidents(times.OfType<DateTime>(), TimeSpan.FromMinutes(10)), "");
+            // Beaucoup de portables écrivent l'événement 37 à chaque démarrage : on additionne la durée
+            // réelle du bridage du premier cœur, pas le nombre d'événements.
+            var seconds = Read("System",
+                $"*[System[Provider[@Name='Microsoft-Windows-Kernel-Processor-Power'] and EventID=37 and TimeCreated[timediff(@SystemTime) <= {7 * Day}]] and EventData[Data[@Name='Number']='0']]",
+                r => long.TryParse(Data(XDocument.Parse(r.ToXml()), "CapDurationInSeconds"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0);
+            result.Add("evenements.processeur_bride_minutes_7j", Math.Round(seconds.Sum() / 60.0), "min");
+        });
+
+        result.Try("evenements.coupures_courant_30j", () =>
+        {
+            // Une vraie coupure : arrêt brutal (41) sans écran bleu (BugcheckCode 0) et sans appui long
+            // sur le bouton d'alimentation (PowerButtonTimestamp 0).
+            var cuts = Read("System",
+                $"*[System[Provider[@Name='Microsoft-Windows-Kernel-Power'] and EventID=41 and TimeCreated[timediff(@SystemTime) <= {30 * Day}]]]",
+                r => IsPowerCut(XDocument.Parse(r.ToXml())) ? r.TimeCreated : null);
+            result.Add("evenements.coupures_courant_30j", DistinctIncidents(cuts.OfType<DateTime>(), TimeSpan.FromMinutes(10)), "");
+        });
+
+        result.Try("evenements.deconnexions_wifi_24h", () =>
+        {
+            List<DateTime> drops;
+            try
+            {
+                // La raison 3 est un changement de réseau voulu par l'utilisateur : ce n'est pas une coupure.
+                drops = Read("Microsoft-Windows-WLAN-AutoConfig/Operational",
+                    $"*[System[EventID=8003 and TimeCreated[timediff(@SystemTime) <= {Day}]] and EventData[Data[@Name='ReasonCode']!='3']]",
+                    r => r.TimeCreated).OfType<DateTime>().ToList();
+            }
+            catch (EventLogNotFoundException)
+            {
+                return;
+            }
+
+            // La mise en veille et le réveil coupent aussi le Wi-Fi : ces coupures-là sont écartées.
+            var sleeps = Read("System",
+                $"*[System[((Provider[@Name='Microsoft-Windows-Kernel-Power'] and (EventID=42 or EventID=107 or EventID=506 or EventID=507)) or (Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and EventID=1)) and TimeCreated[timediff(@SystemTime) <= {Day + 3_600_000}]]]",
+                r => r.TimeCreated).OfType<DateTime>().ToList();
+            result.Add("evenements.deconnexions_wifi_24h", UnexplainedDrops(drops, sleeps, TimeSpan.FromMinutes(3)), "");
         });
 
         result.Try("evenements.corrections_horloge_30j", () =>
@@ -137,6 +165,15 @@ public sealed class EventLogCollector(TimeProvider timeProvider) : ICollector
         result.Snapshot("evenements_recents", recent.Take(30));
         return Task.FromResult(result.Build());
     }
+
+    /// <summary>Arrêt brutal sans écran bleu ni appui long sur le bouton : le courant a été coupé.</summary>
+    internal static bool IsPowerCut(XDocument xml) =>
+        Data(xml, "BugcheckCode") is "0" or null
+        && Data(xml, "PowerButtonTimestamp") is "0" or null;
+
+    /// <summary>Coupures Wi-Fi qui ne tombent pas à moins de <paramref name="margin"/> d'une mise en veille ou d'un réveil.</summary>
+    internal static int UnexplainedDrops(IEnumerable<DateTime> drops, IReadOnlyCollection<DateTime> sleeps, TimeSpan margin) =>
+        drops.Count(d => !sleeps.Any(s => (d - s).Duration() <= margin));
 
     /// <summary>Compte les dates séparées d'au moins <paramref name="gap"/> : un incident = un groupe d'événements proches.</summary>
     internal static int DistinctIncidents(IEnumerable<DateTime> times, TimeSpan gap)

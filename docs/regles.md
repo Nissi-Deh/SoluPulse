@@ -46,7 +46,7 @@ Une règle à une seule condition utilise `condition:` au lieu de `conditions:`.
 
 | Préfixe | Exemples |
 | --- | --- |
-| `cpu.` | `temperature_c`, `utilisation_pct`, `puissance_w`, `frequence_mhz`, `temperature_hausse_c`, `microcode_instable` |
+| `cpu.` | `temperature_c`, `utilisation_pct`, `puissance_w`, `frequence_mhz`, `temperature_repos_c`, `temperature_repos_hausse_c`, `microcode_instable` |
 | `gpu.<nom>.` | `temperature_c`, `utilisation_pct`, `memoire_utilisee_pct`, `memoire_totale_mo`, `puissance_w` |
 | `carte_mere.<capteur>.` | `temperature_c` |
 | `ventilateur.<nom>.` | `tours_min` |
@@ -58,7 +58,7 @@ Une règle à une seule condition utilise `condition:` au lieu de `conditions:`.
 | `batterie.` | `sante_pct`, `cycles`, `charge_pct`, `capacite_origine_mwh`, `capacite_actuelle_mwh`, `temps_a_100_pct` |
 | `onduleur.` | `present`, `charge_pct`, `autonomie_min`, `sante_pct` (PC fixes) |
 | `alimentation.` | `secteur` ; `<rail>.tension_v`, `<rail>.ecart_pct` pour `rail_12v`, `rail_5v`, `rail_3v3` |
-| `evenements.` | `ecrans_bleus_7j`, `arrets_brutaux_7j`, `arrets_brutaux_30j`, `plantages_applications_24h`, `erreurs_disque_24h`, `resets_disque_24h`, `verifications_disque_demarrage_30j`, `processeur_bride_7j`, `erreurs_materiel_30j`, `pilote_graphique_7j`, `memoire_virtuelle_faible_7j`, `changements_alimentation_24h`, `corrections_horloge_30j`, `deconnexions_wifi_24h` |
+| `evenements.` | `ecrans_bleus_7j`, `arrets_brutaux_7j`, `plantages_applications_24h`, `erreurs_disque_24h`, `resets_disque_24h`, `verifications_disque_demarrage_30j`, `processeur_bride_minutes_7j`, `coupures_courant_30j`, `erreurs_materiel_30j`, `pilote_graphique_7j`, `memoire_virtuelle_faible_7j`, `changements_alimentation_24h`, `corrections_horloge_30j`, `deconnexions_wifi_24h` |
 | `ecrans_bleus.` | `memoire_30j`, `materiel_30j`, `graphique_30j`, `stockage_30j`, `meme_code_30j` |
 | `systeme.` | `programmes_demarrage`, `services_auto_arretes`, `pilotes_en_erreur`, `mises_a_jour_en_attente`, `redemarrage_en_attente`, `jours_depuis_demarrage`, `duree_demarrage_s`, `plan_economie_energie`, `jours_depuis_derniere_maj`, `mises_a_jour_echouees_30j`, `jours_avant_fin_support`, `magasin_composants_etat`, `protection_systeme`, `points_restauration`, `points_restauration_effaces`, `environnement_recuperation_actif`, `horloge_dans_le_passe`, `jours_depuis_installation_windows` |
 | `donnees.` | `sauvegarde_detectee`, `historique_fichiers_jours` |

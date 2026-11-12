@@ -59,9 +59,10 @@ regles:
       duree_min: 15m
     cause_probable: Mineur de cryptomonnaie ou logiciel malveillant caché
     explication_simple: >
-      Pendant que le PC est verrouillé, un programme non signé occupe fortement le processeur.
-      C'est le comportement des mineurs de cryptomonnaie cachés. Son nom est dans l'inventaire.
-    explication_technique: Processus hors de Windows, non signé ou lancé depuis un dossier modifiable par l'utilisateur, au-dessus de 40 % du processeur pendant 15 minutes, session verrouillée.
+      Pendant que le PC est verrouillé, un programme non signé, caché dans un dossier temporaire
+      ou à la racine d'AppData, occupe fortement le processeur. C'est le comportement des mineurs de
+      cryptomonnaie cachés. Son nom est dans l'inventaire.
+    explication_technique: Processus sans signature valide, rangé dans Temp, Téléchargements, Public ou à la racine d'AppData ou de ProgramData, au-dessus de 40 % du processeur pendant 15 minutes, session verrouillée.
     corrections: [ACT-SEC-GUIDE-SUSPICIOUS, ACT-SEC-DEFENDER-SCAN]
 
   - id: SEC-USB-001
@@ -89,9 +90,10 @@ regles:
       seuil: 1
     cause_probable: Logiciel malveillant installé avec un logiciel piraté ou une pièce jointe
     explication_simple: >
-      Un programme non signé, rangé dans un dossier où n'importe quel programme peut écrire, se
-      lance avec Windows. Si vous ne le connaissez pas, faites analyser le PC.
-    explication_technique: Entrée de démarrage pointant vers un exécutable sans signature Authenticode valide sous AppData, Temp, Public, Downloads ou ProgramData.
+      Un programme non signé, caché dans un dossier temporaire ou à la racine d'AppData, se lance
+      avec Windows, ou un script encodé ou téléchargé démarre avec lui. Si vous ne le connaissez
+      pas, faites analyser le PC.
+    explication_technique: Entrée de démarrage (cible des raccourcis comprise) vers un exécutable sans signature valide rangé dans Temp, Téléchargements, Public ou à la racine d'AppData ou de ProgramData, ou interpréteur (PowerShell, wscript, mshta…) avec un contenu encodé, téléchargé ou caché dans ces dossiers.
     corrections: [ACT-SEC-GUIDE-SUSPICIOUS, ACT-STARTUP-DISABLE, ACT-SEC-DEFENDER-SCAN]
 
   - id: SEC-TASK-001
@@ -106,7 +108,7 @@ regles:
     explication_simple: >
       Une tâche planifiée lance un script caché, un téléchargement ou un programme non signé.
       C'est ainsi que les logiciels malveillants reviennent après une suppression.
-    explication_technique: Tâche hors du dossier Microsoft lançant PowerShell, mshta, wscript, rundll32… avec un contenu encodé ou téléchargé, ou un exécutable non signé d'un dossier utilisateur.
+    explication_technique: Tâche hors du dossier Microsoft lançant PowerShell, mshta, wscript, rundll32… avec un contenu encodé, téléchargé ou caché dans Temp ou à la racine d'AppData, ou un exécutable non signé rangé dans ces dossiers.
     corrections: [ACT-SEC-GUIDE-SUSPICIOUS, ACT-SEC-DEFENDER-SCAN]
 
   - id: SEC-VULN-001
@@ -149,9 +151,9 @@ regles:
       seuil: 1
     cause_probable: Extension ajoutée par un programme ou chargée manuellement
     explication_simple: >
-      Une extension du navigateur n'a pas été installée depuis la boutique officielle. Ces
-      extensions affichent souvent des publicités ou espionnent la navigation.
-    explication_technique: Extension Chromium décompressée, passée en ligne de commande, ou installée par un programme sans provenir de la boutique.
+      Une extension du navigateur a été imposée par un programme, sans venir de la boutique
+      officielle. Ces extensions affichent souvent des publicités ou espionnent la navigation.
+    explication_technique: Extension Chromium passée en ligne de commande, ou installée par un programme sans provenir de la boutique (les extensions décompressées d'un développeur sont ignorées).
     corrections: [ACT-SEC-GUIDE-BROWSER]
 
   - id: SEC-RDP-001
@@ -181,7 +183,7 @@ regles:
     explication_simple: >
       Des dizaines de connexions avec un mauvais mot de passe ont eu lieu aujourd'hui alors que le
       Bureau à distance est ouvert. Coupez-le, et choisissez un mot de passe long.
-    explication_technique: Au moins 20 événements 4625 (échec d'ouverture de session) en 24 heures avec le Bureau à distance activé.
+    explication_technique: Au moins 20 événements 4625 (échec d'ouverture de session réseau ou à distance, types 3 et 10) en 24 heures avec le Bureau à distance activé.
     corrections: [ACT-SEC-RDP-OFF]
 
   - id: SEC-BITLOCKER-001
@@ -202,7 +204,7 @@ regles:
   - id: SEC-SB2023-001
     domaine: securite
     titre: Certificats Secure Boot 2023 absents
-    gravite: attention
+    gravite: information
     condition:
       metrique: securite.secure_boot_certificats_2023
       operateur: "=="

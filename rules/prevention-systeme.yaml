@@ -35,15 +35,15 @@ regles:
     domaine: systeme
     titre: Le système de fichiers s'abîme
     gravite: attention
-    conditions:
-      au_moins_un:
-        - { metrique: evenements.verifications_disque_demarrage_30j, operateur: ">=", seuil: 3 }
-        - { metrique: disque.systeme.verification_en_attente, operateur: ">=", seuil: 1 }
+    condition:
+      metrique: evenements.verifications_disque_demarrage_30j
+      operateur: ">="
+      seuil: 3
     cause_probable: Arrêts brutaux répétés ou disque fatigué
     explication_simple: >
-      Windows a dû vérifier le disque au démarrage plusieurs fois, ou a noté une incohérence à
-      corriger. Si cela continue, Windows risque de ne plus démarrer.
-    explication_technique: Au moins 3 vérifications au démarrage (Wininit 1001) en 30 jours, ou volume système marqué « sale » (FSCTL_IS_VOLUME_DIRTY).
+      Windows a dû vérifier le disque au démarrage plusieurs fois ce mois-ci. Si cela continue,
+      Windows risque de ne plus démarrer.
+    explication_technique: Au moins 3 vérifications au démarrage (Wininit 1001) en 30 jours.
     corrections: [ACT-SYS-CHKDSK, ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-UPS]
 
   - id: SYS-UPD-002
@@ -63,17 +63,17 @@ regles:
 
   - id: SYS-UPD-003
     domaine: systeme
-    titre: Des mises à jour échouent
+    titre: Une mise à jour de Windows reste bloquée
     gravite: attention
     condition:
       metrique: systeme.mises_a_jour_echouees_30j
       operateur: ">="
-      seuil: 3
+      seuil: 1
     cause_probable: Cache de Windows Update abîmé, manque d'espace ou fichiers système abîmés
     explication_simple: >
-      Plusieurs mises à jour de Windows ont échoué ce mois-ci. Le nom et le code d'erreur sont
-      dans l'inventaire de SoluPulse.
-    explication_technique: Au moins 3 installations en échec ou abandonnées dans l'historique Windows Update sur 30 jours.
+      Une mise à jour de Windows échoue à chaque essai. Le nom et le code d'erreur sont dans
+      l'inventaire de SoluPulse.
+    explication_technique: Mise à jour de Windows (hors pilotes et applications du Store) dont le dernier essai a échoué, après au moins un autre échec en 30 jours.
     corrections: [ACT-SYS-WU-RESET, ACT-CLEAN-WU-CACHE, ACT-SYS-DISM, ACT-SYS-SFC]
 
   - id: SYS-EOS-001
@@ -94,7 +94,7 @@ regles:
   - id: SYS-EOS-002
     domaine: systeme
     titre: Fin des correctifs de Windows dans moins de deux mois
-    gravite: attention
+    gravite: information
     conditions:
       tous:
         - { metrique: systeme.jours_avant_fin_support, operateur: ">=", seuil: 0 }

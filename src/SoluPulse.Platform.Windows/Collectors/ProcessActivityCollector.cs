@@ -11,7 +11,14 @@ namespace SoluPulse.Platform.Windows.Collectors;
 /// </summary>
 public sealed class ProcessActivityCollector(TimeProvider timeProvider) : ICollector
 {
-    private const int LeakWindow = 13;
+    // Deux heures d'échantillons : une fuite est lente et continue, un chargement est bref.
+    private const int LeakWindow = 25;
+
+    // Machines virtuelles et bases de données : elles prennent la mémoire qu'on leur donne, par conception.
+    private static readonly HashSet<string> GrowsByDesign = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "vmmem", "vmmemWSL", "vmmemCmZygote", "VirtualBoxVM", "VBoxHeadless", "vmware-vmx", "qemu-system-x86_64", "sqlservr", "Memory Compression",
+    };
 
     private readonly Dictionary<int, Tracked> _tracked = [];
     private readonly Dictionary<string, SignatureState> _signatures = new(StringComparer.OrdinalIgnoreCase);
@@ -74,7 +81,7 @@ public sealed class ProcessActivityCollector(TimeProvider timeProvider) : IColle
                     miner = (Math.Round(share, 0), process.ProcessName, path);
                 }
 
-                if (LeakRate(tracked.Memory) is { } rate && (leak is null || rate > leak.Value.Rate))
+                if (!GrowsByDesign.Contains(process.ProcessName) && LeakRate(tracked.Memory) is { } rate && (leak is null || rate > leak.Value.Rate))
                 {
                     leak = (rate, process.ProcessName);
                 }
@@ -97,8 +104,8 @@ public sealed class ProcessActivityCollector(TimeProvider timeProvider) : IColle
     }
 
     /// <summary>
-    /// Une fuite : sur au moins 55 minutes, la mémoire privée ne redescend jamais de plus de 3 %, a
-    /// gagné plus de 1 Go et dépasse 1,5 Go. Renvoie la croissance en Go par heure.
+    /// Une fuite : sur au moins 1 h 55, la mémoire privée ne redescend jamais de plus de 3 %, a gagné
+    /// plus de 1,5 Go et dépasse 2 Go. Renvoie la croissance en Go par heure.
     /// </summary>
     internal static double? LeakRate(IReadOnlyCollection<(DateTimeOffset Time, long Bytes)> samples)
     {
@@ -110,7 +117,7 @@ public sealed class ProcessActivityCollector(TimeProvider timeProvider) : IColle
         var list = samples.ToList();
         var span = list[^1].Time - list[0].Time;
         var growth = list[^1].Bytes - list[0].Bytes;
-        if (span < TimeSpan.FromMinutes(55) || growth < 1L << 30 || list[^1].Bytes < 1.5 * (1L << 30))
+        if (span < TimeSpan.FromMinutes(115) || growth < 1.5 * (1L << 30) || list[^1].Bytes < 2L << 30)
         {
             return null;
         }
@@ -139,7 +146,9 @@ public sealed class ProcessActivityCollector(TimeProvider timeProvider) : IColle
             _signatures[path] = signature;
         }
 
-        return signature is SignatureState.NonSigne or SignatureState.Invalide || (ProgramPaths.IsUserWritable(path) && signature != SignatureState.Valide);
+        // Un programme non signé d'un développeur (dossier de projet) n'est pas suspect : seules
+        // comptent les cachettes des logiciels malveillants (Temp, racine d'AppData…).
+        return ProgramPaths.IsSuspiciousLocation(path) && signature != SignatureState.Valide;
     }
 
     private static string? ImagePath(Process process)

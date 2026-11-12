@@ -38,6 +38,7 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
             {
                 var computer = Open();
                 var cpuTemperatures = new List<(string Name, float Value)>();
+                float? cpuLoad = null;
                 var fans = 0;
                 var table = new List<object>();
 
@@ -58,6 +59,7 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
                         case HardwareType.Cpu:
                             cpuTemperatures.AddRange(sensors.Where(s => s.SensorType == SensorType.Temperature).Select(s => (s.Name, s.Value!.Value)));
                             AddCpu(result, sensors);
+                            cpuLoad = sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name == "CPU Total")?.Value;
                             break;
                         case HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel:
                             AddGpu(result, hardware.Name, sensors);
@@ -119,7 +121,14 @@ public sealed class HardwareSensorsCollector(TimeProvider timeProvider) : IColle
                     var preferred = PreferredCpuSensors
                         .Select(name => cpuTemperatures.Where(t => t.Name == name).Select(t => (float?)t.Value).FirstOrDefault())
                         .FirstOrDefault(v => v is not null);
-                    result.Add("cpu.temperature_c", preferred ?? cpuTemperatures.Max(t => t.Value), "°C");
+                    var temperature = preferred ?? cpuTemperatures.Max(t => t.Value);
+                    result.Add("cpu.temperature_c", temperature, "°C");
+
+                    // Température au repos : comparable d'un mois à l'autre, quel que soit l'usage du PC.
+                    if (cpuLoad is < 15)
+                    {
+                        result.Add("cpu.temperature_repos_c", temperature, "°C");
+                    }
                 }
 
                 if (fans == 0)

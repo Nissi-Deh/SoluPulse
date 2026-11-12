@@ -93,22 +93,26 @@ public static class UsbThreats
         var hiddenFolders = entries.OfType<DirectoryInfo>()
             .Where(d => d.Attributes.HasFlag(FileAttributes.Hidden) && !SystemFolders.Contains(d.Name, StringComparer.OrdinalIgnoreCase))
             .ToList();
-        foreach (var file in entries.OfType<FileInfo>())
+        var files = entries.OfType<FileInfo>().ToList();
+        var hiddenScripts = files
+            .Where(f => f.Attributes.HasFlag(FileAttributes.Hidden) && ScriptExtensions.Contains(f.Extension.ToLowerInvariant()))
+            .ToList();
+        var shortcuts = files.Where(f => f.Extension.Equals(".lnk", StringComparison.OrdinalIgnoreCase)).ToList();
+
+        // Le virus « raccourci » : un raccourci qui porte le nom d'un dossier caché, ou un raccourci vers un
+        // interpréteur à côté de dossiers ou de scripts cachés. Un raccourci vers un script posé là par
+        // l'utilisateur, sur une clé sans rien de caché, n'est pas une infection.
+        var disguised = shortcuts
+            .Where(f => hiddenFolders.Any(d => string.Equals(d.Name, System.IO.Path.GetFileNameWithoutExtension(f.Name), StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        var launchers = hiddenFolders.Count > 0 || hiddenScripts.Count > 0 ? shortcuts.Where(LaunchesScript).ToList() : [];
+        threats.AddRange(disguised.Union(launchers).Select(f => new UsbThreat(f.FullName, UsbThreatKind.Raccourci)));
+        threats.AddRange(hiddenScripts.Select(f => new UsbThreat(f.FullName, UsbThreatKind.Script)));
+
+        var autorun = files.FirstOrDefault(f => string.Equals(f.Name, "autorun.inf", StringComparison.OrdinalIgnoreCase));
+        if (autorun is not null && LaunchesHiddenOrScript(autorun, files))
         {
-            var extension = file.Extension.ToLowerInvariant();
-            var hidden = file.Attributes.HasFlag(FileAttributes.Hidden);
-            if (extension == ".lnk" && (LaunchesScript(file) || hiddenFolders.Any(d => string.Equals(d.Name, System.IO.Path.GetFileNameWithoutExtension(file.Name), StringComparison.OrdinalIgnoreCase))))
-            {
-                threats.Add(new UsbThreat(file.FullName, UsbThreatKind.Raccourci));
-            }
-            else if (hidden && ScriptExtensions.Contains(extension))
-            {
-                threats.Add(new UsbThreat(file.FullName, UsbThreatKind.Script));
-            }
-            else if (string.Equals(file.Name, "autorun.inf", StringComparison.OrdinalIgnoreCase) && LaunchesProgram(file))
-            {
-                threats.Add(new UsbThreat(file.FullName, UsbThreatKind.Autorun));
-            }
+            threats.Add(new UsbThreat(autorun.FullName, UsbThreatKind.Autorun));
         }
 
         // Les dossiers cachés ne comptent que si la clé est infectée : un dossier caché seul est permis.
@@ -129,15 +133,36 @@ public static class UsbThreats
         return ShortcutPayloads.Any(p => text.Contains(p, StringComparison.Ordinal));
     }
 
-    private static bool LaunchesProgram(FileInfo autorun)
+    /// <summary>
+    /// autorun.inf qui lance un script, ou un fichier caché de la clé. Un ancien installeur qui lance
+    /// « setup.exe » visible n'est pas une infection (et Windows n'exécute plus l'autorun des clés).
+    /// </summary>
+    private static bool LaunchesHiddenOrScript(FileInfo autorun, IReadOnlyList<FileInfo> files)
     {
         if (autorun.Length > 65_536)
         {
-            return true;
+            return false;
         }
 
-        return File.ReadAllLines(autorun.FullName)
-            .Select(l => l.Trim().ToLowerInvariant())
-            .Any(l => l.StartsWith("open", StringComparison.Ordinal) || l.StartsWith("shellexecute", StringComparison.Ordinal) || l.StartsWith("shell\\", StringComparison.Ordinal));
+        foreach (var line in File.ReadAllLines(autorun.FullName).Select(l => l.Trim()))
+        {
+            var separator = line.IndexOf('=');
+            var key = separator > 0 ? line[..separator].Trim().ToLowerInvariant() : "";
+            if (key is not ("open" or "shellexecute") && !key.StartsWith("shell\\", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var target = line[(separator + 1)..].Trim().Trim('"').Split(' ')[0];
+            var name = System.IO.Path.GetFileName(target);
+            if (ScriptExtensions.Contains(System.IO.Path.GetExtension(name).ToLowerInvariant())
+                || ContainsPayload(System.Text.Encoding.Latin1.GetBytes(line))
+                || files.Any(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase) && f.Attributes.HasFlag(FileAttributes.Hidden)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

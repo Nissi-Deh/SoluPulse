@@ -94,7 +94,13 @@ public sealed class ThreatCollector(TimeProvider timeProvider) : ICollector
         {
             using var interfaces = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces");
             var servers = new List<string>();
-            foreach (var name in interfaces?.GetSubKeyNames() ?? [])
+
+            // Une carte débranchée ou virtuelle garde ses anciens réglages : seules les cartes en service comptent.
+            var active = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+                .Select(n => n.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var name in (interfaces?.GetSubKeyNames() ?? []).Where(active.Contains))
             {
                 using var adapter = interfaces!.OpenSubKey(name);
                 if (adapter?.GetValue("NameServer") is string configured && configured.Length > 0)
@@ -130,10 +136,14 @@ public sealed class ThreatCollector(TimeProvider timeProvider) : ICollector
             var suspicious = new List<string>();
             foreach (var entry in StartupInventory.List().Where(e => e.Enabled))
             {
-                if (ProgramPaths.Executable(entry.Command) is { } exe && !ProgramPaths.IsWindows(exe) && ProgramPaths.IsUserWritable(exe)
-                    && Authenticode.Check(exe) is SignatureState.NonSigne or SignatureState.Invalide)
+                // Un raccourci du dossier Démarrage n'est jamais signé : c'est le programme visé qui compte.
+                var command = entry.Command.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
+                    ? ProgramPaths.ShortcutTarget(entry.Command) ?? ""
+                    : entry.Command;
+                if (ProgramPaths.Executable(command) is { } exe
+                    && ProgramPaths.IsSuspiciousLaunch(exe, ProgramPaths.Arguments(command, exe), Authenticode.Check))
                 {
-                    suspicious.Add($"{entry.Name} : {exe}");
+                    suspicious.Add($"{entry.Name} : {command}");
                 }
             }
 
@@ -258,14 +268,25 @@ public static class DefenderExclusions
     }
 }
 
-/// <summary>Fichier hosts : une entrée qui détourne un site connu ou bloque un éditeur d'antivirus.</summary>
+/// <summary>
+/// Fichier hosts : une entrée qui envoie un site connu vers une autre adresse (faux site), ou qui bloque
+/// un éditeur d'antivirus ou Windows Update. Bloquer la publicité ou la télémétrie (adresse 0.0.0.0 ou
+/// 127.0.0.1), comme le font les listes de blocage, n'est pas un détournement.
+/// </summary>
 public static class HostsFile
 {
-    private static readonly string[] Watched =
+    private static readonly string[] Redirected =
     [
         "google.", "gstatic.", "youtube.", "facebook.", "whatsapp.", "instagram.", "microsoft.", "windowsupdate.", "live.com", "office.com",
-        "outlook.", "apple.", "paypal.", "bing.", "yahoo.", "orange.", "mtn.", "kaspersky.", "avast.", "avg.", "eset.", "bitdefender.",
-        "malwarebytes.", "mcafee.", "norton.", "symantec.", "virustotal.", "sophos.", "trendmicro.", "drweb.", "f-secure.", "pandasecurity.",
+        "outlook.", "apple.", "paypal.", "bing.", "yahoo.", "orange.", "mtn.", "gmail.", "twitter.", "tiktok.", "afrilandfirstbank.",
+        "ecobank.", "sgcameroun.", "ubagroup.", "bicec.",
+    ];
+
+    private static readonly string[] Blocked =
+    [
+        "kaspersky.", "avast.", "avg.", "eset.", "bitdefender.", "malwarebytes.", "mcafee.", "norton.", "symantec.", "virustotal.",
+        "sophos.", "trendmicro.", "drweb.", "f-secure.", "pandasecurity.", "windowsupdate.", "update.microsoft.", "wdcp.microsoft.",
+        "definitionupdates.microsoft.", "go.microsoft.com",
     ];
 
     public static IReadOnlyList<string> Suspicious(IEnumerable<string> lines)
@@ -275,15 +296,17 @@ public static class HostsFile
         {
             var line = raw.Split('#')[0].Trim();
             var parts = line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2 || !IPAddress.TryParse(parts[0], out _))
+            if (parts.Length < 2 || !IPAddress.TryParse(parts[0], out var address))
             {
                 continue;
             }
 
+            var blocking = IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any);
             foreach (var host in parts.Skip(1))
             {
                 var name = host.ToLowerInvariant();
-                if (Watched.Any(w => name.Contains(w, StringComparison.Ordinal)))
+                var watched = blocking ? Blocked : Redirected;
+                if (watched.Any(w => name.Contains(w, StringComparison.Ordinal)))
                 {
                     found.Add($"{parts[0]} {host}");
                 }
@@ -305,6 +328,9 @@ public static class DnsServers
         "76.76.2.0", "76.76.10.0", "64.6.64.6", "64.6.65.6", "8.26.56.26", "8.20.247.20", "84.200.69.80", "84.200.70.40",
         "2606:4700:4700::1111", "2606:4700:4700::1001", "2001:4860:4860::8888", "2001:4860:4860::8844", "2620:fe::fe", "2620:fe::9",
         "2620:119:35::35", "2620:119:53::53", "2a10:50c0::ad1:ff", "2a10:50c0::ad2:ff",
+        "45.90.28.0", "45.90.30.0", "194.242.2.2", "194.242.2.3", "194.242.2.4", "194.242.2.9", "77.88.8.8", "77.88.8.1", "77.88.8.88",
+        "4.2.2.1", "4.2.2.2", "4.2.2.3", "4.2.2.4", "4.2.2.5", "4.2.2.6", "156.154.70.1", "156.154.71.1", "195.46.39.39", "195.46.39.40",
+        "80.80.80.80", "80.80.81.81", "91.239.100.100", "89.233.43.71", "9.9.9.9", "2a07:a8c0::", "2a07:a8c1::",
     };
 
     public static IReadOnlyList<string> Unknown(IEnumerable<string> servers) => servers
@@ -346,24 +372,14 @@ public static class WifiProfile
 /// <summary>Tâches planifiées qui lancent un script caché, un téléchargement ou un programme depuis un dossier utilisateur.</summary>
 public static class ScheduledTasks
 {
-    private static readonly string[] Scripted = ["powershell", "pwsh", "mshta", "wscript", "cscript", "rundll32", "regsvr32", "cmd.exe", "certutil", "bitsadmin"];
-    private static readonly string[] Payloads = ["-enc", "-encodedcommand", "frombase64string", "downloadstring", "downloadfile", "invoke-webrequest", "iwr ", "iex", "http://", "https://", "-w hidden", "-windowstyle hidden", "\\appdata\\", "\\temp\\", "\\users\\public\\", ".vbs", ".js", ".jse", ".hta"];
-
-    public static bool IsSuspicious(string command, string arguments)
-    {
-        var program = Environment.ExpandEnvironmentVariables(command.Trim().Trim('"'));
-        var args = Environment.ExpandEnvironmentVariables(arguments).ToLowerInvariant();
-        var name = Path.GetFileName(program).ToLowerInvariant();
-        if (Scripted.Any(s => name.StartsWith(s, StringComparison.Ordinal)))
-        {
-            return Payloads.Any(p => args.Contains(p, StringComparison.Ordinal));
-        }
-
-        return program.Length > 0
-            && !ProgramPaths.IsWindows(program)
-            && ProgramPaths.IsUserWritable(program)
-            && Authenticode.Check(program) is SignatureState.NonSigne or SignatureState.Invalide;
-    }
+    /// <summary>
+    /// Un interpréteur avec un script encodé ou téléchargé, ou qui lance un fichier caché dans Temp,
+    /// Téléchargements ou à la racine d'AppData ; ou un programme non signé rangé dans une telle
+    /// cachette. Une tâche de maintenance qui lance PowerShell en fenêtre cachée sur un script de
+    /// Program Files n'est pas suspecte.
+    /// </summary>
+    public static bool IsSuspicious(string command, string arguments) =>
+        ProgramPaths.IsSuspiciousLaunch(command, arguments, Authenticode.Check);
 }
 
 /// <summary>
@@ -459,9 +475,10 @@ public static class Browsers
     }
 
     /// <summary>
-    /// Extensions chargées hors de la boutique : décompressées (4), passées en ligne de commande (8) ou
-    /// installées par un programme sans venir de la boutique. Les extensions de l'entreprise (stratégie)
-    /// et celles du navigateur lui-même sont exclues.
+    /// Extensions imposées hors de la boutique : passées en ligne de commande (8), la méthode des
+    /// logiciels publicitaires, ou installées par un programme sans venir de la boutique (2, 3, 6). Les
+    /// extensions décompressées (4) sont celles d'un développeur qui les charge lui-même : ignorées,
+    /// comme celles de l'entreprise (stratégie) et du navigateur.
     /// </summary>
     public static IEnumerable<string> SuspiciousExtensions(JsonDocument? preferences)
     {
@@ -479,7 +496,7 @@ public static class Browsers
                 var location = value.TryGetProperty("location", out var l) && l.ValueKind == JsonValueKind.Number ? l.GetInt32() : 0;
                 var fromStore = value.TryGetProperty("from_webstore", out var w) && w.ValueKind == JsonValueKind.True;
                 var name = TryGet(value, out var n, "manifest", "name") && n.ValueKind == JsonValueKind.String ? n.GetString() : extension.Name;
-                if (location is 4 or 8 || (location is 2 or 3 or 6 && !fromStore))
+                if (location == 8 || (location is 2 or 3 or 6 && !fromStore))
                 {
                     found.Add(name ?? extension.Name);
                 }

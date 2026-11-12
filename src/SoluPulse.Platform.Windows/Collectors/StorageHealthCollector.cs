@@ -66,8 +66,13 @@ public sealed class StorageHealthCollector(TimeProvider timeProvider) : ICollect
                 var prefix = $"disque_physique.{disk.Metric}";
                 disk.Nvme = health;
                 result.Add($"{prefix}.usure_pct", health.PercentageUsed, "%");
-                result.Add($"{prefix}.reserve_pct", health.AvailableSparePercent, "%");
-                result.Add($"{prefix}.avertissement_critique", health.CriticalWarning == 0 ? 0 : 1, "");
+                // Une réserve et un seuil à 0 : le disque ne gère pas ce compteur.
+                if (health.AvailableSparePercent <= 100 && (health.AvailableSparePercent > 0 || health.AvailableSpareThresholdPercent > 0))
+                {
+                    result.Add($"{prefix}.reserve_pct", health.AvailableSparePercent, "%");
+                }
+
+                result.Add($"{prefix}.avertissement_critique", NvmeHealth.IsCritical(health.CriticalWarning) ? 1 : 0, "");
                 result.Add($"{prefix}.erreurs_media", health.MediaErrors, "");
                 result.Add($"{prefix}.arrets_non_securises", health.UnsafeShutdowns, "");
             }

