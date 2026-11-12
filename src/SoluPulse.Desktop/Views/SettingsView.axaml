@@ -26,6 +26,22 @@
 
         <Border Classes="card">
           <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Mode simplifié (PC d'un proche)" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding SimpleModeText}" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBox Text="{Binding TechnicianCode}" PasswordChar="•" Watermark="Code du technicien" Width="200" />
+              <TextBox Text="{Binding TechnicianCodeConfirm}" PasswordChar="•" Watermark="Répéter le code" Width="200" IsVisible="{Binding !SimpleMode}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Activer le mode simplifié" Command="{Binding ToggleSimpleModeCommand}" IsVisible="{Binding !SimpleMode}" />
+              <Button Content="Désactiver le mode simplifié" Command="{Binding ToggleSimpleModeCommand}" IsVisible="{Binding SimpleMode}" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding SimpleMode}" Text="Pour modifier les réglages ci-dessous, saisissez le code du technicien avant de cliquer sur « Enregistrer »." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="12">
             <TextBlock Classes="h2" Text="Corrections" />
             <ToggleSwitch IsChecked="{Binding AutomaticCorrections}" OnContent="Lancer seul les corrections sans risque" OffContent="Toujours me demander avant de corriger" />
             <TextBlock Classes="muted" TextWrapping="Wrap" Text="Sans risque : supprimer les fichiers temporaires, les installeurs de mises à jour déjà téléchargés et le cache de distribution de Windows, au plus une fois par jour, quand une alerte le justifie. Chaque action est inscrite au journal. Tout le reste demande toujours votre validation." />
@@ -41,7 +57,25 @@
               <TextBlock Text="jours (ensuite, moyennes par heure)" VerticalAlignment="Center" Classes="muted" />
             </StackPanel>
             <ToggleSwitch IsChecked="{Binding InternetProbes}" OnContent="Tester la connexion Internet (quelques pings, aucune donnée envoyée)" OffContent="Tests de connexion Internet désactivés" />
-            <TextBlock Classes="muted" TextWrapping="Wrap" Text="Langue : français. L'anglais arrivera dans une prochaine version." />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="Langue / Language" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" MinWidth="160" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding LanguageMessage}" IsVisible="{Binding LanguageMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Mises à jour de SoluPulse" />
+            <TextBlock Text="{Binding UpdateText}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ListsText}" Classes="muted" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Content="Vérifier maintenant" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding !Busy}" />
+              <Button Classes="primary" Content="Installer la mise à jour" Command="{Binding InstallUpdateCommand}" IsVisible="{Binding CanInstallUpdate}" IsEnabled="{Binding !Busy}" />
+              <Button Content="Ouvrir la page de la version" Command="{Binding OpenUpdatePageCommand}" IsVisible="{Binding UpdateAvailable}" />
+            </StackPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="SoluPulse vérifie une fois par jour s'il existe une nouvelle version et de nouvelles listes de détection (firmwares dangereux, logiciels à faille connue, fins de support). Aucune donnée n'est envoyée. Une nouvelle version n'est installée seule que si son installeur est signé par l'éditeur ; les listes ne sont acceptées que signées par Solutech." />
           </StackPanel>
         </Border>
 

@@ -55,6 +55,47 @@ public static class ActionIds
     public const string GuideBattery = "ACT-HW-GUIDE-BATTERY";
     public const string GuideBackup = "ACT-HW-GUIDE-BACKUP";
 
+    // Prévention : actions
+    public const string EnableRecoveryEnvironment = "ACT-SYS-WINRE-ON";
+    public const string DisableRemoteDesktop = "ACT-SEC-RDP-OFF";
+    public const string CleanUsbDrive = "ACT-SEC-USB-CLEAN";
+
+    // Prévention : électricité et matériel
+    public const string GuideUps = "ACT-HW-GUIDE-UPS";
+    public const string GuideUpsBattery = "ACT-HW-GUIDE-UPS-BATTERY";
+    public const string GuidePowerSupply = "ACT-HW-GUIDE-POWER-SUPPLY";
+    public const string GuideCharger = "ACT-HW-GUIDE-CHARGER";
+    public const string GuideCmosBattery = "ACT-HW-GUIDE-CMOS";
+    public const string GuideChargeLimit = "ACT-HW-GUIDE-CHARGE-LIMIT";
+    public const string GuideMemoryTest = "ACT-HW-GUIDE-MEMTEST";
+    public const string GuideSsd = "ACT-HW-GUIDE-SSD";
+    public const string GuideSataCable = "ACT-HW-GUIDE-SATA-CABLE";
+    public const string GuideDiskFirmware = "ACT-HW-GUIDE-FIRMWARE";
+    public const string GuideBios = "ACT-HW-GUIDE-BIOS";
+    public const string GuideGraphicsDriver = "ACT-HW-GUIDE-GPU-DRIVER";
+    public const string GuideWifiDriver = "ACT-HW-GUIDE-WIFI-DRIVER";
+
+    // Prévention : sécurité et données
+    public const string GuideDefenderExclusions = "ACT-SEC-GUIDE-EXCLUSIONS";
+    public const string GuideRansomware = "ACT-SEC-GUIDE-RANSOMWARE";
+    public const string GuideSuspiciousProgram = "ACT-SEC-GUIDE-SUSPICIOUS";
+    public const string GuideUpdateSoftware = "ACT-SEC-GUIDE-UPDATE-SOFTWARE";
+    public const string GuideBrowser = "ACT-SEC-GUIDE-BROWSER";
+    public const string GuideBitLockerKey = "ACT-SEC-GUIDE-BITLOCKER-KEY";
+    public const string GuideSecureBootCertificates = "ACT-SEC-GUIDE-SECUREBOOT-2023";
+    public const string GuideNetworkHijack = "ACT-SEC-GUIDE-HIJACK";
+    public const string GuideOpenWifi = "ACT-SEC-GUIDE-OPEN-WIFI";
+
+    // Prévention : Windows
+    public const string GuideEndOfSupport = "ACT-SYS-GUIDE-END-OF-SUPPORT";
+    public const string GuideRecoveryDrive = "ACT-SYS-GUIDE-RECOVERY-DRIVE";
+    public const string GuideMemoryLeak = "ACT-SYS-GUIDE-MEMORY-LEAK";
+
+    // Pilotes
+    public const string RescanDevices = "ACT-SYS-DEVICE-RESCAN";
+    public const string InstallDriver = "ACT-SYS-DRIVER-INSTALL";
+    public const string GuideDriver = "ACT-SYS-GUIDE-DRIVER";
+
     public static IReadOnlySet<string> All { get; } = typeof(ActionIds)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
         .Where(f => f.IsLiteral)

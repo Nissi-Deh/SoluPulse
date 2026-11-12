@@ -59,6 +59,9 @@ public sealed partial class MainViewModel : ObservableObject
         Journal = new JournalViewModel(client);
         Inventory = new InventoryViewModel(client);
         Snapshots = new SnapshotsViewModel(client, this);
+        Network = new NetworkViewModel(client);
+        DeviceTests = new DeviceTestsViewModel(client);
+        Apps = new AppsViewModel(client);
         Settings = new SettingsViewModel(client, this);
         Navigation =
         [
@@ -67,6 +70,9 @@ public sealed partial class MainViewModel : ObservableObject
             new("Alertes", Icons.Alert, Alerts),
             new("Historique", Icons.History, History),
             new("Journal des corrections", Icons.Journal, Journal),
+            new("Réseau", Icons.Network, Network),
+            new("Applications", Icons.Apps, Apps),
+            new("Tests du matériel", Icons.Tests, DeviceTests),
             new("Inventaire système", Icons.Inventory, Inventory),
             new("Captures du système", Icons.Snapshot, Snapshots),
             new("Paramètres", Icons.Settings, Settings),
@@ -101,6 +107,12 @@ public sealed partial class MainViewModel : ObservableObject
     public InventoryViewModel Inventory { get; }
 
     public SnapshotsViewModel Snapshots { get; }
+
+    public NetworkViewModel Network { get; }
+
+    public DeviceTestsViewModel DeviceTests { get; }
+
+    public AppsViewModel Apps { get; }
 
     public SettingsViewModel Settings { get; }
 
@@ -177,6 +189,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void ApplySettings(SettingsReply settings) => _settings = settings;
 
+    /// <summary>Mode simplifié (« PC d'un proche ») : explications techniques masquées, corrections à risque réservées au technicien.</summary>
+    public bool SimpleMode => _settings?.SimpleMode == true;
+
     private void OnConnectionChanged(bool connected)
     {
         Connected = connected;
@@ -214,6 +229,9 @@ public sealed partial class MainViewModel : ObservableObject
                 _ = Dashboard.RefreshAsync();
                 _ = Alerts.RefreshAsync();
                 break;
+            case "resume":
+                _ = ShowWeeklySummaryAsync();
+                break;
         }
     }
 
@@ -228,11 +246,31 @@ public sealed partial class MainViewModel : ObservableObject
         return Rank(alert.Severity) >= Rank(_settings?.NotificationMinSeverity ?? "attention");
     }
 
+    private async Task ShowWeeklySummaryAsync()
+    {
+        try
+        {
+            if (_settings is not { NotificationsEnabled: false })
+            {
+                NotificationService.ShowSummary(await _client.Api.GetWeeklySummaryAsync(AgentClient.Empty));
+            }
+        }
+        catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
+        {
+            // Le résumé sera proposé à la prochaine connexion.
+        }
+    }
+
     private async Task LoadSettingsAsync()
     {
         try
         {
             _settings = await _client.Api.GetSettingsAsync(AgentClient.Empty);
+            await ShowWeeklySummaryAsync();
+            if (_settings.NotificationsEnabled)
+            {
+                NotificationService.ShowUpdate(await _client.Api.GetUpdateInfoAsync(AgentClient.Empty));
+            }
         }
         catch (Exception ex) when (ex is Grpc.Core.RpcException or IOException)
         {

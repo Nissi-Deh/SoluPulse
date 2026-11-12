@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.NetworkView"
+             x:DataType="vm:NetworkViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="16">
+      <TextBlock Classes="h1" Text="Réseau" />
+      <TextBlock Classes="error" Text="{Binding Error}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Test de débit Internet" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="primary" Content="Lancer le test" Command="{Binding RunSpeedTestCommand}" IsEnabled="{Binding !Busy}" />
+            <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding Busy}" />
+          </StackPanel>
+          <TextBlock Text="{Binding SpeedResult}" FontWeight="SemiBold" IsVisible="{Binding SpeedResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Text="{Binding SpeedStatus}" Classes="muted" TextWrapping="Wrap" />
+          <TextBlock Text="Derniers tests : gardez-les pour montrer à votre fournisseur d'accès le débit réellement obtenu." Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasHistory}" />
+          <ItemsControl ItemsSource="{Binding SpeedHistory}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SpeedHistoryItem">
+                <Grid ColumnDefinitions="150,*,*,*" Margin="0,2">
+                  <TextBlock Text="{Binding Date}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Download, StringFormat='Réception {0}'}" />
+                  <TextBlock Grid.Column="2" Text="{Binding Upload, StringFormat='Envoi {0}'}" />
+                  <TextBlock Grid.Column="3" Text="{Binding Latency, StringFormat='Réponse {0}'}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Wi-Fi autour de vous" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="Quand trop de box voisines utilisent le même canal, le Wi-Fi ralentit et coupe. SoluPulse compte les réseaux par canal et indique le moins encombré." />
+          <Button Content="Analyser le Wi-Fi" Command="{Binding ScanWifiCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Left" />
+          <TextBlock Text="{Binding WifiAdvice}" TextWrapping="Wrap" IsVisible="{Binding WifiAdvice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <Button Content="Ouvrir les réglages de localisation" Command="{Binding OpenLocationSettingsCommand}" IsVisible="{Binding WifiNeedsLocation}" HorizontalAlignment="Left" />
+          <ItemsControl ItemsSource="{Binding Channels}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WifiChannelItem">
+                <Grid ColumnDefinitions="180,110,*" Margin="0,2">
+                  <TextBlock Text="{Binding Channel}" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="1" Text="{Binding Networks, StringFormat='{}{0} réseau(x)'}" />
+                  <TextBlock Grid.Column="2" Text="{Binding Names}" Classes="muted" TextTrimming="CharacterEllipsis" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Appareils connectés à votre réseau" />
+          <Button Content="Rechercher les appareils" Command="{Binding ScanDevicesCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Left" />
+          <TextBlock Text="{Binding DevicesStatus}" Classes="muted" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding Devices}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:LanDeviceItem">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                  <StackPanel Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                      <Border IsVisible="{Binding IsNew}" Padding="6,1" CornerRadius="8" Background="{DynamicResource Accent}">
+                        <TextBlock Text="Jamais vu" FontSize="11" Foreground="{DynamicResource AccentForeground}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsNew}" VerticalAlignment="Center">
+                    <TextBox Text="{Binding Label}" Watermark="Nom de l'appareil" Width="180" />
+                    <Button Content="Je le connais" Command="{Binding $parent[UserControl].((vm:NetworkViewModel)DataContext).RememberCommand}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasNewDevices}" Text="Un appareil inconnu sur votre Wi-Fi ? Changez le mot de passe Wi-Fi dans les réglages de la box, puis reconnectez vos propres appareils." />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

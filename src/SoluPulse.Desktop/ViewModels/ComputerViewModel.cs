@@ -471,14 +471,47 @@ internal static class ComponentCards
                 card.Details.Add(new DetailRow("Prédiction SMART", "panne probable", Palette.Critique));
             }
 
-            Add(card, "Heures de fonctionnement", metrics[$"{prefix}.heures_fonctionnement"] is { } hours ? $"{Number(hours)} h" : null);
-            foreach (var (metric, label) in new[] { ("secteurs_realloues", "Secteurs réalloués"), ("secteurs_en_attente", "Secteurs en attente"), ("secteurs_irrecuperables", "Secteurs irrécupérables") })
+            if (metrics[$"{prefix}.avertissement_critique"] == 1)
             {
+                card.Details.Add(new DetailRow("Le SSD signale", "un état critique", Palette.Critique));
+            }
+
+            if (metrics[$"{prefix}.reserve_pct"] is { } spare)
+            {
+                card.Details.Add(new DetailRow("Réserve du SSD", $"{Number(spare)} %", spare >= 50 ? Palette.Ok : spare >= 20 ? Palette.Attention : Palette.Critique));
+            }
+
+            if (disk.Str("firmwareARisque") is { } firmwareRisk)
+            {
+                card.Details.Add(new DetailRow("Firmware", firmwareRisk, Palette.Critique));
+            }
+            else
+            {
+                Add(card, "Firmware", disk.Str("firmware"));
+            }
+
+            Add(card, "Heures de fonctionnement", metrics[$"{prefix}.heures_fonctionnement"] is { } hours ? $"{Number(hours)} h" : null);
+            foreach (var (metric, label) in new[]
+            {
+                ("secteurs_realloues", "Secteurs réalloués"), ("secteurs_en_attente", "Secteurs en attente"), ("secteurs_irrecuperables", "Secteurs irrécupérables"),
+                ("erreurs_non_corrigees", "Erreurs non corrigées"), ("erreurs_cable", "Erreurs de câble"), ("erreurs_media", "Erreurs de données"),
+            })
+            {
+                // Sur un SSD NVMe, les erreurs non corrigées sont déjà comptées dans les erreurs de données.
+                if (metric == "erreurs_non_corrigees" && metrics[$"{prefix}.erreurs_media"] is not null)
+                {
+                    continue;
+                }
+
                 if (metrics[$"{prefix}.{metric}"] is { } count)
                 {
-                    card.Details.Add(new DetailRow(label, Number(count), count < 1 ? Palette.Ok : Palette.Attention));
+                    var rising = metrics[$"{prefix}.{metric}_hausse_30j"] is >= 1;
+                    card.Details.Add(new DetailRow(label, rising ? $"{Number(count)} (en hausse)" : Number(count), count < 1 ? Palette.Ok : rising ? Palette.Critique : Palette.Attention));
                 }
             }
+
+            Add(card, "Arrêts non sécurisés", metrics[$"{prefix}.arrets_non_securises"] is { } unsafeShutdowns ? Number(unsafeShutdowns) : null);
+            Add(card, "Usure totale prévisible", Forecast(metrics[$"{prefix}.jours_avant_usure_totale"], 3650));
 
             yield return card;
         }
@@ -538,8 +571,20 @@ internal static class ComponentCards
 
         Add(card, "Capacité d'origine", metrics["batterie.capacite_origine_mwh"] is { } designed ? $"{Number(designed / 1000)} Wh" : null);
         Add(card, "Capacité actuelle", metrics["batterie.capacite_actuelle_mwh"] is { } full ? $"{Number(full / 1000)} Wh" : null);
+        Add(card, "Puissance de charge", metrics["batterie.puissance_charge_w"] is { } chargeWatts ? $"{Number(chargeWatts)} W" : null);
+        Add(card, "Consommation sur batterie", metrics["batterie.puissance_decharge_w"] is { } drainWatts ? $"{Number(drainWatts)} W" : null);
+        Add(card, "Remplacement prévisible", Forecast(metrics["batterie.jours_avant_remplacement"], 1825));
         return card;
     }
+
+    /// <summary>« vers mars 2028 », d'après la vitesse d'usure ; rien si l'usure est trop lente pour le dire.</summary>
+    internal static string? Forecast(double? days, double cap) => days switch
+    {
+        null => null,
+        <= 0 => "dès maintenant",
+        { } d when d >= cap => null,
+        { } d => $"vers {DateTime.Today.AddDays(d).ToString("MMMM yyyy", Format.French)}",
+    };
 
     private static ComponentCard Network(JsonElement hardware, MetricValues metrics)
     {

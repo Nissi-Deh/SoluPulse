@@ -10,10 +10,11 @@ namespace SoluPulse.Desktop.ViewModels;
 
 internal static class Format
 {
-    public static readonly CultureInfo French = CultureInfo.GetCultureInfo("fr-FR");
+    /// <summary>Culture d'affichage : français, ou anglais si l'utilisateur l'a choisi.</summary>
+    public static CultureInfo French => Services.Loc.Culture;
 
     public static string Date(Google.Protobuf.WellKnownTypes.Timestamp? timestamp) =>
-        timestamp is null ? "" : timestamp.ToDateTimeOffset().ToLocalTime().ToString("dddd d MMMM à HH:mm", French);
+        timestamp is null ? "" : timestamp.ToDateTimeOffset().ToLocalTime().ToString(Services.Loc.English ? "dddd d MMMM 'at' HH:mm" : "dddd d MMMM à HH:mm", French);
 
     public static string Ago(Google.Protobuf.WellKnownTypes.Timestamp? timestamp)
     {
@@ -117,7 +118,10 @@ public sealed class AlertItem(AlertInfo info)
 
     public string Technical { get; } = info.TechnicalExplanation;
 
-    public bool HasTechnical => Technical.Length > 0;
+    public bool HasTechnical => Technical.Length > 0 && !SimpleMode;
+
+    /// <summary>Mode simplifié : l'explication technique est réservée au technicien.</summary>
+    public bool SimpleMode { get; init; }
 
     public string Cause { get; } = info.ProbableCause;
 
@@ -147,8 +151,11 @@ public sealed class AlertItem(AlertInfo info)
             _ when last.EndsWith("_pct", StringComparison.Ordinal) => " %",
             _ when last.EndsWith("_ms", StringComparison.Ordinal) => " ms",
             _ when last.EndsWith("_s", StringComparison.Ordinal) => " s",
-            _ when last.EndsWith("_j", StringComparison.Ordinal) || last.StartsWith("jours", StringComparison.Ordinal) => " jours",
+            _ when last.EndsWith("_j", StringComparison.Ordinal) || last.StartsWith("jours", StringComparison.Ordinal) || last.EndsWith("_jours", StringComparison.Ordinal) => " jours",
             _ when last.EndsWith("_go", StringComparison.Ordinal) => " Go",
+            _ when last.EndsWith("_go_h", StringComparison.Ordinal) => " Go/h",
+            _ when last.EndsWith("_min", StringComparison.Ordinal) => " min",
+            _ when last.EndsWith("_v", StringComparison.Ordinal) => " V",
             _ => "",
         };
     }

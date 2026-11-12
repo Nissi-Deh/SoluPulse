@@ -40,13 +40,13 @@ Deux processus séparés sur le PC (cahier des charges §5) :
 | `SoluPulse.Contracts` | Contrat gRPC entre l'application et le service. |
 | `SoluPulse.Agent` | Service Windows : planification, évaluation, API sur canal nommé. |
 | `SoluPulse.Desktop` | Application Avalonia : tableau de bord, page Mon PC, alertes, fiche de validation, historique, journal, captures du système, paramètres, notifications, icône de zone de notification. |
-| `rules/` | Base de règles livrée (41 règles matériel, système, réseau, sécurité). Format : [docs/regles.md](docs/regles.md). |
+| `rules/` | Base de règles livrée (103 règles matériel, système, réseau, sécurité, dont des règles de tendance). Format : [docs/regles.md](docs/regles.md). |
 | `installer/` | Installeur MSI (WiX 5). |
 
 ### Garanties de sécurité
 
 - **Aucune action sans validation** (EF-COR-01) : l'exécuteur n'agit qu'avec un jeton à usage unique, délivré quand la fiche est affichée, valable 10 minutes et réservé à l'utilisateur Windows qui l'a demandée. Un test automatisé le vérifie (`CorrectionExecutorTests`).
-- **Catalogue fermé** (EF-COR-07) : 29 actions compilées et 9 recommandations guidées. Seules trois actions sans risque (fichiers temporaires, installeurs de mises à jour, cache de distribution) peuvent se lancer seules, si l'utilisateur le laisse activé. Les paramètres sont choisis dans une liste fournie par le service et revalidés avant exécution. Les outils Windows sont appelés avec des arguments fixes, sans interpréteur de commandes.
+- **Catalogue fermé** (EF-COR-07) : 34 actions compilées et 35 recommandations guidées. Seules trois actions sans risque (fichiers temporaires, installeurs de mises à jour, cache de distribution) peuvent se lancer seules, si l'utilisateur le laisse activé. Les paramètres sont choisis dans une liste fournie par le service et revalidés avant exécution. Les outils Windows sont appelés avec des arguments fixes, sans interpréteur de commandes.
 - **Avant d'agir** : point de restauration tenté avant toute modification de Windows et obligatoire à partir du risque moyen, sauvegarde de l'état modifié, journal écrit avant chaque étape. Une correction interrompue est annulée au redémarrage (ENF-FIA-02).
 - **Canal local** : accessible aux seuls utilisateurs connectés localement, accès réseau refusé ; en production, seul l'exécutable SoluPulse installé est accepté comme client.
 - **Journal d'audit** chaîné par SHA-256 : toute modification ou suppression d'une entrée est détectée.

@@ -2,3 +2,6 @@
 *.sh text eol=lf
 *.png binary
 *.ico binary
+# Listes signées : les octets doivent rester ceux qui ont été signés.
+data/listes.json binary
+data/listes.json.sig binary

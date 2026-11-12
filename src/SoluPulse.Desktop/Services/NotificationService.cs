@@ -44,8 +44,8 @@ public sealed class NotificationService
         var builder = new ToastContentBuilder()
             .AddArgument("action", ViewAction)
             .AddArgument("alerte", alert.Id)
-            .AddText(Prefix(alert.Severity) + alert.Title)
-            .AddText(FirstSentence(alert.SimpleExplanation))
+            .AddText(Loc.T(Prefix(alert.Severity)) + Loc.T(alert.Title))
+            .AddText(FirstSentence(Loc.T(alert.SimpleExplanation)))
             .AddButton(new ToastButton().SetContent("Voir").AddArgument("action", ViewAction).AddArgument("alerte", alert.Id));
 
         if (alert.Corrections.Count > 0)
@@ -59,6 +59,67 @@ public sealed class NotificationService
         }
 
         builder.Show();
+    }
+
+    /// <summary>
+    /// Résumé hebdomadaire : affiché une seule fois, même si l'application redémarre. La date du dernier
+    /// résumé montré est gardée dans le profil de l'utilisateur.
+    /// </summary>
+    public static void ShowSummary(WeeklySummaryReply summary)
+    {
+        if (!summary.Available)
+        {
+            return;
+        }
+
+        var stamp = summary.CreatedAt.ToDateTimeOffset().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (!Once("resume-affiche.txt", stamp))
+        {
+            return;
+        }
+
+        new ToastContentBuilder()
+            .AddArgument("action", ViewAction)
+            .AddText(Loc.T(summary.Title))
+            .AddText(Loc.T(summary.Text))
+            .Show();
+    }
+
+    /// <summary>Nouvelle version de SoluPulse : une seule notification par version.</summary>
+    public static void ShowUpdate(UpdateInfo update)
+    {
+        if (!update.Available || !Once("version-annoncee.txt", update.Version))
+        {
+            return;
+        }
+
+        new ToastContentBuilder()
+            .AddArgument("action", ViewAction)
+            .AddText(Loc.T($"SoluPulse {update.Version} est disponible"))
+            .AddText(Loc.T("Ouvrez les paramètres de SoluPulse pour l'installer."))
+            .Show();
+    }
+
+    /// <summary>Vrai la première fois qu'une valeur est vue, d'une session à l'autre (fichier dans le profil).</summary>
+    private static bool Once(string file, string value)
+    {
+        var marker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SoluPulse", file);
+        try
+        {
+            if (File.Exists(marker) && File.ReadAllText(marker).Trim() == value)
+            {
+                return false;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
+            File.WriteAllText(marker, value);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Sans fichier de suivi, la notification peut revenir : ce n'est pas grave.
+        }
+
+        return true;
     }
 
     public static void Uninstall() => ToastNotificationManagerCompat.Uninstall();

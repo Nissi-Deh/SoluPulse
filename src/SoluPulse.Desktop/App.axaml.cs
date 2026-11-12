@@ -24,6 +24,8 @@ public sealed partial class App : Application
             // L'application reste dans la zone de notification quand la fenêtre est fermée.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+            // Langue choisie dans les paramètres : elle s'applique avant la création des fenêtres.
+            Loc.Initialize();
             var notifications = new NotificationService();
             notifications.Initialize();
             var client = new AgentClient();
@@ -43,13 +45,14 @@ public sealed partial class App : Application
             if (tray is not null)
             {
                 tray.Icon = Palette.TrayIcon(Palette.Unknown);
+                TranslateMenu(tray.Menu);
                 tray.Clicked += (_, _) => ShowWindow();
                 _main.StatusChanged += (_, status) =>
                 {
                     tray.Icon = Palette.TrayIcon(status.ActiveAlerts == 0 ? Palette.Ok : Palette.ForSeverity(status.WorstSeverity));
-                    tray.ToolTipText = status.ActiveAlerts == 0
+                    tray.ToolTipText = Loc.T(status.ActiveAlerts == 0
                         ? $"SoluPulse : votre PC va bien ({status.GlobalScore}/100)"
-                        : $"SoluPulse : {status.ActiveAlerts} alerte(s), score {status.GlobalScore}/100";
+                        : $"SoluPulse : {status.ActiveAlerts} alerte(s), score {status.GlobalScore}/100");
                 };
             }
 
@@ -65,6 +68,15 @@ public sealed partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>Le menu de l'icône de notification est natif : il ne passe pas par les TextBlock traduits.</summary>
+    private static void TranslateMenu(NativeMenu? menu)
+    {
+        foreach (var item in menu?.Items.OfType<NativeMenuItem>() ?? [])
+        {
+            item.Header = Loc.T(item.Header ?? "");
+        }
     }
 
     private void ShowWindow()

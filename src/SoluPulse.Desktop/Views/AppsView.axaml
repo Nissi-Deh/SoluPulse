@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoluPulse.Desktop.ViewModels"
+             x:Class="SoluPulse.Desktop.Views.AppsView"
+             x:DataType="vm:AppsViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="AppTemplate" x:DataType="vm:AppItem">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+        <StackPanel Spacing="2">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding CanUninstall}">
+          <Button Content="Désinstaller…" IsVisible="{Binding !Confirming}"
+                  Command="{Binding $parent[UserControl].((vm:AppsViewModel)DataContext).UninstallCommand}" CommandParameter="{Binding}" />
+          <Button Classes="primary" Content="Confirmer la désinstallation" IsVisible="{Binding Confirming}"
+                  Command="{Binding $parent[UserControl].((vm:AppsViewModel)DataContext).UninstallCommand}" CommandParameter="{Binding}" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer>
+    <StackPanel Spacing="16">
+      <TextBlock Classes="h1" Text="Applications" />
+      <TextBlock Classes="error" Text="{Binding Error}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Mises à jour des logiciels" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Content="Chercher les mises à jour" Command="{Binding SearchUpgradesCommand}" IsEnabled="{Binding !Busy}" />
+            <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding Busy}" />
+          </StackPanel>
+          <TextBlock Text="{Binding UpgradesStatus}" Classes="muted" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding Upgrades}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:UpgradeItem">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" />
+                    <TextBlock Text="{Binding Status}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Mettre à jour" VerticalAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:AppsViewModel)DataContext).UpgradeCommand}" CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h2" Text="Applications qui ne servent plus" />
+            <Button Grid.Column="1" Content="Actualiser" Command="{Binding ReloadCommand}" IsEnabled="{Binding !Busy}" />
+          </Grid>
+          <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="La date vient des traces de lancement que garde Windows. Les pilotes, composants de Windows et antivirus ne sont jamais proposés. La désinstallation passe par le désinstalleur du logiciel, qui demande ses propres confirmations." />
+          <ItemsControl ItemsSource="{Binding Unused}" ItemTemplate="{StaticResource AppTemplate}" />
+        </StackPanel>
+      </Border>
+
+      <Expander Header="Autres applications installées" HorizontalAlignment="Stretch">
+        <ItemsControl ItemsSource="{Binding Others}" ItemTemplate="{StaticResource AppTemplate}" />
+      </Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

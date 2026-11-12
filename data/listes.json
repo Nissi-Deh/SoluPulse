@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "date": "2026-11-12",
+  "firmwaresDangereux": [
+    {
+      "modele": "Samsung SSD 980 PRO",
+      "firmware": "3B2QGXA7",
+      "conseil": "Firmware 3B2QGXA7 : usure acc\u00E9l\u00E9r\u00E9e puis passage en lecture seule. Installez le firmware 5B2QGXA7 ou plus r\u00E9cent avec Samsung Magician."
+    },
+    {
+      "modele": "Samsung SSD 990 PRO",
+      "firmware": "0B2QJXD7",
+      "conseil": "Firmware 0B2QJXD7 : l\u0027\u00E9tat de sant\u00E9 chute rapidement. Installez le firmware 1B2QJXD7 ou plus r\u00E9cent avec Samsung Magician."
+    }
+  ],
+  "logicielsVulnerables": [
+    {
+      "nom": "WinRAR",
+      "versionCorrigee": "7.13",
+      "faille": "faille exploit\u00E9e par des pi\u00E8ces jointes pi\u00E9g\u00E9es (CVE-2025-8088)"
+    },
+    {
+      "nom": "7-Zip",
+      "versionCorrigee": "25.0",
+      "faille": "faille exploit\u00E9e par des archives pi\u00E9g\u00E9es (CVE-2025-11001)"
+    },
+    {
+      "nom": "VLC media player",
+      "versionCorrigee": "3.0.21",
+      "faille": "faille exploit\u00E9e par des vid\u00E9os pi\u00E9g\u00E9es (CVE-2024-46461)"
+    }
+  ],
+  "windows11": [
+    {
+      "build": 22000,
+      "famillePro": "2023-10-10",
+      "entreprise": "2024-10-08"
+    },
+    {
+      "build": 22621,
+      "famillePro": "2024-10-08",
+      "entreprise": "2025-10-14"
+    },
+    {
+      "build": 22631,
+      "famillePro": "2025-11-11",
+      "entreprise": "2026-11-10"
+    },
+    {
+      "build": 26100,
+      "famillePro": "2026-10-13",
+      "entreprise": "2027-10-12"
+    },
+    {
+      "build": 26200,
+      "famillePro": "2027-10-12",
+      "entreprise": "2028-10-10"
+    }
+  ]
+}

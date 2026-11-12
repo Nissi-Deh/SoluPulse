@@ -31,7 +31,7 @@ public sealed partial class AlertsViewModel(AgentClient client, MainViewModel ma
         Items.Clear();
         foreach (var alert in list.Alerts)
         {
-            Items.Add(new AlertItem(alert));
+            Items.Add(new AlertItem(alert) { SimpleMode = main.SimpleMode });
         }
 
         IsEmpty = Items.Count == 0;
@@ -46,7 +46,7 @@ public sealed partial class AlertsViewModel(AgentClient client, MainViewModel ma
         {
             try
             {
-                alert = new AlertItem(await client.Api.GetAlertAsync(new AlertRequest { Id = alertId }));
+                alert = new AlertItem(await client.Api.GetAlertAsync(new AlertRequest { Id = alertId })) { SimpleMode = main.SimpleMode };
                 Items.Insert(0, alert);
             }
             catch (Exception ex)

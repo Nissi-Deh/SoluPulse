@@ -28,6 +28,9 @@ internal sealed class AgentGrpcService(
     SnapshotService snapshots,
     EventHub events,
     AlertMapper mapper,
+    TechnicianLock technician,
+    WeeklySummaryService summaries,
+    UpdateService updates,
     IHostApplicationLifetime lifetime,
     ILogger<AgentGrpcService> logger) : AgentService.AgentServiceBase
 {
@@ -92,6 +95,12 @@ internal sealed class AgentGrpcService(
         var caller = authenticator.Authenticate(context);
         Guid? alertId = Guid.TryParse(request.AlertId, out var id) ? id : null;
         var parameters = request.Parameters.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+        var current = await settings.GetAsync(context.CancellationToken);
+        if (catalog.Contains(request.ActionId) && technician.IsTechnicianOnly(catalog.Get(request.ActionId).Descriptor))
+        {
+            RequireTechnician(request.TechnicianCode, current, caller, $"correction {request.ActionId}");
+        }
+
         var prepared = await GuardAsync(() => executor.PrepareAsync(request.ActionId, alertId, parameters, caller, context.CancellationToken));
         var card = new CorrectionCard
         {
@@ -208,6 +217,16 @@ internal sealed class AgentGrpcService(
     {
         var caller = authenticator.Authenticate(context);
         var unknown = request.ThresholdOverrides.Keys.Concat(request.ResetThresholds).Where(id => state.Engine.FindRule(id) is null).ToList();
+
+        // Mode simplifié : seuls les notifications et les captures restent libres.
+        var current = await settings.GetAsync(context.CancellationToken);
+        var advanced = request.HasDetailRetentionDays || request.HasInternetProbes || request.HasAutomaticCorrections
+            || request.ThresholdOverrides.Count > 0 || request.ResetThresholds.Count > 0;
+        if (current.SimpleMode && advanced)
+        {
+            RequireTechnician(request.TechnicianCode, current, caller, "réglages avancés");
+        }
+
         if (unknown.Count > 0)
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Règles inconnues : {string.Join(", ", unknown)}"));
@@ -226,6 +245,125 @@ internal sealed class AgentGrpcService(
         logger.LogInformation("Paramètres modifiés par {User}.", caller.UserName);
         await runner.EvaluateAsync(context.CancellationToken);
         return await SettingsReplyAsync(context.CancellationToken);
+    }
+
+    public override async Task<SettingsReply> SetSimpleMode(SimpleModeRequest request, ServerCallContext context)
+    {
+        var caller = authenticator.Authenticate(context);
+        var current = await settings.GetAsync(context.CancellationToken);
+        if (request.Enabled)
+        {
+            if (current.SimpleMode)
+            {
+                RequireTechnician(request.TechnicianCode, current, caller, "changement du code");
+            }
+            else if (!TechnicianLock.IsValidFormat(request.TechnicianCode))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Le code du technicien doit compter de 4 à 12 chiffres."));
+            }
+
+            await settings.SetSimpleModeAsync(true, TechnicianLock.Hash(request.TechnicianCode), context.CancellationToken);
+        }
+        else if (current.SimpleMode)
+        {
+            RequireTechnician(request.TechnicianCode, current, caller, "désactivation du mode simplifié");
+            await settings.SetSimpleModeAsync(false, null, context.CancellationToken);
+        }
+
+        await audit.AppendAsync(new Core.Audit.AuditEntry(DateTimeOffset.UtcNow, "Mode simplifié", null, null, null, "Utilisateur", caller.UserName, DateTimeOffset.UtcNow, request.Enabled ? "Activé" : "Désactivé", null), context.CancellationToken);
+        logger.LogInformation("Mode simplifié {State} par {User}.", request.Enabled ? "activé" : "désactivé", caller.UserName);
+        return await SettingsReplyAsync(context.CancellationToken);
+    }
+
+    public override async Task<WeeklySummaryReply> GetWeeklySummary(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        return await summaries.LatestAsync(context.CancellationToken) is { } summary
+            ? new WeeklySummaryReply { Available = true, CreatedAt = AlertMapper.Time(summary.CreatedAt), Title = summary.Title, Text = summary.Text }
+            : new WeeklySummaryReply { Available = false };
+    }
+
+    public override Task<UpdateInfo> GetUpdateInfo(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        return Task.FromResult(UpdateReply(null));
+    }
+
+    public override async Task<UpdateInfo> CheckUpdates(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        await updates.CheckAsync(context.CancellationToken);
+        return UpdateReply(null);
+    }
+
+    public override async Task<UpdateInfo> InstallUpdate(Empty request, ServerCallContext context)
+    {
+        var caller = authenticator.Authenticate(context);
+        var (_, message) = await GuardAsync(() => updates.InstallAsync(caller, context.CancellationToken));
+        return UpdateReply(message);
+    }
+
+    private UpdateInfo UpdateReply(string? message)
+    {
+        var state = updates.State;
+        return new UpdateInfo
+        {
+            Available = state.Available is not null,
+            Version = state.Available?.Version.ToString(3) ?? "",
+            PageUrl = state.Available?.PageUrl ?? "",
+            CanInstall = state.Available?.MsiUrl is not null,
+            Message = message ?? state.LastError ?? "",
+            Lists = state.ListsDescription,
+            CurrentVersion = UpdateService.Current.ToString(3),
+        };
+    }
+
+    public override async Task<Empty> RefreshApplications(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        if (runner.Collectors.FirstOrDefault(c => c.Name == Platform.Windows.Collectors.AppUsageCollector.CollectorName) is { } collector)
+        {
+            await runner.RunCollectorAsync(collector, waitIfRunning: true, context.CancellationToken);
+        }
+
+        return new Empty();
+    }
+
+    /// <summary>Les valeurs sont bornées : l'historique ne garde que des mesures plausibles.</summary>
+    public override async Task<Empty> RecordSpeedTest(SpeedTestResult request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        if (!Plausible(request.DownloadMbps, 100_000) || !Plausible(request.UploadMbps, 100_000) || !Plausible(request.LatencyMs, 60_000))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Résultat de test de débit invalide."));
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        await measurements.InsertAsync(
+        [
+            new Core.Measurement(now, "reseau.test_debit.descendant_mbps", request.DownloadMbps, "Mbit/s", "test_debit"),
+            new Core.Measurement(now, "reseau.test_debit.montant_mbps", request.UploadMbps, "Mbit/s", "test_debit"),
+            new Core.Measurement(now, "reseau.test_debit.latence_ms", request.LatencyMs, "ms", "test_debit"),
+        ], context.CancellationToken);
+        return new Empty();
+
+        static bool Plausible(double value, double max) => double.IsFinite(value) && value >= 0 && value <= max;
+    }
+
+    /// <summary>Refuse l'appel sans le bon code du technicien ; chaque refus est journalisé.</summary>
+    private void RequireTechnician(string? code, AgentSettings current, Core.Corrections.CallerIdentity caller, string what)
+    {
+        var check = technician.Verify(code, current.TechnicianCodeHash);
+        if (check == TechnicianCheck.Accepte)
+        {
+            return;
+        }
+
+        logger.LogWarning("Code du technicien refusé pour {What} ({User}) : {Check}.", what, caller.UserName, check);
+        var message = string.IsNullOrEmpty(code)
+            ? "Mode simplifié : cette opération est réservée à un technicien. Saisissez son code."
+            : TechnicianLock.Message(check);
+        throw new RpcException(new Status(StatusCode.PermissionDenied, message));
     }
 
     public override async Task<SnapshotList> ListSnapshots(Empty request, ServerCallContext context)
@@ -316,6 +454,7 @@ internal sealed class AgentGrpcService(
             Language = current.Language,
             AutomaticCorrections = current.AutomaticCorrections,
             WeeklySnapshots = current.WeeklySnapshots,
+            SimpleMode = current.SimpleMode,
         };
         reply.Thresholds.AddRange(state.Engine.Rules.OrderBy(r => r.Id, StringComparer.Ordinal).Select(r =>
         {

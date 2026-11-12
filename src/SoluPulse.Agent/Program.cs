@@ -69,7 +69,11 @@ builder.Services.AddSingleton<IExecutionJournal>(sp => sp.GetRequiredService<Exe
 builder.Services.AddSingleton<SqliteAuditLog>();
 builder.Services.AddSingleton<IAuditLog>(sp => sp.GetRequiredService<SqliteAuditLog>());
 
-builder.Services.AddSingleton<IEnumerable<ICollector>>(sp => WindowsPlatform.Collectors(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<NetworkProbeOptions>()));
+builder.Services.AddSingleton<IEnumerable<ICollector>>(sp =>
+[
+    .. WindowsPlatform.Collectors(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<NetworkProbeOptions>()),
+    new TrendCollector(sp.GetRequiredService<MeasurementStore>(), sp.GetRequiredService<TimeProvider>()),
+]);
 builder.Services.AddSingleton(_ => new ActionCatalog(WindowsPlatform.Actions()));
 builder.Services.AddSingleton<RestorePointService>();
 builder.Services.AddSingleton<IRestorePointService>(sp => sp.GetRequiredService<RestorePointService>());
@@ -79,6 +83,12 @@ builder.Services.AddSingleton<CorrectionExecutor>();
 builder.Services.AddSingleton<AgentState>();
 builder.Services.AddSingleton<EventHub>();
 builder.Services.AddSingleton<AlertMapper>();
+builder.Services.AddSingleton<TechnicianLock>();
+builder.Services.AddSingleton<WeeklySummaryService>();
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<UpdateService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<UpdateService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklySummaryService>());
 builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<DiagnosticRunner>();
 builder.Services.AddSingleton<CallerAuthenticator>();

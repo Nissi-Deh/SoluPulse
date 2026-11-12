@@ -129,7 +129,10 @@ public sealed class RestorePointService : IRestorePointService, IDisposable
     public static RestorePointInfo? Latest() => List() is { Count: > 0 } points ? points[0] : null;
 
     /// <summary>Points de restauration présents sur le PC, du plus récent au plus ancien.</summary>
-    public static IReadOnlyList<RestorePointInfo> List()
+    public static IReadOnlyList<RestorePointInfo> List() => TryList() ?? [];
+
+    /// <summary>Comme <see cref="List"/>, mais <c>null</c> si la lecture échoue : « aucun point » et « illisible » ne se confondent pas.</summary>
+    public static IReadOnlyList<RestorePointInfo>? TryList()
     {
         try
         {
@@ -149,8 +152,8 @@ public sealed class RestorePointService : IRestorePointService, IDisposable
         }
         catch (ManagementException)
         {
-            // Protection du système désactivée partout : la classe ne renvoie rien ou échoue.
-            return [];
+            // Protection du système désactivée partout, ou droits insuffisants : la classe échoue.
+            return null;
         }
     }
 

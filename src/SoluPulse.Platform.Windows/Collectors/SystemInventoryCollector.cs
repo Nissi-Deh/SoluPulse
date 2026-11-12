@@ -22,8 +22,6 @@ public sealed class SystemInventoryCollector(TimeProvider timeProvider) : IColle
     private static readonly HashSet<uint> NormalExitCodes = [0, 1077];
 
     // Codes du gestionnaire de périphériques à ignorer : 22 désactivé par l'utilisateur, 45 non connecté.
-    private static readonly HashSet<uint> IgnoredDeviceErrors = [22, 45];
-
     public string Name => "inventaire";
 
     public TimeSpan Interval => TimeSpan.FromHours(1);
@@ -93,12 +91,17 @@ public sealed class SystemInventoryCollector(TimeProvider timeProvider) : IColle
 
         result.Try("pilotes", () =>
         {
-            var devices = Wmi.Query(@"\\.\root\cimv2", "SELECT Name, DeviceID, ConfigManagerErrorCode FROM Win32_PnPEntity WHERE ConfigManagerErrorCode <> 0")
-                .Select(d => new { Nom = Wmi.Get<string>(d, "Name") ?? Wmi.Get<string>(d, "DeviceID") ?? "?", Code = Wmi.Get<uint>(d, "ConfigManagerErrorCode") })
-                .Where(d => !IgnoredDeviceErrors.Contains(d.Code))
-                .ToList();
+            var devices = DeviceProblems.InError();
             result.Add("systeme.pilotes_en_erreur", devices.Count, "");
-            result.Snapshot("peripheriques_en_erreur", devices);
+            result.Snapshot("peripheriques_en_erreur", devices.Select(d => new
+            {
+                Nom = d.Name,
+                d.Code,
+                Probleme = d.Explanation,
+                Conseil = d.Advice,
+                Fabricant = d.Vendor,
+                Type = d.DeviceClass,
+            }));
         });
 
         result.Try("redemarrage", () =>

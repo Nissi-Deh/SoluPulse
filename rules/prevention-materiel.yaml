@@ -1,0 +1,438 @@
+# Règles de prévention du domaine matériel : signes avant-coureurs des pannes de disque, de
+# refroidissement, d'alimentation et de composants. Format : voir docs/regles.md.
+regles:
+  # --- Disques -------------------------------------------------------------------------------
+  - id: HW-NVME-001
+    domaine: materiel
+    titre: Le SSD signale lui-même un état critique
+    gravite: critique
+    condition:
+      metrique: disque_physique.*.avertissement_critique
+      operateur: ">="
+      seuil: 1
+    cause_probable: Réserve épuisée, surchauffe, mémoire du SSD défaillante ou passage en lecture seule
+    explication_simple: >
+      Le SSD déclare lui-même un problème grave. Il peut cesser de fonctionner ou bloquer
+      l'écriture à tout moment. Sauvegardez vos fichiers maintenant.
+    explication_technique: Champ Critical Warning de la page de santé NVMe (log 02h) avec réserve épuisée, fiabilité dégradée, lecture seule ou sauvegarde de la mémoire volatile en échec (le bit de température, passager, est écarté).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-NVME-002
+    domaine: materiel
+    titre: Réserve du SSD entamée
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.reserve_pct
+      operateur: "<"
+      seuil: 50
+      hysteresis: 5
+    cause_probable: Cellules de mémoire usées, remplacées par la réserve du SSD
+    explication_simple: >
+      Le SSD a déjà utilisé plus de la moitié de ses cellules de secours. Quand la réserve sera
+      vide, il passera en lecture seule ou s'arrêtera. Prévoyez son remplacement.
+    explication_technique: Available Spare de la page de santé NVMe sous 50 %.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-NVME-003
+    domaine: materiel
+    titre: Nouvelles erreurs de données sur le SSD
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.erreurs_media_hausse_30j
+      operateur: ">="
+      seuil: 1
+    cause_probable: Mémoire du SSD qui se dégrade
+    explication_simple: >
+      Le SSD n'a pas réussi à relire correctement des données ce mois-ci. Ces erreurs annoncent
+      souvent une panne. Sauvegardez vos fichiers et surveillez le disque.
+    explication_technique: Media and Data Integrity Errors (page de santé NVMe) en hausse sur 30 jours.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-NVME-004
+    domaine: materiel
+    titre: Le SSD a déjà eu des erreurs de données
+    gravite: information
+    condition:
+      metrique: disque_physique.*.erreurs_media
+      operateur: ">"
+      seuil: 0
+    cause_probable: Erreurs passées de la mémoire du SSD, peut-être après des coupures de courant
+    explication_simple: >
+      Au cours de sa vie, ce SSD n'a pas réussi à relire certaines données. Si le nombre
+      n'augmente plus, ce n'est pas urgent ; SoluPulse vous préviendra s'il augmente.
+    explication_technique: Media and Data Integrity Errors (page de santé NVMe) supérieur à 0.
+    corrections: [ACT-HW-GUIDE-BACKUP]
+
+  - id: HW-SMART-004
+    domaine: materiel
+    titre: Les secteurs défectueux augmentent
+    gravite: critique
+    conditions:
+      au_moins_un:
+        - { metrique: disque_physique.*.secteurs_realloues_hausse_30j, operateur: ">=", seuil: 1 }
+        - { metrique: disque_physique.*.secteurs_en_attente_hausse_30j, operateur: ">=", seuil: 1 }
+        - { metrique: disque_physique.*.secteurs_irrecuperables_hausse_30j, operateur: ">=", seuil: 1 }
+    cause_probable: Surface du disque qui se dégrade
+    explication_simple: >
+      Le nombre de secteurs abîmés du disque augmente ce mois-ci. Un disque dans cet état tombe
+      souvent en panne dans les semaines qui suivent. Sauvegardez vos fichiers sans attendre.
+    explication_technique: Attributs SMART 5, 197 ou 198 en hausse sur 30 jours (suivi de tendance).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]
+
+  - id: HW-SMART-005
+    domaine: materiel
+    titre: Nouvelles erreurs de lecture non corrigées sur le disque
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.erreurs_non_corrigees_hausse_30j
+      operateur: ">="
+      seuil: 1
+    cause_probable: Données illisibles sur le disque
+    explication_simple: >
+      Ce mois-ci, le disque n'a pas réussi à lire certaines données, même en réessayant. Des
+      fichiers ont pu être abîmés. Sauvegardez vos fichiers importants.
+    explication_technique: Attribut SMART 187 (Reported Uncorrectable Errors) en hausse sur 30 jours.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK, ACT-SYS-CHKDSK]
+
+  - id: HW-SMART-006
+    domaine: materiel
+    titre: Erreurs de câble sur le disque
+    gravite: attention
+    condition:
+      metrique: disque_physique.*.erreurs_cable_hausse_30j
+      operateur: ">="
+      seuil: 5
+    cause_probable: Câble SATA abîmé ou mal branché
+    explication_simple: >
+      Des données ont été mal transmises entre le disque et le PC ce mois-ci. Le disque va bien :
+      c'est presque toujours le câble. Des fichiers peuvent être abîmés tant qu'il n'est pas changé.
+    explication_technique: Attribut SMART 199 (UltraDMA CRC Error Count) en hausse d'au moins 5 sur 30 jours (quelques erreurs isolées arrivent au branchement).
+    corrections: [ACT-HW-GUIDE-SATA-CABLE]
+
+  - id: HW-FW-001
+    domaine: materiel
+    titre: Firmware du disque connu comme dangereux
+    gravite: critique
+    condition:
+      metrique: disque_physique.*.firmware_a_risque
+      operateur: ">="
+      seuil: 1
+    cause_probable: Défaut du firmware reconnu par le fabricant
+    explication_simple: >
+      Ce disque utilise une version de firmware qui l'abîme ou le fait tomber en panne. Le
+      fabricant a publié une correction : installez-la après avoir sauvegardé vos fichiers.
+    explication_technique: Couple modèle et firmware présent dans la liste des firmwares défectueux de SoluPulse.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-FIRMWARE]
+
+  - id: HW-DISK-RESET-001
+    domaine: materiel
+    titre: Le disque ne répond plus par moments
+    gravite: attention
+    condition:
+      metrique: evenements.resets_disque_24h
+      operateur: ">="
+      seuil: 5
+    cause_probable: Disque fatigué, câble ou connecteur défaillant, pilote de stockage
+    explication_simple: >
+      Windows a dû relancer plusieurs fois la communication avec le disque aujourd'hui. Le PC
+      se fige alors quelques secondes. C'est souvent le début d'une panne.
+    explication_technique: Au moins 5 événements 129 (reset du périphérique) des pilotes de stockage en 24 heures.
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-SATA-CABLE, ACT-HW-GUIDE-DISK]
+
+  - id: HW-DISK-FILL-001
+    domaine: materiel
+    titre: "Le disque C: se remplit vite"
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: disque.systeme.jours_avant_plein, operateur: "<", seuil: 14, hysteresis: 7 }
+        - { metrique: disque.systeme.espace_libre_pct, operateur: "<", seuil: 20 }
+    cause_probable: Téléchargements, caches ou fichiers qui s'accumulent
+    explication_simple: >
+      Au rythme actuel, le disque C: sera plein dans moins de deux semaines. Windows ne pourra
+      plus se mettre à jour et le PC ralentira. La page « Mon PC » montre ce qui prend de la place.
+    explication_technique: Projection linéaire de l'espace libre sur 14 jours d'historique (au moins 7 jours mesurés), avec moins de 20 % d'espace libre.
+    corrections: [ACT-DISK-MOVE-FOLDER, ACT-DISK-LARGE-FILES, ACT-CLEAN-DEV-CACHES, ACT-CLEAN-TEMP, ACT-CLEAN-RECYCLE-BIN]
+
+  - id: HW-DISK-HDD-001
+    domaine: materiel
+    titre: Windows est installé sur un disque dur classique
+    gravite: information
+    condition:
+      metrique: disque.systeme.disque_dur_classique
+      operateur: "=="
+      seuil: 1
+    cause_probable: Disque à plateaux, lent et sensible aux chocs
+    explication_simple: >
+      Windows tourne sur un disque dur à plateaux. C'est la première cause de lenteur des PC de
+      plus de 5 ans. Un SSD rendrait le PC plusieurs fois plus rapide.
+    explication_technique: Le volume système est sur un disque de MediaType 3 (HDD).
+    corrections: [ACT-HW-GUIDE-SSD]
+
+  # --- Refroidissement -----------------------------------------------------------------------
+  - id: HW-CPU-003
+    domaine: materiel
+    titre: Le processeur chauffe plus qu'avant
+    gravite: attention
+    condition:
+      metrique: cpu.temperature_repos_hausse_c
+      operateur: ">="
+      seuil: 10
+      hysteresis: 3
+    cause_probable: Poussière dans le ventilateur ou les grilles, pâte thermique qui sèche
+    explication_simple: >
+      Même au repos, le processeur est bien plus chaud qu'il y a un ou deux mois. La poussière
+      s'accumule probablement : un nettoyage évitera les ralentissements et les arrêts.
+    explication_technique: Température du processeur au repos (charge sous 15 %) sur 7 jours supérieure d'au moins 10 °C à celle d'il y a 30 à 90 jours.
+    corrections: [ACT-HW-GUIDE-COOLING]
+
+  - id: HW-CPU-004
+    domaine: materiel
+    titre: Le processeur chauffe sans rien faire
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: cpu.temperature_repos_c, operateur: ">", seuil: 85, duree_min: 15m, hysteresis: 5 }
+        - { metrique: cpu.utilisation_pct, operateur: "<", seuil: 25 }
+    cause_probable: Grilles bouchées (portable sur un lit, poussière), ventilateur faible, pâte thermique sèche
+    explication_simple: >
+      Le processeur est très chaud alors qu'il travaille peu. L'air ne circule pas : posez le
+      portable sur une surface dure, nettoyez les grilles, ou faites changer la pâte thermique.
+    explication_technique: Température du processeur au repos (charge sous 15 %) au-dessus de 85 °C pendant 15 minutes.
+    corrections: [ACT-HW-GUIDE-COOLING]
+
+  - id: HW-CPU-005
+    domaine: materiel
+    titre: Le processeur est bridé
+    gravite: attention
+    condition:
+      metrique: evenements.processeur_bride_minutes_7j
+      operateur: ">="
+      seuil: 60
+    cause_probable: Surchauffe, chargeur trop faible ou batterie usée
+    explication_simple: >
+      Cette semaine, le PC a réduit lui-même la vitesse du processeur pendant plus d'une heure :
+      c'est pour cela qu'il « rame » sans raison. La chaleur ou un chargeur trop faible en sont la
+      cause habituelle.
+    explication_technique: Au moins 60 minutes de bridage cumulées (CapDurationInSeconds des événements Kernel-Processor-Power 37) en 7 jours.
+    corrections: [ACT-HW-GUIDE-COOLING, ACT-HW-GUIDE-CHARGER]
+
+  - id: HW-CPU-006
+    domaine: materiel
+    titre: Processeur Intel exposé à une dégradation irréversible
+    gravite: critique
+    condition:
+      metrique: cpu.microcode_instable
+      operateur: "=="
+      seuil: 1
+    cause_probable: Microcode antérieur au correctif 0x12B d'Intel
+    explication_simple: >
+      Ce processeur Intel de 13e ou 14e génération s'abîme peu à peu sans une mise à jour du
+      BIOS. Les dégâts déjà faits ne se réparent pas : installez la mise à jour du BIOS maintenant.
+    explication_technique: Processeur de bureau Raptor Lake (i5-13600 et plus) avec un microcode inférieur à 0x12B, ou BIOS antérieur à septembre 2024.
+    corrections: [ACT-HW-GUIDE-BIOS]
+
+  # --- Électricité ---------------------------------------------------------------------------
+  - id: HW-PSU-001
+    domaine: materiel
+    titre: Tension de l'alimentation hors tolérance
+    gravite: attention
+    condition:
+      metrique: alimentation.*.ecart_pct
+      operateur: ">"
+      seuil: 8
+      duree_min: 10m
+      hysteresis: 1
+    cause_probable: Bloc d'alimentation qui faiblit
+    explication_simple: >
+      Une tension fournie par l'alimentation du PC s'écarte de la normale. Un bloc qui faiblit
+      provoque des redémarrages et peut griller en abîmant d'autres pièces.
+    explication_technique: Rail 12 V, 5 V ou 3,3 V à plus de 8 % de sa valeur nominale pendant 10 minutes (tolérance ATX de 5 %, plus la marge d'erreur des capteurs).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-POWER-SUPPLY]
+
+  - id: HW-UPS-001
+    domaine: materiel
+    titre: Batterie de l'onduleur usée
+    gravite: attention
+    condition:
+      metrique: onduleur.sante_pct
+      operateur: "<"
+      seuil: 60
+      hysteresis: 5
+    cause_probable: Batterie de l'onduleur en fin de vie
+    explication_simple: >
+      La batterie de l'onduleur a perdu une grande partie de sa capacité. À la prochaine
+      coupure, il risque de ne pas tenir le temps d'éteindre le PC.
+    explication_technique: Capacité à pleine charge de l'onduleur USB sous 60 % de sa capacité d'origine.
+    corrections: [ACT-HW-GUIDE-UPS-BATTERY]
+
+  - id: HW-UPS-002
+    domaine: materiel
+    titre: L'onduleur ne tiendrait que quelques minutes
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: onduleur.autonomie_min, operateur: "<", seuil: 3, duree_min: 30m }
+        - { metrique: onduleur.charge_pct, operateur: ">=", seuil: 95 }
+    cause_probable: Batterie de l'onduleur usée ou onduleur trop chargé
+    explication_simple: >
+      Même chargé à fond, l'onduleur annonce moins de 3 minutes d'autonomie. Faites changer sa
+      batterie, ou débranchez de l'onduleur les appareils qui n'en ont pas besoin.
+    explication_technique: EstimatedRunTime de Win32_Battery inférieur à 3 minutes pendant 30 minutes avec une charge d'au moins 95 %.
+    corrections: [ACT-HW-GUIDE-UPS-BATTERY]
+
+  - id: HW-POWER-001
+    domaine: materiel
+    titre: Coupures de courant répétées sans onduleur
+    gravite: attention
+    conditions:
+      tous:
+        - { metrique: evenements.coupures_courant_30j, operateur: ">=", seuil: 4 }
+        - { metrique: onduleur.present, operateur: "==", seuil: 0 }
+    cause_probable: Délestages et coupures du réseau électrique
+    explication_simple: >
+      Ce PC s'est éteint brutalement plusieurs fois ce mois-ci. Chaque coupure peut abîmer Windows,
+      vos fichiers ou le disque. Un onduleur le protégerait.
+    explication_technique: Au moins 4 arrêts brutaux (Kernel-Power 41) sans écran bleu ni appui long sur le bouton d'alimentation en 30 jours, sur un PC fixe sans onduleur détecté.
+    corrections: [ACT-HW-GUIDE-UPS, ACT-SYS-CHKDSK]
+
+  - id: HW-CHARGER-001
+    domaine: materiel
+    titre: Le portable passe sans arrêt du secteur à la batterie
+    gravite: attention
+    condition:
+      metrique: evenements.changements_alimentation_24h
+      operateur: ">="
+      seuil: 30
+    cause_probable: Câble du chargeur, prise ou connecteur de charge abîmé
+    explication_simple: >
+      Le portable a basculé de nombreuses fois entre le chargeur et la batterie aujourd'hui. Le
+      chargeur ou sa prise est sans doute abîmé, ce qui use aussi la batterie.
+    explication_technique: Au moins 30 événements Kernel-Power 105 (changement de source d'alimentation) en 24 heures.
+    corrections: [ACT-HW-GUIDE-CHARGER]
+
+  - id: HW-CMOS-001
+    domaine: materiel
+    titre: L'horloge du PC se dérègle
+    gravite: attention
+    conditions:
+      au_moins_un:
+        - { metrique: evenements.corrections_horloge_30j, operateur: ">=", seuil: 2 }
+        - { metrique: systeme.horloge_dans_le_passe, operateur: ">=", seuil: 1 }
+    cause_probable: Pile de la carte mère usée
+    explication_simple: >
+      L'heure du PC est fausse au démarrage et Windows doit la corriger. La petite pile de la carte
+      mère est usée. Avec une heure fausse, les sites sécurisés refusent de s'ouvrir.
+    explication_technique: Au moins 2 corrections d'horloge d'un jour ou plus (Kernel-General 1, hors réveil) en 30 jours, ou horloge antérieure à l'installation de SoluPulse.
+    corrections: [ACT-HW-GUIDE-CMOS]
+
+  # --- Batterie ------------------------------------------------------------------------------
+  - id: HW-BAT-003
+    domaine: materiel
+    titre: Batterie gardée pleine en permanence
+    gravite: information
+    condition:
+      metrique: batterie.temps_a_100_pct
+      operateur: ">="
+      seuil: 80
+      hysteresis: 10
+    cause_probable: Portable branché en permanence
+    explication_simple: >
+      Le portable reste branché à 100 % presque tout le temps. Une batterie gardée pleine et au
+      chaud s'use plus vite et peut gonfler. La plupart des fabricants proposent une limite de charge.
+    explication_technique: Charge d'au moins 97 % pendant 80 % du temps sur les 14 derniers jours.
+    corrections: [ACT-HW-GUIDE-CHARGE-LIMIT]
+
+  # --- Composants ----------------------------------------------------------------------------
+  - id: HW-RAM-002
+    domaine: materiel
+    titre: Écrans bleus liés à la mémoire vive
+    gravite: critique
+    condition:
+      metrique: ecrans_bleus.memoire_30j
+      operateur: ">="
+      seuil: 2
+    cause_probable: Barrette de mémoire défectueuse ou réglage XMP instable
+    explication_simple: >
+      Plusieurs écrans bleus de ce mois-ci désignent la mémoire vive. Une barrette défectueuse
+      fait planter le PC au hasard et peut abîmer des fichiers : lancez un test de la mémoire.
+    explication_technique: Au moins 2 BugCheck 0x1A, 0x4E ou 0x12B en 30 jours.
+    corrections: [ACT-HW-GUIDE-MEMTEST]
+
+  - id: HW-WHEA-001
+    domaine: materiel
+    titre: Un composant signale des erreurs matérielles
+    gravite: attention
+    conditions:
+      au_moins_un:
+        - { metrique: evenements.erreurs_materiel_30j, operateur: ">=", seuil: 5 }
+        - { metrique: ecrans_bleus.materiel_30j, operateur: ">=", seuil: 1 }
+    cause_probable: Processeur, mémoire ou carte mère instable, souvent après un overclocking
+    explication_simple: >
+      Le processeur ou la carte mère signale des erreurs matérielles. Elles augmentent souvent
+      avant une panne. Désactivez tout overclocking, mettez à jour le BIOS et vérifiez la chaleur.
+    explication_technique: Au moins 5 événements WHEA-Logger 1, 18, 19 ou 47 en 30 jours (les erreurs PCI Express corrigées, 17, sont écartées), ou un BugCheck 0x124, 0x9C ou 0x101.
+    corrections: [ACT-HW-GUIDE-BIOS, ACT-HW-GUIDE-COOLING, ACT-HW-GUIDE-MEMTEST]
+
+  - id: HW-GPU-002
+    domaine: materiel
+    titre: Le pilote graphique plante
+    gravite: attention
+    conditions:
+      au_moins_un:
+        - { metrique: evenements.pilote_graphique_7j, operateur: ">=", seuil: 3 }
+        - { metrique: ecrans_bleus.graphique_30j, operateur: ">=", seuil: 1 }
+    cause_probable: Pilote graphique défectueux ou carte graphique qui chauffe
+    explication_simple: >
+      L'affichage s'est bloqué plusieurs fois et Windows a dû relancer le pilote graphique.
+      Mettez le pilote à jour et vérifiez que la carte graphique ne chauffe pas.
+    explication_technique: Au moins 3 événements Display 4101 en 7 jours, ou un BugCheck 0x116, 0x117, 0x119, 0x10E ou 0x141.
+    corrections: [ACT-HW-GUIDE-GPU-DRIVER, ACT-HW-GUIDE-COOLING]
+
+  - id: HW-BIOS-001
+    domaine: materiel
+    titre: BIOS jamais mis à jour
+    gravite: information
+    condition:
+      metrique: materiel.bios_age_jours
+      operateur: ">"
+      seuil: 1460
+    cause_probable: Mise à jour du BIOS jamais installée
+    explication_simple: >
+      Le BIOS du PC a plus de 4 ans. Les fabricants y corrigent des failles et des défauts qui
+      peuvent abîmer le matériel. Vérifiez sur le site du fabricant s'il existe une version récente.
+    explication_technique: Date de publication du BIOS (Win32_BIOS.ReleaseDate) de plus de 1460 jours.
+    corrections: [ACT-HW-GUIDE-BIOS]
+
+  # --- Prévisions ----------------------------------------------------------------------------
+  - id: HW-BAT-004
+    domaine: materiel
+    titre: La batterie sera à remplacer d'ici trois mois
+    gravite: information
+    condition:
+      metrique: batterie.jours_avant_remplacement
+      operateur: "<"
+      seuil: 90
+      hysteresis: 30
+    cause_probable: Usure normale de la batterie
+    explication_simple: >
+      Au rythme où elle s'use, la batterie passera sous 60 % de sa capacité d'origine dans moins
+      de trois mois. Prévoyez son remplacement, surtout si vous travaillez souvent sans chargeur.
+    explication_technique: Projection linéaire de batterie.sante_pct sur 6 mois d'historique (au moins un mois mesuré).
+    corrections: [ACT-HW-GUIDE-BATTERY]
+
+  - id: HW-SSD-002
+    domaine: materiel
+    titre: Le SSD sera usé d'ici six mois
+    gravite: information
+    condition:
+      metrique: disque_physique.*.jours_avant_usure_totale
+      operateur: "<"
+      seuil: 180
+      hysteresis: 30
+    cause_probable: Écritures intensives sur le SSD
+    explication_simple: >
+      Au rythme actuel, le SSD atteindra la fin de sa durée de vie prévue dans moins de six mois.
+      Sauvegardez vos fichiers et prévoyez son remplacement.
+    explication_technique: Projection linéaire de l'usure (Percentage Used) sur 6 mois d'historique (au moins un mois mesuré).
+    corrections: [ACT-HW-GUIDE-BACKUP, ACT-HW-GUIDE-DISK]

@@ -14,6 +14,9 @@
     <DataTemplate DataType="vm:DashboardViewModel"><v:DashboardView /></DataTemplate>
     <DataTemplate DataType="vm:ComputerViewModel"><v:ComputerView /></DataTemplate>
     <DataTemplate DataType="vm:AlertsViewModel"><v:AlertsView /></DataTemplate>
+    <DataTemplate DataType="vm:NetworkViewModel"><v:NetworkView /></DataTemplate>
+    <DataTemplate DataType="vm:DeviceTestsViewModel"><v:DeviceTestsView /></DataTemplate>
+    <DataTemplate DataType="vm:AppsViewModel"><v:AppsView /></DataTemplate>
     <DataTemplate DataType="vm:HistoryViewModel"><v:HistoryView /></DataTemplate>
     <DataTemplate DataType="vm:JournalViewModel"><v:JournalView /></DataTemplate>
     <DataTemplate DataType="vm:InventoryViewModel"><v:InventoryView /></DataTemplate>

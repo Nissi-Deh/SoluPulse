@@ -22,6 +22,12 @@ public static class WindowsPlatform
         new SecurityCollector(timeProvider),
         new HardwareInventoryCollector(timeProvider),
         new DiskUsageCollector(timeProvider),
+        new ResilienceCollector(timeProvider),
+        new ThreatCollector(timeProvider),
+        new ProcessActivityCollector(timeProvider),
+        new UsbScanCollector(timeProvider),
+        new RansomwareCollector(timeProvider),
+        new AppUsageCollector(timeProvider),
     ];
 
     public static IReadOnlyList<ISystemAction> Actions() =>
@@ -42,6 +48,9 @@ public static class WindowsPlatform
         new DisableHibernationAction(),
         new DockerDiskGuide(),
         new EnableSystemProtectionAction(),
+        new EnableRecoveryEnvironmentAction(),
+        new RescanDevicesAction(),
+        new InstallDriverAction(),
         new SystemFileCheckAction(),
         new DismRestoreHealthAction(),
         new ScheduleChkdskAction(),
@@ -56,7 +65,10 @@ public static class WindowsPlatform
         new EnableFirewallAction(),
         new UpdateDefenderSignaturesAction(),
         new DefenderQuickScanAction(),
+        new DisableRemoteDesktopAction(),
+        new CleanUsbDriveAction(),
         .. HardwareGuides.All,
         .. SecurityGuides.All,
+        .. PreventionGuides.All,
     ];
 }

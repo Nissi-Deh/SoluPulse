@@ -173,10 +173,18 @@ public sealed partial class InventoryViewModel(AgentClient client) : PageViewMod
         ["disques"] = "Disques",
         ["volumes"] = "Volumes",
         ["batterie"] = "Batterie",
+        ["onduleur"] = "Onduleur",
+        ["protection"] = "Protection, sauvegardes et fins de support",
+        ["menaces"] = "Points de vigilance de sécurité",
+        ["programmes_actifs"] = "Programmes suspects ou gourmands",
+        ["ecrans_bleus"] = "Écrans bleus des 30 derniers jours",
+        ["echecs_mises_a_jour"] = "Mises à jour en échec",
+        ["cles_usb"] = "Clés USB branchées",
+        ["rancongiciel"] = "Surveillance des rançongiciels",
     };
 
     // Affichés sous forme de fiches sur la page « Mon PC ».
-    private static readonly HashSet<string> ShownOnComputerPage = new(StringComparer.Ordinal) { "materiel", "securite", "capteurs" };
+    private static readonly HashSet<string> ShownOnComputerPage = new(StringComparer.Ordinal) { "materiel", "securite", "capteurs", "applications" };
 
     public override string Title => "Inventaire système";
 
@@ -389,7 +397,105 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
     [ObservableProperty]
     private string _message = "";
 
-    public override Task RefreshAsync() => RunAsync(async () => Apply(await client.Api.GetSettingsAsync(AgentClient.Empty)));
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SimpleModeText))]
+    private bool _simpleMode;
+
+    /// <summary>Code saisi : nouveau code pour activer, code actuel pour désactiver ou pour les réglages avancés.</summary>
+    [ObservableProperty]
+    private string _technicianCode = "";
+
+    [ObservableProperty]
+    private string _technicianCodeConfirm = "";
+
+    public string SimpleModeText => SimpleMode
+        ? "Mode simplifié actif : les explications techniques sont masquées, et les corrections à risque comme les réglages avancés demandent le code du technicien."
+        : "Pour le PC d'un proche peu à l'aise avec l'informatique : SoluPulse continue de surveiller et de prévenir, mais seules les corrections sans risque restent accessibles. Le technicien choisit un code de 4 à 12 chiffres.";
+
+    public IReadOnlyList<string> Languages { get; } = ["Français", "English"];
+
+    [ObservableProperty]
+    private string _language = Services.Loc.English ? "English" : "Français";
+
+    [ObservableProperty]
+    private string _languageMessage = "";
+
+    partial void OnLanguageChanged(string value)
+    {
+        var code = value == "English" ? "en" : "fr";
+        Services.Loc.Save(code);
+        LanguageMessage = code == Services.Loc.Language ? "" : "Redémarrez SoluPulse pour changer de langue. / Restart SoluPulse to change the language.";
+    }
+
+    [ObservableProperty]
+    private string _updateText = "";
+
+    [ObservableProperty]
+    private string _listsText = "";
+
+    [ObservableProperty]
+    private bool _updateAvailable;
+
+    [ObservableProperty]
+    private bool _canInstallUpdate;
+
+    private string _updatePage = "";
+
+    public override Task RefreshAsync() => RunAsync(async () =>
+    {
+        Apply(await client.Api.GetSettingsAsync(AgentClient.Empty));
+        ApplyUpdate(await client.Api.GetUpdateInfoAsync(AgentClient.Empty));
+    });
+
+    [RelayCommand]
+    private Task CheckUpdatesAsync() => RunAsync(async () =>
+    {
+        UpdateText = "Vérification…";
+        ApplyUpdate(await client.Api.CheckUpdatesAsync(AgentClient.Empty, deadline: DateTime.UtcNow.AddMinutes(2)));
+    });
+
+    [RelayCommand]
+    private Task InstallUpdateAsync() => RunAsync(async () =>
+    {
+        UpdateText = "Téléchargement et vérification de la signature…";
+        ApplyUpdate(await client.Api.InstallUpdateAsync(AgentClient.Empty, deadline: DateTime.UtcNow.AddMinutes(15)));
+    });
+
+    [RelayCommand]
+    private void OpenUpdatePage()
+    {
+        if (_updatePage.StartsWith("https://github.com/", StringComparison.Ordinal))
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_updatePage) { UseShellExecute = true })?.Dispose();
+        }
+    }
+
+    private void ApplyUpdate(UpdateInfo info)
+    {
+        UpdateAvailable = info.Available;
+        CanInstallUpdate = info.Available && info.CanInstall;
+        _updatePage = info.PageUrl;
+        ListsText = info.Lists;
+        UpdateText = (info.Available
+            ? $"Version {info.Version} disponible (installée : {info.CurrentVersion})."
+            : $"SoluPulse {info.CurrentVersion} est à jour.")
+            + (info.Message.Length > 0 ? $" {info.Message}" : "");
+    }
+
+    [RelayCommand]
+    private Task ToggleSimpleModeAsync() => RunAsync(async () =>
+    {
+        var code = TechnicianCode.Trim();
+        if (!SimpleMode && code != TechnicianCodeConfirm.Trim())
+        {
+            throw new FormatException("Les deux codes ne sont pas identiques.");
+        }
+
+        Apply(await client.Api.SetSimpleModeAsync(new SimpleModeRequest { Enabled = !SimpleMode, TechnicianCode = code }));
+        TechnicianCode = "";
+        TechnicianCodeConfirm = "";
+        Message = SimpleMode ? "Mode simplifié activé. Notez le code du technicien en lieu sûr." : "Mode simplifié désactivé.";
+    });
 
     [RelayCommand]
     private Task SaveAsync() => RunAsync(async () =>
@@ -398,10 +504,20 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         {
             NotificationsEnabled = NotificationsEnabled,
             NotificationMinSeverity = MinSeverity,
-            DetailRetentionDays = (int)RetentionDays,
-            InternetProbes = InternetProbes,
-            AutomaticCorrections = AutomaticCorrections,
+            TechnicianCode = TechnicianCode.Trim(),
         };
+
+        // En mode simplifié, sans le code du technicien, seuls les notifications sont enregistrées.
+        if (SimpleMode && update.TechnicianCode.Length == 0)
+        {
+            Apply(await client.Api.UpdateSettingsAsync(update));
+            Message = "Notifications enregistrées. Les autres réglages demandent le code du technicien.";
+            return;
+        }
+
+        update.DetailRetentionDays = (int)RetentionDays;
+        update.InternetProbes = InternetProbes;
+        update.AutomaticCorrections = AutomaticCorrections;
         foreach (var threshold in Thresholds)
         {
             var text = threshold.OverrideText.Trim().Replace(',', '.');
@@ -431,6 +547,7 @@ public sealed partial class SettingsViewModel(AgentClient client, MainViewModel 
         RetentionDays = settings.DetailRetentionDays;
         InternetProbes = settings.InternetProbes;
         AutomaticCorrections = settings.AutomaticCorrections;
+        SimpleMode = settings.SimpleMode;
         Thresholds.Clear();
         foreach (var threshold in settings.Thresholds)
         {

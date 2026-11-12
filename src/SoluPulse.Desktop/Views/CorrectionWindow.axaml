@@ -46,6 +46,17 @@
         </Grid>
         <TextBlock Text="{Binding RestorePointText}" IsVisible="{Binding HasRestorePoint}" TextWrapping="Wrap" FontWeight="SemiBold" />
 
+        <Border Classes="card" Padding="16" IsVisible="{Binding Locked}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Réservé au technicien" FontWeight="SemiBold" />
+            <TextBlock TextWrapping="Wrap" Text="Ce PC est en mode simplifié : les corrections qui modifient Windows avec un risque ne peuvent être lancées que par le technicien. Demandez-lui de saisir son code." />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBox Text="{Binding TechnicianCode}" PasswordChar="•" Watermark="Code du technicien" Width="200" />
+              <Button Content="Déverrouiller" Command="{Binding UnlockCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
         <ItemsControl ItemsSource="{Binding Parameters}" IsVisible="{Binding HasParameters}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ParameterItem">
