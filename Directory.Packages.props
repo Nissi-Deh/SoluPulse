@@ -5,7 +5,7 @@
   <ItemGroup>
     <!-- Cœur et stockage -->
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="11.0.0" />
     <PackageVersion Include="Dapper" Version="2.1.89" />
     <!-- Service -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
