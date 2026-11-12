@@ -48,6 +48,8 @@ public static class WindowsPlatform
         new DockerDiskGuide(),
         new EnableSystemProtectionAction(),
         new EnableRecoveryEnvironmentAction(),
+        new RescanDevicesAction(),
+        new InstallDriverAction(),
         new SystemFileCheckAction(),
         new DismRestoreHealthAction(),
         new ScheduleChkdskAction(),

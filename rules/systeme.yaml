@@ -69,8 +69,10 @@ regles:
       duree_min: 30m
     cause_probable: Pilote manquant, incompatible ou périphérique défaillant
     explication_simple: >
-      Un périphérique de votre PC ne fonctionne pas correctement. Le détail est visible dans l'inventaire.
-    explication_technique: Au moins un Win32_PnPEntity avec ConfigManagerErrorCode différent de 0.
+      Un périphérique de votre PC ne fonctionne pas correctement, souvent faute de pilote.
+      L'inventaire indique lequel, pourquoi, et le fabricant chez qui trouver le pilote.
+    explication_technique: Au moins un Win32_PnPEntity avec ConfigManagerErrorCode différent de 0 (hors 22, désactivé, et 45, débranché).
+    corrections: [ACT-SYS-DEVICE-RESCAN, ACT-SYS-DRIVER-INSTALL, ACT-SYS-GUIDE-DRIVER]
 
   - id: SYS-SVC-001
     domaine: systeme

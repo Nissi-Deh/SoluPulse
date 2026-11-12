@@ -91,6 +91,11 @@ public static class ActionIds
     public const string GuideRecoveryDrive = "ACT-SYS-GUIDE-RECOVERY-DRIVE";
     public const string GuideMemoryLeak = "ACT-SYS-GUIDE-MEMORY-LEAK";
 
+    // Pilotes
+    public const string RescanDevices = "ACT-SYS-DEVICE-RESCAN";
+    public const string InstallDriver = "ACT-SYS-DRIVER-INSTALL";
+    public const string GuideDriver = "ACT-SYS-GUIDE-DRIVER";
+
     public static IReadOnlySet<string> All { get; } = typeof(ActionIds)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
         .Where(f => f.IsLiteral)
