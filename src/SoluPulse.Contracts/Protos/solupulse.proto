@@ -46,6 +46,9 @@ service AgentService {
   // Résultat d'un test de débit lancé depuis l'application, gardé dans l'historique.
   rpc RecordSpeedTest (SpeedTestResult) returns (google.protobuf.Empty);
 
+  // Relit les applications installées et leur dernière utilisation (après une désinstallation).
+  rpc RefreshApplications (google.protobuf.Empty) returns (google.protobuf.Empty);
+
   // Captures du système : points de restauration Windows.
   rpc ListSnapshots (google.protobuf.Empty) returns (SnapshotList);
   rpc CreateSnapshot (google.protobuf.Empty) returns (SnapshotReply);

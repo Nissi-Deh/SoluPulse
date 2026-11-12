@@ -61,6 +61,7 @@ public sealed partial class MainViewModel : ObservableObject
         Snapshots = new SnapshotsViewModel(client, this);
         Network = new NetworkViewModel(client);
         DeviceTests = new DeviceTestsViewModel(client);
+        Apps = new AppsViewModel(client);
         Settings = new SettingsViewModel(client, this);
         Navigation =
         [
@@ -70,6 +71,7 @@ public sealed partial class MainViewModel : ObservableObject
             new("Historique", Icons.History, History),
             new("Journal des corrections", Icons.Journal, Journal),
             new("Réseau", Icons.Network, Network),
+            new("Applications", Icons.Apps, Apps),
             new("Tests du matériel", Icons.Tests, DeviceTests),
             new("Inventaire système", Icons.Inventory, Inventory),
             new("Captures du système", Icons.Snapshot, Snapshots),
@@ -109,6 +111,8 @@ public sealed partial class MainViewModel : ObservableObject
     public NetworkViewModel Network { get; }
 
     public DeviceTestsViewModel DeviceTests { get; }
+
+    public AppsViewModel Apps { get; }
 
     public SettingsViewModel Settings { get; }
 

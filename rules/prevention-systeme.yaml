@@ -181,6 +181,21 @@ regles:
     explication_technique: Événement 2004 (Resource-Exhaustion-Detector) en 7 jours.
     corrections: [ACT-SYS-GUIDE-MEMORY-LEAK, ACT-STARTUP-DISABLE]
 
+  - id: SYS-APPS-001
+    domaine: systeme
+    titre: Des applications ne servent plus
+    gravite: information
+    condition:
+      metrique: applications.inutilisees
+      operateur: ">="
+      seuil: 3
+    cause_probable: Logiciels installés puis oubliés
+    explication_simple: >
+      Plusieurs applications n'ont pas été ouvertes depuis plus de six mois. Elles prennent de la
+      place et peuvent se lancer au démarrage ou garder des failles. La page « Applications » les
+      liste et permet de les désinstaller.
+    explication_technique: Programmes dont le dernier lancement connu (dossier Prefetch) date de plus de 180 jours, ou installés depuis plus de 90 jours sans lancement ; pilotes, composants de Windows et antivirus exclus.
+
   - id: SYS-BACKUP-001
     domaine: systeme
     titre: Aucune sauvegarde de vos fichiers

@@ -282,6 +282,17 @@ internal sealed class AgentGrpcService(
             : new WeeklySummaryReply { Available = false };
     }
 
+    public override async Task<Empty> RefreshApplications(Empty request, ServerCallContext context)
+    {
+        authenticator.Authenticate(context);
+        if (runner.Collectors.FirstOrDefault(c => c.Name == Platform.Windows.Collectors.AppUsageCollector.CollectorName) is { } collector)
+        {
+            await runner.RunCollectorAsync(collector, waitIfRunning: true, context.CancellationToken);
+        }
+
+        return new Empty();
+    }
+
     /// <summary>Les valeurs sont bornées : l'historique ne garde que des mesures plausibles.</summary>
     public override async Task<Empty> RecordSpeedTest(SpeedTestResult request, ServerCallContext context)
     {

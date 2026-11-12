@@ -184,7 +184,7 @@ public sealed partial class InventoryViewModel(AgentClient client) : PageViewMod
     };
 
     // Affichés sous forme de fiches sur la page « Mon PC ».
-    private static readonly HashSet<string> ShownOnComputerPage = new(StringComparer.Ordinal) { "materiel", "securite", "capteurs" };
+    private static readonly HashSet<string> ShownOnComputerPage = new(StringComparer.Ordinal) { "materiel", "securite", "capteurs", "applications" };
 
     public override string Title => "Inventaire système";
 

@@ -27,6 +27,7 @@ public static class WindowsPlatform
         new ProcessActivityCollector(timeProvider),
         new UsbScanCollector(timeProvider),
         new RansomwareCollector(timeProvider),
+        new AppUsageCollector(timeProvider),
     ];
 
     public static IReadOnlyList<ISystemAction> Actions() =>
